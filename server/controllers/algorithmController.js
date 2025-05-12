@@ -1,13 +1,13 @@
 const asyncHandler = require("express-async-handler");
 const Algorithm = require("../models/Algorithm");
 const generateUniqueSlug = require("../utils/generateUniqueSlug");
-
 const categoriesList = require("../utils/categories");
 
 const createAlgorithm = async (req, res) => {
   try {
     const {
       title,
+      problemStatement,
       category,
       difficulty,
       intuition,
@@ -18,17 +18,17 @@ const createAlgorithm = async (req, res) => {
       codes,
     } = req.body;
 
+    if (!problemStatement) {
+      return res.status(400).json({ message: "Problem statement is required." });
+    }
+
     if (!Array.isArray(category) || category.length === 0) {
-      return res
-        .status(400)
-        .json({ message: "Category must be a non-empty array." });
+      return res.status(400).json({ message: "Category must be a non-empty array." });
     }
 
     const invalid = category.filter((cat) => !categoriesList.includes(cat));
     if (invalid.length > 0) {
-      return res
-        .status(400)
-        .json({ message: `Invalid categories: ${invalid.join(", ")}` });
+      return res.status(400).json({ message: `Invalid categories: ${invalid.join(", ")}` });
     }
 
     const slug = await generateUniqueSlug(title);
@@ -36,6 +36,7 @@ const createAlgorithm = async (req, res) => {
     const algorithm = new Algorithm({
       title,
       slug,
+      problemStatement,
       category,
       difficulty,
       intuition,
@@ -51,11 +52,56 @@ const createAlgorithm = async (req, res) => {
 
     res.status(201).json(createdAlgorithm);
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Failed to create algorithm", error: error.message });
+    res.status(500).json({ message: "Failed to create algorithm", error: error.message });
   }
 };
+
+// Other handlers remain unchanged except for ensuring "problemStatement" is handled properly in update
+
+const updateAlgorithm = asyncHandler(async (req, res) => {
+  const algorithm = await Algorithm.findOne({ slug: req.params.slug });
+
+  if (!algorithm) {
+    res.status(404);
+    throw new Error("Algorithm not found");
+  }
+
+  if (
+    algorithm.createdBy.toString() !== req.user._id.toString() &&
+    req.user.role !== "admin"
+  ) {
+    res.status(403);
+    throw new Error("Not authorized to update this algorithm");
+  }
+
+  const {
+    title,
+    problemStatement,
+    category,
+    difficulty,
+    intuition,
+    explanation,
+    complexity,
+    tags,
+    links,
+    codes,
+  } = req.body;
+
+  algorithm.title = title || algorithm.title;
+  algorithm.problemStatement = problemStatement || algorithm.problemStatement;
+  algorithm.category = category || algorithm.category;
+  algorithm.difficulty = difficulty || algorithm.difficulty;
+  algorithm.intuition = intuition || algorithm.intuition;
+  algorithm.explanation = explanation || algorithm.explanation;
+  algorithm.complexity = complexity || algorithm.complexity;
+  algorithm.tags = tags || algorithm.tags;
+  algorithm.links = links || algorithm.links;
+  algorithm.codes = codes || algorithm.codes;
+
+  const updatedAlgorithm = await algorithm.save();
+
+  res.json(updatedAlgorithm);
+});
 
 const getAllAlgorithms = asyncHandler(async (req, res) => {
   const {
@@ -112,31 +158,6 @@ const getAlgorithmBySlug = asyncHandler(async (req, res) => {
   }
 
   res.json(algorithm);
-});
-
-const updateAlgorithm = asyncHandler(async (req, res) => {
-  const algorithm = await Algorithm.findOne({ slug: req.params.slug });
-
-  if (!algorithm) {
-    res.status(404);
-    throw new Error("Algorithm not found");
-  }
-
-  if (
-    algorithm.createdBy.toString() !== req.user._id.toString() &&
-    req.user.role !== "admin"
-  ) {
-    res.status(403);
-    throw new Error("Not authorized to update this algorithm");
-  }
-
-  const updatedAlgorithm = await Algorithm.findByIdAndUpdate(
-    algorithm._id,
-    { ...req.body },
-    { new: true }
-  );
-
-  res.json(updatedAlgorithm);
 });
 
 const deleteAlgorithm = asyncHandler(async (req, res) => {

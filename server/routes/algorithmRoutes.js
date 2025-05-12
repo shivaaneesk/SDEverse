@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+
 const {
   createAlgorithm,
   getAllAlgorithms,
@@ -10,24 +11,22 @@ const {
   getAllCategories,
   searchAlgorithms,
 } = require("../controllers/algorithmController");
+
 const { protect, admin } = require("../middleware/authMiddleware");
+const validateAlgorithm = require("../middleware/validateAlgorithm");
 
-// Public routes
-router.get("/", getAllAlgorithms); // Get all algorithms with filters and pagination
+// --- Public routes ---
+router.get("/", getAllAlgorithms); // List with filters/pagination
+router.get("/categories", getAllCategories); // Fetch category list
+router.get("/search", searchAlgorithms); // Filtered search
+router.get("/:slug", getAlgorithmBySlug); // Single algorithm by slug
 
+// --- Protected routes ---
+router.post("/", protect, validateAlgorithm, createAlgorithm); // Create
+router.put("/:slug", protect, validateAlgorithm, updateAlgorithm); // Update
+router.delete("/:slug", protect, admin, deleteAlgorithm); // Delete
 
-// Route to fetch all categories
-router.get("/categories", getAllCategories);
-// Search algorithms with filters
-router.get("/search", searchAlgorithms);
-
-router.get("/:slug", getAlgorithmBySlug); // Get algorithm by slug
-
-// Protected routes
-router.post("/", protect, createAlgorithm); // Create a new algorithm (Admin or Owner)
-router.put("/:slug", protect, updateAlgorithm); // Update algorithm (Admin or Owner)
-router.delete("/:slug", protect, admin, deleteAlgorithm); // Delete algorithm (Admin)
-
-// Upvote and Downvote
+// --- Voting ---
 router.post("/:slug/vote", protect, voteAlgorithm);
+
 module.exports = router;

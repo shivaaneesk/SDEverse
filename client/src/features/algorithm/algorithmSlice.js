@@ -22,11 +22,19 @@ const initialState = {
   error: null,
 };
 
+// Utility to get the token from localStorage or Redux store
+const getAuthToken = (getState) => {
+  return getState().auth?.token || localStorage.getItem("authToken");
+};
+
+// Async thunks with token in headers
+
 export const createNewAlgorithm = createAsyncThunk(
   "algorithm/createNewAlgorithm",
-  async (algorithmData, { rejectWithValue }) => {
+  async (algorithmData, { getState, rejectWithValue }) => {
     try {
-      const response = await createAlgorithm(algorithmData);
+      const token = getAuthToken(getState);
+      const response = await createAlgorithm(algorithmData, token); // Pass token to the API call
       return response;
     } catch (error) {
       return rejectWithValue(error.response?.data || "Something went wrong");
@@ -36,9 +44,10 @@ export const createNewAlgorithm = createAsyncThunk(
 
 export const fetchAlgorithms = createAsyncThunk(
   "algorithm/fetchAlgorithms",
-  async (params, { rejectWithValue }) => {
+  async (params, { getState, rejectWithValue }) => {
     try {
-      const response = await getAllAlgorithms(params);
+      const token = getAuthToken(getState);
+      const response = await getAllAlgorithms(params, token); // Pass token to the API call
       return response;
     } catch (error) {
       return rejectWithValue(error.response?.data || "Something went wrong");
@@ -48,9 +57,10 @@ export const fetchAlgorithms = createAsyncThunk(
 
 export const fetchAlgorithmBySlug = createAsyncThunk(
   "algorithm/fetchAlgorithmBySlug",
-  async (slug, { rejectWithValue }) => {
+  async (slug, { getState, rejectWithValue }) => {
     try {
-      const response = await getAlgorithmBySlug(slug);
+      const token = getAuthToken(getState);
+      const response = await getAlgorithmBySlug(slug, token); // Pass token to the API call
       return response;
     } catch (error) {
       return rejectWithValue(error.response?.data || "Something went wrong");
@@ -60,9 +70,10 @@ export const fetchAlgorithmBySlug = createAsyncThunk(
 
 export const updateExistingAlgorithm = createAsyncThunk(
   "algorithm/updateExistingAlgorithm",
-  async ({ slug, algorithmData }, { rejectWithValue }) => {
+  async ({ slug, algorithmData }, { getState, rejectWithValue }) => {
     try {
-      const response = await updateAlgorithm(slug, algorithmData);
+      const token = getAuthToken(getState); // Retrieve token from state or localStorage
+      const response = await updateAlgorithm(slug, algorithmData, token); // Pass token to the API call
       return response;
     } catch (error) {
       return rejectWithValue(error.response?.data || "Something went wrong");
@@ -72,9 +83,10 @@ export const updateExistingAlgorithm = createAsyncThunk(
 
 export const deleteExistingAlgorithm = createAsyncThunk(
   "algorithm/deleteExistingAlgorithm",
-  async (slug, { rejectWithValue }) => {
+  async (slug, { getState, rejectWithValue }) => {
     try {
-      const response = await deleteAlgorithm(slug);
+      const token = getAuthToken(getState); // Retrieve token from state or localStorage
+      const response = await deleteAlgorithm(slug, token); // Pass token to the API call
       return response;
     } catch (error) {
       return rejectWithValue(error.response?.data || "Something went wrong");
@@ -84,9 +96,10 @@ export const deleteExistingAlgorithm = createAsyncThunk(
 
 export const voteOnAlgorithm = createAsyncThunk(
   "algorithm/voteOnAlgorithm",
-  async ({ slug, voteData, token }, { rejectWithValue }) => {
+  async ({ slug, voteData }, { getState, rejectWithValue }) => {
     try {
-      const response = await voteAlgorithm(slug, voteData, token);
+      const token = getAuthToken(getState); // Retrieve token from state or localStorage
+      const response = await voteAlgorithm(slug, voteData, token); // Pass token to the API call
       return response;
     } catch (error) {
       return rejectWithValue(error.response?.data || "Something went wrong");
@@ -108,9 +121,10 @@ export const fetchCategories = createAsyncThunk(
 
 export const searchAllAlgorithms = createAsyncThunk(
   "algorithm/searchAllAlgorithms",
-  async (params, { rejectWithValue }) => {
+  async (params, { getState, rejectWithValue }) => {
     try {
-      const response = await searchAlgorithms(params);
+      const token = getAuthToken(getState); // Retrieve token from state or localStorage
+      const response = await searchAlgorithms(params, token); // Pass token to the API call
       return response;
     } catch (error) {
       return rejectWithValue(error.response?.data || "Something went wrong");

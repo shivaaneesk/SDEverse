@@ -12,11 +12,10 @@ const codeSchema = new mongoose.Schema(
 const algorithmSchema = new mongoose.Schema(
   {
     title: { type: String, required: true, unique: true, trim: true },
-    slug: {
-      type: String,
-      required: true,
-      unique: true,
-    },
+    slug: { type: String, required: true, unique: true },
+
+    problemStatement: { type: String, required: true, trim: true },
+
     category: {
       type: [String],
       enum: categories,
@@ -28,35 +27,36 @@ const algorithmSchema = new mongoose.Schema(
       default: "Medium",
       index: true,
     },
+
     intuition: { type: String, required: true },
     explanation: { type: String, required: true },
+
     complexity: {
       time: { type: String, required: true },
       space: { type: String, required: true },
     },
+
     tags: [{ type: String, trim: true, index: true }],
     links: [{ type: String }],
     codes: [codeSchema],
+
     contributions: [
       { type: mongoose.Schema.Types.ObjectId, ref: "Contribution" },
     ],
+
     upvotes: { type: Number, default: 0 },
     downvotes: { type: Number, default: 0 },
     upvotedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     downvotedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+
     views: { type: Number, default: 0 },
     viewedBy: [
       {
-        userId: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "User",
-        },
-        viewedAt: {
-          type: Date,
-          default: Date.now,
-        },
+        userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+        viewedAt: { type: Date, default: Date.now },
       },
     ],
+
     isVerified: { type: Boolean, default: false },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
@@ -67,15 +67,14 @@ const algorithmSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Full‑text search index
 algorithmSchema.index({
   title: "text",
+  problemStatement: "text",
   intuition: "text",
   explanation: "text",
   tags: "text",
 });
 
-// Compound index for filtering
 algorithmSchema.index({ category: 1, difficulty: 1 });
 
 module.exports = mongoose.model("Algorithm", algorithmSchema);

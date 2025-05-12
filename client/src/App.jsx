@@ -9,7 +9,8 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import { useDispatch } from "react-redux";
 import { getMe } from "./features/auth/authSlice";
-
+import AdminAlgorithms from "./pages/AdminAlgorithms";
+import AdminRoute from "./components/AdminRoute";
 const router = createBrowserRouter([
   {
     path: "/login",
@@ -34,6 +35,14 @@ const router = createBrowserRouter([
       {
         path: "algorithms/:slug",
         element: <AlgorithmDetail />,
+      },
+      {
+        path: "admin/manage-algorithms",
+        element: (
+          <AdminRoute>
+            <AdminAlgorithms />
+          </AdminRoute>
+        ),
       },
     ],
   },

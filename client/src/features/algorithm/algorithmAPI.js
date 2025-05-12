@@ -1,8 +1,13 @@
 import api from "../../utils/api";
 
-export const createAlgorithm = async (data) => {
+// Create a new algorithm
+export const createAlgorithm = async (data, token) => {
   try {
-    const response = await api.post("/algorithms", data);
+    const response = await api.post("/algorithms", data, {
+      headers: {
+        Authorization: `Bearer ${token}`, // Include the token in the header
+      },
+    });
     return response.data;
   } catch (error) {
     console.error("Error creating algorithm:", error);
@@ -10,9 +15,15 @@ export const createAlgorithm = async (data) => {
   }
 };
 
-export const getAllAlgorithms = async (params) => {
+// Fetch all algorithms with optional filters
+export const getAllAlgorithms = async (params, token) => {
   try {
-    const response = await api.get("/algorithms", { params });
+    const response = await api.get("/algorithms", {
+      params,
+      headers: {
+        Authorization: `Bearer ${token}`, // Include the token in the header
+      },
+    });
     return response.data;
   } catch (error) {
     console.error("Error fetching algorithms:", error);
@@ -20,9 +31,14 @@ export const getAllAlgorithms = async (params) => {
   }
 };
 
-export const getAlgorithmBySlug = async (slug) => {
+// Get algorithm by slug
+export const getAlgorithmBySlug = async (slug, token) => {
   try {
-    const response = await api.get(`/algorithms/${slug}`);
+    const response = await api.get(`/algorithms/${slug}`, {
+      headers: {
+        Authorization: `Bearer ${token}`, // Include the token in the header
+      },
+    });
     return response.data;
   } catch (error) {
     console.error("Error fetching algorithm by slug:", error);
@@ -30,9 +46,14 @@ export const getAlgorithmBySlug = async (slug) => {
   }
 };
 
-export const updateAlgorithm = async (slug, data) => {
+// Update an algorithm
+export const updateAlgorithm = async (slug, data, token) => {
   try {
-    const response = await api.put(`/algorithms/${slug}`, data);
+    const response = await api.put(`/algorithms/${slug}`, data, {
+      headers: {
+        Authorization: `Bearer ${token}`, // Include the token in the header
+      },
+    });
     return response.data;
   } catch (error) {
     console.error("Error updating algorithm:", error);
@@ -40,9 +61,14 @@ export const updateAlgorithm = async (slug, data) => {
   }
 };
 
-export const deleteAlgorithm = async (slug) => {
+// Delete an algorithm
+export const deleteAlgorithm = async (slug, token) => {
   try {
-    const response = await api.delete(`/algorithms/${slug}`);
+    const response = await api.delete(`/algorithms/${slug}`, {
+      headers: {
+        Authorization: `Bearer ${token}`, // Include the token in the header
+      },
+    });
     return response.data;
   } catch (error) {
     console.error("Error deleting algorithm:", error);
@@ -50,6 +76,7 @@ export const deleteAlgorithm = async (slug) => {
   }
 };
 
+// Vote on an algorithm
 export const voteAlgorithm = async (slug, voteData, token) => {
   const { voteType, userId } = voteData;
 
@@ -57,19 +84,24 @@ export const voteAlgorithm = async (slug, voteData, token) => {
     throw new Error("Missing voteType or userId");
   }
 
-  const response = await api.post(
-    `/algorithms/${slug}/vote`,
-    { type: voteType, userId },
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
-
-  return response.data;
+  try {
+    const response = await api.post(
+      `/algorithms/${slug}/vote`,
+      { type: voteType, userId },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`, // Include the token in the header
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error voting on algorithm:", error);
+    throw error;
+  }
 };
 
+// Fetch categories
 export const getCategories = async () => {
   try {
     const response = await api.get("/algorithms/categories");
@@ -80,9 +112,15 @@ export const getCategories = async () => {
   }
 };
 
-export const searchAlgorithms = async (params) => {
+// Search algorithms with filters
+export const searchAlgorithms = async (params, token) => {
   try {
-    const response = await api.get("/algorithms/search", { params });
+    const response = await api.get("/algorithms/search", {
+      params,
+      headers: {
+        Authorization: `Bearer ${token}`, // Include the token in the header
+      },
+    });
     return response.data;
   } catch (error) {
     console.error("Error searching algorithms:", error);
