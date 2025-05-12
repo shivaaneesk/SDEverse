@@ -32,6 +32,8 @@ const getAuthToken = (getState) => {
 export const createNewAlgorithm = createAsyncThunk(
   "algorithm/createNewAlgorithm",
   async (algorithmData, { getState, rejectWithValue }) => {
+    console.log("Creating algorithm with data:", algorithmData);
+
     try {
       const token = getAuthToken(getState);
       const response = await createAlgorithm(algorithmData, token); // Pass token to the API call
