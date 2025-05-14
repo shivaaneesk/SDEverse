@@ -1,5 +1,5 @@
 const asyncHandler = require("express-async-handler");
-const User = require("../models/User");
+const User = require("../models/user.model");
 
 const getAllUsers = asyncHandler(async (req, res) => {
   const users = await User.find().select("-password");

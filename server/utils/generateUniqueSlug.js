@@ -1,5 +1,5 @@
 const slugify = require('slugify');
-const Algorithm = require('../models/Algorithm');
+const Algorithm = require('../models/algorithm.model');
 
 const generateUniqueSlug = async (title) => {
   let baseSlug = slugify(title, { lower: true, strict: true });

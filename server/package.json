@@ -1,7 +1,7 @@
 {
   "name": "server",
   "version": "1.0.0",
-  "description": "A modern, scalable backend for DSAverse, a collaborative algorithm-sharing platform.",
+  "description": "A modern, scalable backend for SDEverse, a collaborative algorithm-sharing platform.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

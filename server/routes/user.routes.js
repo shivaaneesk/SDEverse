@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const { getAllUsers, getUserById, deleteUser, updateUserRole } = require('../controllers/userController');
-const { protect, admin } = require('../middleware/authMiddleware');
+const { getAllUsers, getUserById, deleteUser, updateUserRole } = require('../controllers/user.controller');
+const { protect, admin } = require('../middleware/auth.middleware');
 
 // Admin-only routes
 router.get('/', protect, admin, getAllUsers);

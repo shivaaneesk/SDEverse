@@ -13,7 +13,7 @@ const commentSchema = new mongoose.Schema(
   {
     parentType: {
       type: String,
-      enum: ["Algorithm", "Contribution"],
+      enum: ["Algorithm", "Proposal"],
       required: true,
     },
     parentId: {
@@ -23,7 +23,7 @@ const commentSchema = new mongoose.Schema(
     },
     user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     text: { type: String, required: true },
-    codeRef: { type: String }, // e.g. \"line 3 in JS snippet\"
+    codeRef: { type: String }, // e.g. "line 3 in JS snippet"
     replies: [replySchema],
   },
   { timestamps: true }

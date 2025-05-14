@@ -11,6 +11,8 @@ import { useDispatch } from "react-redux";
 import { getMe } from "./features/auth/authSlice";
 import AdminAlgorithms from "./pages/AdminAlgorithms";
 import AdminRoute from "./components/AdminRoute";
+import ContributeToAlgorithm from "./pages/ContributeToAlgorithm";
+
 const router = createBrowserRouter([
   {
     path: "/login",
@@ -22,7 +24,7 @@ const router = createBrowserRouter([
   },
   {
     path: "/",
-    element: <Layout />, // This wraps the children pages
+    element: <Layout />,
     children: [
       {
         index: true,
@@ -35,6 +37,10 @@ const router = createBrowserRouter([
       {
         path: "algorithms/:slug",
         element: <AlgorithmDetail />,
+      },
+      {
+        path: "algorithms/:slug/contribute",
+        element: <ContributeToAlgorithm />,
       },
       {
         path: "admin/manage-algorithms",
@@ -54,11 +60,19 @@ function App() {
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (token) {
-      dispatch(getMe(token));
-    }
-    const timer = setTimeout(() => setIsLoading(false), 2000);
-    return () => clearTimeout(timer);
+
+    const fetchUser = async () => {
+      if (token) {
+        try {
+          await dispatch(getMe(token)).unwrap();
+        } catch (error) {
+          console.error("Failed to authenticate user:", error);
+        }
+      }
+      setIsLoading(false);
+    };
+
+    fetchUser();
   }, [dispatch]);
 
   return isLoading ? (

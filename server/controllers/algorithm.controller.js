@@ -1,63 +1,64 @@
 const asyncHandler = require("express-async-handler");
-const Algorithm = require("../models/Algorithm");
+const Algorithm = require("../models/algorithm.model");
 const generateUniqueSlug = require("../utils/generateUniqueSlug");
 const categoriesList = require("../utils/categories");
 
-const createAlgorithm = async (req, res) => {
-  try {
-    const {
-      title,
-      problemStatement,
-      category,
-      difficulty,
-      intuition,
-      explanation,
-      complexity,
-      tags,
-      links,
-      codes,
-    } = req.body;
+// **Admin only**: Algorithm Creation
+const createAlgorithm = asyncHandler(async (req, res) => {
+  const {
+    title,
+    problemStatement,
+    category,
+    difficulty,
+    intuition,
+    explanation,
+    complexity,
+    tags,
+    links,
+    codes,
+  } = req.body;
 
-    if (!problemStatement) {
-      return res.status(400).json({ message: "Problem statement is required." });
-    }
-
-    if (!Array.isArray(category) || category.length === 0) {
-      return res.status(400).json({ message: "Category must be a non-empty array." });
-    }
-
-    const invalid = category.filter((cat) => !categoriesList.includes(cat));
-    if (invalid.length > 0) {
-      return res.status(400).json({ message: `Invalid categories: ${invalid.join(", ")}` });
-    }
-
-    const slug = await generateUniqueSlug(title);
-
-    const algorithm = new Algorithm({
-      title,
-      slug,
-      problemStatement,
-      category,
-      difficulty,
-      intuition,
-      explanation,
-      complexity,
-      tags,
-      links,
-      codes,
-      createdBy: req.user._id,
-    });
-
-    const createdAlgorithm = await algorithm.save();
-
-    res.status(201).json(createdAlgorithm);
-  } catch (error) {
-    res.status(500).json({ message: "Failed to create algorithm", error: error.message });
+  if (!problemStatement) {
+    return res.status(400).json({ message: "Problem statement is required." });
   }
-};
 
-// Other handlers remain unchanged except for ensuring "problemStatement" is handled properly in update
+  if (!Array.isArray(category) || category.length === 0) {
+    return res
+      .status(400)
+      .json({ message: "Category must be a non-empty array." });
+  }
 
+  const invalid = category.filter((cat) => !categoriesList.includes(cat));
+  if (invalid.length > 0) {
+    return res
+      .status(400)
+      .json({ message: `Invalid categories: ${invalid.join(", ")}` });
+  }
+
+  const slug = await generateUniqueSlug(title);
+
+  const algorithm = new Algorithm({
+    title,
+    slug,
+    problemStatement,
+    category,
+    difficulty,
+    intuition,
+    explanation,
+    complexity,
+    tags,
+    links,
+    codes,
+    createdBy: req.user._id,
+    isPublished: true, // Admin-created algorithm is automatically published
+  });
+
+  const createdAlgorithm = await algorithm.save();
+
+  res.status(201).json(createdAlgorithm);
+});
+
+// **Admin or Algorithm Creator**: Update Algorithm
 const updateAlgorithm = asyncHandler(async (req, res) => {
   const algorithm = await Algorithm.findOne({ slug: req.params.slug });
 
@@ -66,6 +67,7 @@ const updateAlgorithm = asyncHandler(async (req, res) => {
     throw new Error("Algorithm not found");
   }
 
+  // Check if the user is the creator or an admin
   if (
     algorithm.createdBy.toString() !== req.user._id.toString() &&
     req.user.role !== "admin"
@@ -87,6 +89,7 @@ const updateAlgorithm = asyncHandler(async (req, res) => {
     codes,
   } = req.body;
 
+  // Update algorithm properties
   algorithm.title = title || algorithm.title;
   algorithm.problemStatement = problemStatement || algorithm.problemStatement;
   algorithm.category = category || algorithm.category;
@@ -103,6 +106,7 @@ const updateAlgorithm = asyncHandler(async (req, res) => {
   res.json(updatedAlgorithm);
 });
 
+// **Both Admin & User**: Get All Algorithms
 const getAllAlgorithms = asyncHandler(async (req, res) => {
   const {
     page = 1,
@@ -113,9 +117,15 @@ const getAllAlgorithms = asyncHandler(async (req, res) => {
   } = req.query;
 
   const filters = {};
+
   if (category) filters.category = category;
   if (difficulty) filters.difficulty = difficulty;
   if (search) filters.$text = { $search: search };
+
+  // Admins can see all algorithms (published and proposed), users only published
+  if (req.user.role !== "admin") {
+    filters.isPublished = true; // Only show published algorithms for non-admins
+  }
 
   const algorithms = await Algorithm.find(filters)
     .skip((page - 1) * limit)
@@ -132,6 +142,7 @@ const getAllAlgorithms = asyncHandler(async (req, res) => {
   });
 });
 
+// **Both Admin & User**: Get Algorithm By Slug
 const getAlgorithmBySlug = asyncHandler(async (req, res) => {
   const algorithm = await Algorithm.findOne({ slug: req.params.slug });
 
@@ -140,8 +151,8 @@ const getAlgorithmBySlug = asyncHandler(async (req, res) => {
     throw new Error("Algorithm not found");
   }
 
+  // Logic for tracking user views
   const user = req.user;
-
   if (user) {
     const alreadyViewedToday = algorithm.viewedBy?.some(
       (entry) =>
@@ -154,12 +165,12 @@ const getAlgorithmBySlug = asyncHandler(async (req, res) => {
       algorithm.viewedBy.push({ userId: user._id, viewedAt: new Date() });
       await algorithm.save();
     }
-  } else {
   }
 
   res.json(algorithm);
 });
 
+// **Admin only**: Soft Delete Algorithm
 const deleteAlgorithm = asyncHandler(async (req, res) => {
   const algorithm = await Algorithm.findOne({ slug: req.params.slug });
 
@@ -173,11 +184,17 @@ const deleteAlgorithm = asyncHandler(async (req, res) => {
     throw new Error("Not authorized to delete this algorithm");
   }
 
-  await Algorithm.deleteOne({ _id: algorithm._id });
+  // Soft delete logic
+  algorithm.isDeleted = true;
+  algorithm.deletedAt = Date.now();
+  algorithm.deletedBy = req.user._id;
 
-  res.json({ message: "Algorithm removed successfully" });
+  await algorithm.save();
+
+  res.json({ message: "Algorithm soft-deleted successfully" });
 });
 
+// **User only**: Vote Algorithm (Upvote/Downvote)
 const voteAlgorithm = asyncHandler(async (req, res) => {
   const { type } = req.body || {};
   const userId = req.user._id;
@@ -253,6 +270,7 @@ const voteAlgorithm = asyncHandler(async (req, res) => {
   });
 });
 
+// **Both Admin & User**: Get All Categories
 const getAllCategories = (req, res) => {
   try {
     res.status(200).json({
@@ -268,6 +286,7 @@ const getAllCategories = (req, res) => {
   }
 };
 
+// **Both Admin & User**: Search Algorithms
 const searchAlgorithms = asyncHandler(async (req, res) => {
   const {
     q = "",

@@ -1,12 +1,12 @@
 const asyncHandler = require("express-async-handler");
-const Comment = require("../models/Comment");
-const Algorithm = require("../models/Algorithm");
-const Contribution = require("../models/Contribution");
+const Comment = require("../models/comment.model");
+const Algorithm = require("../models/algorithm.model");
+const Proposal = require("../models/proposal.model");
 
 const addComment = asyncHandler(async (req, res) => {
   const { parentType, parentId, text, codeRef } = req.body;
 
-  if (!["Algorithm", "Contribution"].includes(parentType)) {
+  if (!["Algorithm", "Proposal"].includes(parentType)) {
     res.status(400);
     throw new Error("Invalid parent type");
   }
@@ -14,8 +14,8 @@ const addComment = asyncHandler(async (req, res) => {
   let parent;
   if (parentType === "Algorithm") {
     parent = await Algorithm.findById(parentId);
-  } else if (parentType === "Contribution") {
-    parent = await Contribution.findById(parentId);
+  } else if (parentType === "Proposal") {
+    parent = await Proposal.findById(parentId);
   }
 
   if (!parent) {
@@ -39,7 +39,7 @@ const addComment = asyncHandler(async (req, res) => {
 const getCommentsByParent = asyncHandler(async (req, res) => {
   const { parentType, parentId } = req.params;
 
-  if (!["Algorithm", "Contribution"].includes(parentType)) {
+  if (!["Algorithm", "Proposal"].includes(parentType)) {
     res.status(400);
     throw new Error("Invalid parent type");
   }
@@ -47,8 +47,8 @@ const getCommentsByParent = asyncHandler(async (req, res) => {
   let parent;
   if (parentType === "Algorithm") {
     parent = await Algorithm.findById(parentId);
-  } else if (parentType === "Contribution") {
-    parent = await Contribution.findById(parentId);
+  } else if (parentType === "Proposal") {
+    parent = await Proposal.findById(parentId);
   }
 
   if (!parent) {
@@ -56,7 +56,7 @@ const getCommentsByParent = asyncHandler(async (req, res) => {
     throw new Error(`${parentType} not found`);
   }
 
-  const comments = await Comment.find({ parentType, parentId });
+  const comments = await Comment.find({ parentType, parentId }).populate("user", "name").lean();
 
   res.json(comments);
 });
@@ -80,9 +80,7 @@ const addReplyToComment = asyncHandler(async (req, res) => {
   comment.replies.push(newReply);
   await comment.save();
 
-  res
-    .status(201)
-    .json({ message: "Reply added successfully", replies: comment.replies });
+  res.status(201).json({ message: "Reply added successfully", replies: comment.replies });
 });
 
 const deleteComment = asyncHandler(async (req, res) => {
@@ -93,10 +91,7 @@ const deleteComment = asyncHandler(async (req, res) => {
     throw new Error("Comment not found");
   }
 
-  if (
-    comment.user.toString() !== req.user._id.toString() &&
-    req.user.role !== "admin"
-  ) {
+  if (comment.user.toString() !== req.user._id.toString() && req.user.role !== "admin") {
     res.status(403);
     throw new Error("Not authorized to delete this comment");
   }

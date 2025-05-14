@@ -2,8 +2,7 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import {
   addContribution,
   getContributionsByAlgorithm,
-  upvoteContribution,
-  downvoteContribution,
+  voteContribution,
   deleteContribution,
 } from "./contributionAPI";
 
@@ -13,147 +12,115 @@ const initialState = {
   error: null,
 };
 
+// Create a new contribution
 export const createContribution = createAsyncThunk(
   "contribution/createContribution",
-  async (contributionData, { rejectWithValue }) => {
+  async (contributionData, { rejectWithValue, getState }) => {
     try {
-      const response = await addContribution(contributionData);
-      return response;
+      const token = getState().auth.token;
+      return await addContribution(contributionData, token);
     } catch (error) {
-      return rejectWithValue(error.response.data);
+      return rejectWithValue(error.response?.data || "Error creating contribution");
     }
   }
 );
 
+// Fetch contributions by algorithm ID
 export const fetchContributionsByAlgorithm = createAsyncThunk(
   "contribution/fetchContributionsByAlgorithm",
   async (algorithmId, { rejectWithValue }) => {
     try {
-      const response = await getContributionsByAlgorithm(algorithmId);
-      return response;
+      return await getContributionsByAlgorithm(algorithmId);
     } catch (error) {
-      return rejectWithValue(error.response.data);
+      return rejectWithValue(error.response?.data || "Error fetching contributions");
     }
   }
 );
 
-export const upvoteContributionAction = createAsyncThunk(
-  "contribution/upvoteContribution",
-  async (id, { rejectWithValue }) => {
+// Vote on a contribution
+export const voteContributionAction = createAsyncThunk(
+  "contribution/voteContribution",
+  async ({ id, voteType }, { rejectWithValue, getState }) => {
     try {
-      const response = await upvoteContribution(id);
-      return response;
+      const token = getState().auth.token;
+      return await voteContribution(id, voteType, token);
     } catch (error) {
-      return rejectWithValue(error.response.data);
+      return rejectWithValue(error.response?.data || "Error voting on contribution");
     }
   }
 );
 
-export const downvoteContributionAction = createAsyncThunk(
-  "contribution/downvoteContribution",
-  async (id, { rejectWithValue }) => {
-    try {
-      const response = await downvoteContribution(id);
-      return response;
-    } catch (error) {
-      return rejectWithValue(error.response.data);
-    }
-  }
-);
-
+// Delete a contribution
 export const removeContribution = createAsyncThunk(
   "contribution/removeContribution",
-  async (id, { rejectWithValue }) => {
+  async (id, { rejectWithValue, getState }) => {
     try {
-      const response = await deleteContribution(id);
-      return response;
+      const token = getState().auth.token;
+      return await deleteContribution(id, token);
     } catch (error) {
-      return rejectWithValue(error.response.data);
+      return rejectWithValue(error.response?.data || "Error deleting contribution");
     }
   }
 );
 
+// Contribution slice
 const contributionSlice = createSlice({
   name: "contribution",
   initialState,
   reducers: {},
   extraReducers: (builder) => {
-    builder.addCase(fetchContributionsByAlgorithm.pending, (state) => {
-      state.loading = true;
-    });
-    builder.addCase(
-      fetchContributionsByAlgorithm.fulfilled,
-      (state, action) => {
+    builder
+      .addCase(fetchContributionsByAlgorithm.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(fetchContributionsByAlgorithm.fulfilled, (state, action) => {
         state.loading = false;
         state.contributions = action.payload;
-      }
-    );
-    builder.addCase(fetchContributionsByAlgorithm.rejected, (state, action) => {
-      state.loading = false;
-      state.error = action.payload || "Error fetching contributions";
-    });
+      })
+      .addCase(fetchContributionsByAlgorithm.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
 
-    builder.addCase(createContribution.pending, (state) => {
-      state.loading = true;
-    });
-    builder.addCase(createContribution.fulfilled, (state, action) => {
-      state.loading = false;
-      state.contributions.unshift(action.payload);
-    });
-    builder.addCase(createContribution.rejected, (state, action) => {
-      state.loading = false;
-      state.error = action.payload || "Error creating contribution";
-    });
+      .addCase(createContribution.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(createContribution.fulfilled, (state, action) => {
+        state.loading = false;
+        state.contributions.unshift(action.payload);
+      })
+      .addCase(createContribution.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
 
-    builder.addCase(upvoteContributionAction.pending, (state) => {
-      state.loading = true;
-    });
-    builder.addCase(upvoteContributionAction.fulfilled, (state, action) => {
-      state.loading = false;
-      const updatedContribution = state.contributions.find(
-        (contrib) => contrib._id === action.payload._id
-      );
-      if (updatedContribution) {
-        updatedContribution.upvotes = action.payload.upvotes;
-        updatedContribution.downvotes = action.payload.downvotes;
-      }
-    });
-    builder.addCase(upvoteContributionAction.rejected, (state, action) => {
-      state.loading = false;
-      state.error = action.payload || "Error upvoting contribution";
-    });
+      .addCase(voteContributionAction.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(voteContributionAction.fulfilled, (state, action) => {
+        state.loading = false;
+        const updated = action.payload;
+        const index = state.contributions.findIndex(c => c._id === updated._id);
+        if (index !== -1) {
+          state.contributions[index] = updated;
+        }
+      })
+      .addCase(voteContributionAction.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
 
-    builder.addCase(downvoteContributionAction.pending, (state) => {
-      state.loading = true;
-    });
-    builder.addCase(downvoteContributionAction.fulfilled, (state, action) => {
-      state.loading = false;
-      const updatedContribution = state.contributions.find(
-        (contrib) => contrib._id === action.payload._id
-      );
-      if (updatedContribution) {
-        updatedContribution.upvotes = action.payload.upvotes;
-        updatedContribution.downvotes = action.payload.downvotes;
-      }
-    });
-    builder.addCase(downvoteContributionAction.rejected, (state, action) => {
-      state.loading = false;
-      state.error = action.payload || "Error downvoting contribution";
-    });
-
-    builder.addCase(removeContribution.pending, (state) => {
-      state.loading = true;
-    });
-    builder.addCase(removeContribution.fulfilled, (state, action) => {
-      state.loading = false;
-      state.contributions = state.contributions.filter(
-        (contrib) => contrib._id !== action.payload._id
-      );
-    });
-    builder.addCase(removeContribution.rejected, (state, action) => {
-      state.loading = false;
-      state.error = action.payload || "Error deleting contribution";
-    });
+      .addCase(removeContribution.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(removeContribution.fulfilled, (state, action) => {
+        state.loading = false;
+        state.contributions = state.contributions.filter(c => c._id !== action.payload._id);
+      })
+      .addCase(removeContribution.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      });
   },
 });
 

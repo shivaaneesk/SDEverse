@@ -1,18 +1,21 @@
+import { useNavigate } from "react-router-dom";
 import { Sparkles } from "lucide-react";
 
-const ContributeSection = () => {
+const ContributeSection = ({ algorithmId }) => {
+  const navigate = useNavigate();
+
   const handleContribute = () => {
-    console.log("Open contribute modal or route");
+    navigate(`/algorithms/${algorithmId}/contribute`);
   };
 
   return (
     <div className="flex justify-center mt-6">
       <button
         onClick={handleContribute}
-        className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-blue-100 hover:bg-blue-200 dark:bg-blue-900 dark:hover:bg-blue-800 text-blue-700 dark:text-blue-300 shadow-md transition"
+        className="flex items-center gap-2 px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 dark:bg-blue-800 dark:hover:bg-blue-700 text-white shadow-lg transition-all duration-300 transform hover:scale-105"
       >
         <Sparkles size={20} />
-        <span>Contribute</span>
+        <span className="font-medium">Contribute</span>
       </button>
     </div>
   );

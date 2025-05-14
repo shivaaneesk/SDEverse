@@ -10,9 +10,9 @@ const {
   voteAlgorithm,
   getAllCategories,
   searchAlgorithms,
-} = require("../controllers/algorithmController");
+} = require("../controllers/algorithm.controller");
 
-const { protect, admin } = require("../middleware/authMiddleware");
+const { protect, admin } = require("../middleware/auth.middleware");
 const validateAlgorithm = require("../middleware/validateAlgorithm");
 
 // --- Public routes ---

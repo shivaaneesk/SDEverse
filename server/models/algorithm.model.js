@@ -15,7 +15,6 @@ const algorithmSchema = new mongoose.Schema(
     slug: { type: String, required: true, unique: true },
 
     problemStatement: { type: String, required: true, trim: true },
-
     category: {
       type: [String],
       enum: categories,
@@ -27,7 +26,6 @@ const algorithmSchema = new mongoose.Schema(
       default: "Medium",
       index: true,
     },
-
     intuition: { type: String, required: true },
     explanation: { type: String, required: true },
 
@@ -40,9 +38,7 @@ const algorithmSchema = new mongoose.Schema(
     links: [{ type: String }],
     codes: [codeSchema],
 
-    contributions: [
-      { type: mongoose.Schema.Types.ObjectId, ref: "Contribution" },
-    ],
+    contributions: [{ type: mongoose.Schema.Types.ObjectId, ref: "Contribution" }],
 
     upvotes: { type: Number, default: 0 },
     downvotes: { type: Number, default: 0 },
@@ -57,16 +53,40 @@ const algorithmSchema = new mongoose.Schema(
       },
     ],
 
+    // Admin review and workflow metadata
+    status: {
+      type: String,
+      enum: ["pending", "approved", "rejected"],
+      default: "pending",
+    },
     isVerified: { type: Boolean, default: false },
+    reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    reviewedAt: { type: Date },
+
+    // Ownership + soft delete + audit
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
     },
+    updatedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+    isDeleted: { type: Boolean, default: false },
+    deletedAt: { type: Date },
+    deletedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+
+    // Publication state
+    published: { type: Boolean, default: false },
+    publishedAt: { type: Date },
+    publishedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+
   },
   { timestamps: true }
 );
 
+// Indexes
 algorithmSchema.index({
   title: "text",
   problemStatement: "text",
@@ -74,7 +94,6 @@ algorithmSchema.index({
   explanation: "text",
   tags: "text",
 });
-
 algorithmSchema.index({ category: 1, difficulty: 1 });
 
 module.exports = mongoose.model("Algorithm", algorithmSchema);
