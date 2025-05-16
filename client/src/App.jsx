@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { useDispatch } from "react-redux";
+
 import Layout from "./components/Layout";
 import Loader from "./components/Loader";
 import Home from "./pages/Home";
@@ -7,11 +9,13 @@ import Algorithms from "./pages/Algorithms";
 import AlgorithmDetail from "./pages/AlgorithmDetails";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import { useDispatch } from "react-redux";
-import { getMe } from "./features/auth/authSlice";
+import EditProposal from "./pages/EditProposal";
 import AdminAlgorithms from "./pages/AdminAlgorithms";
 import AdminRoute from "./components/AdminRoute";
-import ContributeToAlgorithm from "./pages/ContributeToAlgorithm";
+import CreateProposal from "./pages/CreateProposal";
+import MyProposals from "./pages/MyProposals";
+import AdminProposalReview from "./pages/AdminProposalReview";
+import { getMe } from "./features/auth/authSlice";
 
 const router = createBrowserRouter([
   {
@@ -38,15 +42,40 @@ const router = createBrowserRouter([
         path: "algorithms/:slug",
         element: <AlgorithmDetail />,
       },
+      // Edit proposal for existing proposals
+      {
+        path: "proposals/:slug/edit",
+        element: <EditProposal />,
+      },
+
+      // Create a new proposal for an algorithm (contribute)
       {
         path: "algorithms/:slug/contribute",
-        element: <ContributeToAlgorithm />,
+        element: <CreateProposal />,
+      },
+
+      // Create a new proposal from scratch (no slug)
+      {
+        path: "proposals/new",
+        element: <CreateProposal />,
+      },
+      {
+        path: "proposals",
+        element: <MyProposals />,
       },
       {
         path: "admin/manage-algorithms",
         element: (
           <AdminRoute>
             <AdminAlgorithms />
+          </AdminRoute>
+        ),
+      },
+      {
+        path: "admin/proposals/review",
+        element: (
+          <AdminRoute>
+            <AdminProposalReview />
           </AdminRoute>
         ),
       },
@@ -59,14 +88,13 @@ function App() {
   const dispatch = useDispatch();
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-
     const fetchUser = async () => {
+      const token = localStorage.getItem("token");
       if (token) {
         try {
-          await dispatch(getMe(token)).unwrap();
+          await dispatch(getMe(token));
         } catch (error) {
-          console.error("Failed to authenticate user:", error);
+          console.error("User authentication failed:", error);
         }
       }
       setIsLoading(false);

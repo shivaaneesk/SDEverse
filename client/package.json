@@ -17,6 +17,7 @@
     "clsx": "^2.1.1",
     "framer-motion": "^12.10.0",
     "jwt-decode": "^4.0.0",
+    "katex": "^0.16.22",
     "lucide-react": "^0.508.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
@@ -27,6 +28,8 @@
     "react-spinners": "^0.17.0",
     "react-syntax-highlighter": "^15.6.1",
     "react-toastify": "^11.0.5",
+    "rehype-katex": "^7.0.1",
+    "remark-math": "^6.0.0",
     "tailwindcss": "^4.1.5"
   },
   "devDependencies": {

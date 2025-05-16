@@ -116,30 +116,40 @@ const getAllAlgorithms = asyncHandler(async (req, res) => {
     difficulty = "",
   } = req.query;
 
+  const pageNumber = parseInt(page) || 1;
+  const limitNumber = parseInt(limit) || 10;
+
   const filters = {};
 
   if (category) filters.category = category;
   if (difficulty) filters.difficulty = difficulty;
   if (search) filters.$text = { $search: search };
 
-  // Admins can see all algorithms (published and proposed), users only published
-  if (req.user.role !== "admin") {
-    filters.isPublished = true; // Only show published algorithms for non-admins
+  // ⚠️ Check if req.user exists before checking role
+  if (req.user?.role !== "admin") {
+    filters.isPublished = true;
   }
 
-  const algorithms = await Algorithm.find(filters)
-    .skip((page - 1) * limit)
-    .limit(limit)
-    .sort({ createdAt: -1 });
+  try {
+    const total = await Algorithm.countDocuments(filters);
+    const algorithms = await Algorithm.find(filters)
+      .skip((pageNumber - 1) * limitNumber)
+      .limit(limitNumber)
+      .sort({ createdAt: -1 })
+      .lean();
 
-  const total = await Algorithm.countDocuments(filters);
-
-  res.json({
-    algorithms,
-    total,
-    pages: Math.ceil(total / limit),
-    currentPage: page,
-  });
+    res.json({
+      algorithms,
+      total,
+      pages: Math.ceil(total / limitNumber),
+      currentPage: pageNumber,
+    });
+  } catch (error) {
+    console.error("Error in getAllAlgorithms:", error);
+    res
+      .status(500)
+      .json({ message: "Failed to fetch algorithms", error: error.message });
+  }
 });
 
 // **Both Admin & User**: Get Algorithm By Slug

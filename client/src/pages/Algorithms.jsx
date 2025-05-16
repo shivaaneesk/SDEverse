@@ -12,33 +12,41 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
 
 const Algorithm = () => {
   const dispatch = useDispatch();
-  const { categories, algorithms, loading, error, total } = useSelector(
-    (state) => state.algorithm
-  );
+  const {
+    categories = [],      // default empty array
+    algorithms = [],      // default empty array
+    searchResults = [],   // default empty array
+    loading,
+    error,
+    total,
+  } = useSelector((state) => state.algorithm);
+
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState(null);
 
   useEffect(() => {
-    // Fetch categories and algorithms on initial render
     dispatch(fetchCategories());
-    dispatch(fetchAlgorithms({ page: 1, limit: 10 })); // Fetching initial set of algorithms
+    dispatch(fetchAlgorithms({ page: 1, limit: 10 }));
   }, [dispatch]);
 
   // Handle search input
   const handleSearchChange = (e) => {
-    setSearchQuery(e.target.value);
-    if (e.target.value.trim()) {
-      dispatch(searchAllAlgorithms({ search: e.target.value }));
+    const query = e.target.value;
+    setSearchQuery(query);
+    if (query.trim()) {
+      dispatch(searchAllAlgorithms({ q: query }));
     } else {
       dispatch(fetchAlgorithms({ page: 1, limit: 10 }));
     }
   };
 
-  // Toggle category visibility
   const toggleCategory = (category) => {
     setSelectedCategory(selectedCategory === category ? null : category);
   };
+
+  // Decide which algorithms to display depending on search
+  const isSearching = searchQuery.trim().length > 0;
 
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-10">
@@ -63,9 +71,9 @@ const Algorithm = () => {
         What is an Algorithm?
       </h1>
       <p className="mt-4 text-gray-600 dark:text-gray-300 text-lg">
-        Algorithms are step-by-step procedures or formulas for solving a
-        problem. They form the backbone of computer programming and data
-        science, enabling us to solve complex problems efficiently.
+        Algorithms are step-by-step procedures or formulas for solving a problem.
+        They form the backbone of computer programming and data science, enabling
+        us to solve complex problems efficiently.
       </p>
 
       {/* Search Bar */}
@@ -85,53 +93,85 @@ const Algorithm = () => {
         </div>
       </div>
 
-      {/* Categories List */}
-      <div className="mt-8">
-        {categories.length > 0 ? (
-          categories.map((category) => (
-            <div key={category} className="mb-6">
-              <div
-                className="flex items-center justify-between cursor-pointer text-lg font-semibold text-gray-900 dark:text-white"
-                onClick={() => toggleCategory(category)}
-              >
-                <span className="text-white">{category}</span>{" "}
-                {/* ← using white text explicitly */}
-                <ChevronDown
-                  size={24}
-                  className={`transition-transform ${
-                    selectedCategory === category ? "rotate-180" : ""
-                  }`}
-                />
-              </div>
+      {/* If searching, show search results as a flat list */}
+      {isSearching ? (
+        <div className="mt-8">
+          <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
+            Search Results
+          </h2>
 
-              {selectedCategory === category && (
-                <div className="mt-4 space-y-4">
-                  {algorithms
-                    .filter((algo) => algo.category?.includes(category)) // category is an array in DB
-                    .map((algorithm) => (
-                      <Link
-                        to={`/algorithms/${algorithm.slug}`}
-                        key={algorithm.slug}
-                        className="block p-4 rounded-lg bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700 transition-all"
-                      >
-                        <h3 className="text-xl font-medium text-gray-900 dark:text-white">
-                          {algorithm.title}
-                        </h3>
-                        <p className="text-gray-600 dark:text-gray-400">
-                          {algorithm.description || algorithm.intuition}
-                        </p>
-                      </Link>
-                    ))}
+          {loading && (
+            <p className="text-gray-500 dark:text-gray-300">Loading search results...</p>
+          )}
+
+          {!loading && searchResults.length === 0 && (
+            <p className="text-gray-500 dark:text-gray-300">
+              No algorithms match your search.
+            </p>
+          )}
+
+          {!loading &&
+            searchResults.map((algorithm) => (
+              <Link
+                to={`/algorithms/${algorithm.slug}`}
+                key={algorithm.slug}
+                className="block p-4 mb-4 rounded-lg bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700 transition-all"
+              >
+                <h3 className="text-xl font-medium text-gray-900 dark:text-white">
+                  {algorithm.title}
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400">
+                  {algorithm.description || algorithm.intuition}
+                </p>
+              </Link>
+            ))}
+        </div>
+      ) : (
+        /* If NOT searching, show categories with algorithms grouped */
+        <div className="mt-8">
+          {categories.length > 0 ? (
+            categories.map((category) => (
+              <div key={category} className="mb-6">
+                <div
+                  className="flex items-center justify-between cursor-pointer text-lg font-semibold text-gray-900 dark:text-white"
+                  onClick={() => toggleCategory(category)}
+                >
+                  <span className="text-white">{category}</span>
+                  <ChevronDown
+                    size={24}
+                    className={`transition-transform ${
+                      selectedCategory === category ? "rotate-180" : ""
+                    }`}
+                  />
                 </div>
-              )}
-            </div>
-          ))
-        ) : (
-          <p className="text-gray-500 dark:text-gray-300">
-            No categories available.
-          </p>
-        )}
-      </div>
+
+                {selectedCategory === category && (
+                  <div className="mt-4 space-y-4">
+                    {algorithms
+                      .filter((algo) => algo.category?.includes(category))
+                      .map((algorithm) => (
+                        <Link
+                          to={`/algorithms/${algorithm.slug}`}
+                          key={algorithm.slug}
+                          className="block p-4 rounded-lg bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700 transition-all"
+                        >
+                          <h3 className="text-xl font-medium text-gray-900 dark:text-white">
+                            {algorithm.title}
+                          </h3>
+                          <p className="text-gray-600 dark:text-gray-400">
+                            {algorithm.description || algorithm.intuition}
+                          </p>
+                        </Link>
+                      ))}
+                  </div>
+                )}
+              </div>
+            ))
+          ) : (
+            <p className="text-gray-500 dark:text-gray-300">No categories available.</p>
+          )}
+        </div>
+      )}
 
       {/* Loading Spinner */}
       {loading && (

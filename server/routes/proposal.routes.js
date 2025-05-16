@@ -16,7 +16,7 @@ const validateProposal = require("../middleware/validateProposal");
 router.get("/slug/:slug", getProposalBySlug); // View single proposal by slug
 
 // --- Authenticated Users ---
-router.post("/:slug", protect, validateProposal("create"), createProposal); // Create proposal
+router.post("/newproposal", protect, validateProposal("create"), createProposal); // Create proposal
 router.patch("/:slug", protect, validateProposal("update"), updateProposal); // Update proposal
 router.get("/", protect, getAllProposals); // Get all proposals for user/admin
 

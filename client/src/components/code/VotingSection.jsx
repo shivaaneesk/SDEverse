@@ -12,7 +12,7 @@ const VotingSection = ({ algorithm, user }) => {
     dispatch(
       voteOnAlgorithm({
         slug: algorithm.slug,
-        voteData: { voteType: type, userId: user._id },
+        voteData: { type },
       })
     );
   };

@@ -13,33 +13,33 @@ import {
 const initialState = {
   algorithms: [],
   algorithm: null,
+  searchResults: [],
   categories: [],
   total: 0,
   pages: 0,
   currentPage: 1,
   loading: false,
-  voteLoading: false, // ✅
+  voteLoading: false,
   error: null,
 };
 
-// Utility to get the token from localStorage or Redux store
-const getAuthToken = (getState) => {
-  return getState().auth?.token || localStorage.getItem("authToken");
-};
-
-// Async thunks with token in headers
+const getToken = (getState) => getState().auth?.token;
+const getUser = (getState) => getState().auth?.user; // returns full user object
 
 export const createNewAlgorithm = createAsyncThunk(
   "algorithm/createNewAlgorithm",
   async (algorithmData, { getState, rejectWithValue }) => {
-    console.log("Creating algorithm with data:", algorithmData);
+    const token = getToken(getState);
+    const user = getUser(getState);
+
+    if (user?.role !== "admin") {
+      return rejectWithValue("You are not authorized to create algorithms.");
+    }
 
     try {
-      const token = getAuthToken(getState);
-      const response = await createAlgorithm(algorithmData, token); // Pass token to the API call
-      return response;
+      return await createAlgorithm(algorithmData, token);
     } catch (error) {
-      return rejectWithValue(error.response?.data || "Something went wrong");
+      return rejectWithValue(error);
     }
   }
 );
@@ -47,12 +47,11 @@ export const createNewAlgorithm = createAsyncThunk(
 export const fetchAlgorithms = createAsyncThunk(
   "algorithm/fetchAlgorithms",
   async (params, { getState, rejectWithValue }) => {
+    const token = getToken(getState);
     try {
-      const token = getAuthToken(getState);
-      const response = await getAllAlgorithms(params, token); // Pass token to the API call
-      return response;
+      return await getAllAlgorithms(params, token);
     } catch (error) {
-      return rejectWithValue(error.response?.data || "Something went wrong");
+      return rejectWithValue(error);
     }
   }
 );
@@ -60,12 +59,11 @@ export const fetchAlgorithms = createAsyncThunk(
 export const fetchAlgorithmBySlug = createAsyncThunk(
   "algorithm/fetchAlgorithmBySlug",
   async (slug, { getState, rejectWithValue }) => {
+    const token = getToken(getState);
     try {
-      const token = getAuthToken(getState);
-      const response = await getAlgorithmBySlug(slug, token); // Pass token to the API call
-      return response;
+      return await getAlgorithmBySlug(slug, token);
     } catch (error) {
-      return rejectWithValue(error.response?.data || "Something went wrong");
+      return rejectWithValue(error);
     }
   }
 );
@@ -73,12 +71,17 @@ export const fetchAlgorithmBySlug = createAsyncThunk(
 export const updateExistingAlgorithm = createAsyncThunk(
   "algorithm/updateExistingAlgorithm",
   async ({ slug, algorithmData }, { getState, rejectWithValue }) => {
+    const token = getToken(getState);
+    const user = getUser(getState);
+
+    if (user?.role !== "admin") {
+      return rejectWithValue("You are not authorized to update algorithms.");
+    }
+
     try {
-      const token = getAuthToken(getState); // Retrieve token from state or localStorage
-      const response = await updateAlgorithm(slug, algorithmData, token); // Pass token to the API call
-      return response;
+      return await updateAlgorithm(slug, algorithmData, token);
     } catch (error) {
-      return rejectWithValue(error.response?.data || "Something went wrong");
+      return rejectWithValue(error);
     }
   }
 );
@@ -86,12 +89,18 @@ export const updateExistingAlgorithm = createAsyncThunk(
 export const deleteExistingAlgorithm = createAsyncThunk(
   "algorithm/deleteExistingAlgorithm",
   async (slug, { getState, rejectWithValue }) => {
+    const token = getToken(getState);
+    const user = getUser(getState);
+
+    if (user?.role !== "admin") {
+      return rejectWithValue("Only admins can delete algorithms.");
+    }
+
     try {
-      const token = getAuthToken(getState); // Retrieve token from state or localStorage
-      const response = await deleteAlgorithm(slug, token); // Pass token to the API call
-      return response;
+      await deleteAlgorithm(slug, token);
+      return slug; // Return slug explicitly for reducer
     } catch (error) {
-      return rejectWithValue(error.response?.data || "Something went wrong");
+      return rejectWithValue(error);
     }
   }
 );
@@ -99,12 +108,11 @@ export const deleteExistingAlgorithm = createAsyncThunk(
 export const voteOnAlgorithm = createAsyncThunk(
   "algorithm/voteOnAlgorithm",
   async ({ slug, voteData }, { getState, rejectWithValue }) => {
+    const token = getToken(getState);
     try {
-      const token = getAuthToken(getState); // Retrieve token from state or localStorage
-      const response = await voteAlgorithm(slug, voteData, token); // Pass token to the API call
-      return response;
+      return await voteAlgorithm(slug, voteData, token);
     } catch (error) {
-      return rejectWithValue(error.response?.data || "Something went wrong");
+      return rejectWithValue(error);
     }
   }
 );
@@ -116,7 +124,7 @@ export const fetchCategories = createAsyncThunk(
       const response = await getCategories();
       return response.categories;
     } catch (error) {
-      return rejectWithValue(error.response?.data || "Something went wrong");
+      return rejectWithValue(error);
     }
   }
 );
@@ -124,12 +132,11 @@ export const fetchCategories = createAsyncThunk(
 export const searchAllAlgorithms = createAsyncThunk(
   "algorithm/searchAllAlgorithms",
   async (params, { getState, rejectWithValue }) => {
+    const token = getToken(getState);
     try {
-      const token = getAuthToken(getState); // Retrieve token from state or localStorage
-      const response = await searchAlgorithms(params, token); // Pass token to the API call
-      return response;
+      return await searchAlgorithms(params, token);
     } catch (error) {
-      return rejectWithValue(error.response?.data || "Something went wrong");
+      return rejectWithValue(error);
     }
   }
 );
@@ -140,131 +147,143 @@ const algorithmSlice = createSlice({
   reducers: {
     resetAlgorithmState: (state) => {
       state.loading = false;
+      state.voteLoading = false;
       state.error = null;
     },
   },
   extraReducers: (builder) => {
-    builder.addCase(fetchAlgorithms.pending, (state) => {
-      state.loading = true;
-    });
-    builder.addCase(fetchAlgorithms.fulfilled, (state, action) => {
-      state.loading = false;
-      state.algorithms = action.payload.algorithms;
-      state.total = action.payload.total;
-      state.pages = action.payload.pages;
-      state.currentPage = action.payload.currentPage;
-    });
-    builder.addCase(fetchAlgorithms.rejected, (state, action) => {
-      state.loading = false;
-      state.error = action.payload || "Something went wrong";
-    });
+    builder
 
-    builder.addCase(fetchAlgorithmBySlug.pending, (state) => {
-      state.loading = true;
-    });
-    builder.addCase(fetchAlgorithmBySlug.fulfilled, (state, action) => {
-      state.loading = false;
-      state.algorithm = action.payload;
-    });
-    builder.addCase(fetchAlgorithmBySlug.rejected, (state, action) => {
-      state.loading = false;
-      state.error = action.payload || "Something went wrong";
-    });
+      // Fetch Algorithms
+      .addCase(fetchAlgorithms.pending, (state) => {
+        state.loading = true;
+        state.error = null; // clear previous errors
+      })
+      .addCase(fetchAlgorithms.fulfilled, (state, action) => {
+        state.loading = false;
+        state.algorithms = action.payload.algorithms;
+        state.total = action.payload.total;
+        state.pages = action.payload.pages;
+        state.currentPage = action.payload.currentPage;
+      })
+      .addCase(fetchAlgorithms.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
 
-    builder.addCase(createNewAlgorithm.pending, (state) => {
-      state.loading = true;
-    });
-    builder.addCase(createNewAlgorithm.fulfilled, (state, action) => {
-      state.loading = false;
-      state.algorithms.unshift(action.payload);
-    });
-    builder.addCase(createNewAlgorithm.rejected, (state, action) => {
-      state.loading = false;
-      state.error = action.payload || "Something went wrong";
-    });
+      // Fetch single Algorithm
+      .addCase(fetchAlgorithmBySlug.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchAlgorithmBySlug.fulfilled, (state, action) => {
+        state.loading = false;
+        state.algorithm = action.payload;
+      })
+      .addCase(fetchAlgorithmBySlug.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
 
-    builder.addCase(updateExistingAlgorithm.pending, (state) => {
-      state.loading = true;
-    });
-    builder.addCase(updateExistingAlgorithm.fulfilled, (state, action) => {
-      state.loading = false;
-      const index = state.algorithms.findIndex(
-        (algo) => algo.slug === action.payload.slug
-      );
-      if (index !== -1) {
-        state.algorithms[index] = action.payload;
-      }
-    });
-    builder.addCase(updateExistingAlgorithm.rejected, (state, action) => {
-      state.loading = false;
-      state.error = action.payload || "Something went wrong";
-    });
+      // Create Algorithm
+      .addCase(createNewAlgorithm.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(createNewAlgorithm.fulfilled, (state, action) => {
+        state.loading = false;
+        state.algorithms.unshift(action.payload);
+      })
+      .addCase(createNewAlgorithm.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
 
-    builder.addCase(deleteExistingAlgorithm.pending, (state) => {
-      state.loading = true;
-    });
-    builder.addCase(deleteExistingAlgorithm.fulfilled, (state, action) => {
-      state.loading = false;
-      state.algorithms = state.algorithms.filter(
-        (algo) => algo.slug !== action.payload.slug
-      );
-    });
-    builder.addCase(deleteExistingAlgorithm.rejected, (state, action) => {
-      state.loading = false;
-      state.error = action.payload || "Something went wrong";
-    });
+      // Update Algorithm
+      .addCase(updateExistingAlgorithm.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updateExistingAlgorithm.fulfilled, (state, action) => {
+        state.loading = false;
+        const index = state.algorithms.findIndex(
+          (a) => a.slug === action.payload.slug
+        );
+        if (index !== -1) state.algorithms[index] = action.payload;
+        if (state.algorithm?.slug === action.payload.slug) {
+          state.algorithm = action.payload;
+        }
+      })
+      .addCase(updateExistingAlgorithm.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
 
-    builder.addCase(voteOnAlgorithm.pending, (state) => {
-      state.voteLoading = true;
-    });
+      // Delete Algorithm
+      .addCase(deleteExistingAlgorithm.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(deleteExistingAlgorithm.fulfilled, (state, action) => {
+        state.loading = false;
+        state.algorithms = state.algorithms.filter(
+          (a) => a.slug !== action.payload
+        );
+      })
+      .addCase(deleteExistingAlgorithm.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
 
-    builder.addCase(voteOnAlgorithm.fulfilled, (state, action) => {
-      state.voteLoading = false;
-      const updatedAlgo = action.payload.algorithm;
+      // Vote on Algorithm
+      .addCase(voteOnAlgorithm.pending, (state) => {
+        state.voteLoading = true;
+        state.error = null;
+      })
+      .addCase(voteOnAlgorithm.fulfilled, (state, action) => {
+        state.voteLoading = false;
+        const updated = action.payload.algorithm;
+        const index = state.algorithms.findIndex(
+          (a) => a.slug === updated.slug
+        );
+        if (index !== -1) state.algorithms[index] = updated;
+        if (state.algorithm?.slug === updated.slug) state.algorithm = updated;
+      })
+      .addCase(voteOnAlgorithm.rejected, (state, action) => {
+        state.voteLoading = false;
+        state.error = action.payload;
+      })
 
-      const index = state.algorithms.findIndex(
-        (algo) => algo.slug === updatedAlgo.slug
-      );
-      if (index !== -1) {
-        state.algorithms[index] = updatedAlgo;
-      }
+      // Fetch Categories
+      .addCase(fetchCategories.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchCategories.fulfilled, (state, action) => {
+        state.loading = false;
+        state.categories = action.payload;
+      })
+      .addCase(fetchCategories.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
 
-      if (state.algorithm?.slug === updatedAlgo.slug) {
-        state.algorithm = updatedAlgo;
-      }
-    });
-
-    builder.addCase(voteOnAlgorithm.rejected, (state, action) => {
-      state.voteLoading = false;
-      state.error = action.payload || "Something went wrong";
-    });
-
-    builder.addCase(fetchCategories.pending, (state) => {
-      state.loading = true;
-    });
-    builder.addCase(fetchCategories.fulfilled, (state, action) => {
-      state.loading = false;
-      state.categories = action.payload;
-    });
-    builder.addCase(fetchCategories.rejected, (state, action) => {
-      state.loading = false;
-      state.error = action.payload || "Something went wrong";
-    });
-
-    builder.addCase(searchAllAlgorithms.pending, (state) => {
-      state.loading = true;
-    });
-    builder.addCase(searchAllAlgorithms.fulfilled, (state, action) => {
-      state.loading = false;
-      state.algorithms = action.payload.algorithms;
-      state.total = action.payload.total;
-      state.pages = action.payload.pages;
-      state.currentPage = action.payload.currentPage;
-    });
-    builder.addCase(searchAllAlgorithms.rejected, (state, action) => {
-      state.loading = false;
-      state.error = action.payload || "Something went wrong";
-    });
+      // Search Algorithms
+      .addCase(searchAllAlgorithms.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(searchAllAlgorithms.fulfilled, (state, action) => {
+        state.loading = false;
+        state.searchResults = action.payload.results;
+        state.total = action.payload.total;
+        state.pages = action.payload.pages;
+        state.currentPage = action.payload.currentPage;
+      })
+      .addCase(searchAllAlgorithms.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      });
   },
 });
 

@@ -126,14 +126,14 @@ const updateProposal = asyncHandler(async (req, res) => {
 const reviewProposal = asyncHandler(async (req, res) => {
   const proposal = await Proposal.findOne({ slug: req.params.slug });
 
-  if (!proposal) {
+  if (!proposal || proposal.isDeleted) {
     res.status(404);
     throw new Error("Proposal not found");
   }
 
   const { status, reviewComment } = req.body;
 
-  if (!status || !["approved", "rejected"].includes(status)) {
+  if (!["approved", "rejected"].includes(status)) {
     res.status(400);
     throw new Error("Status must be 'approved' or 'rejected'.");
   }
@@ -157,9 +157,16 @@ const reviewProposal = asyncHandler(async (req, res) => {
       links: proposal.links,
       codes: proposal.codes,
       createdBy: proposal.contributor,
+      isPublished:true,
     });
 
     await algorithm.save();
+
+    // Link the created algorithm to the proposal
+    proposal.mergedWith = algorithm._id;
+    proposal.mergedBy = req.user._id;
+    proposal.mergedAt = new Date();
+    proposal.status = "approved";
   }
 
   const updated = await proposal.save();

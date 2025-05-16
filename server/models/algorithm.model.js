@@ -38,7 +38,9 @@ const algorithmSchema = new mongoose.Schema(
     links: [{ type: String }],
     codes: [codeSchema],
 
-    contributions: [{ type: mongoose.Schema.Types.ObjectId, ref: "Contribution" }],
+    contributions: [
+      { type: mongoose.Schema.Types.ObjectId, ref: "Contribution" },
+    ],
 
     upvotes: { type: Number, default: 0 },
     downvotes: { type: Number, default: 0 },
@@ -78,10 +80,9 @@ const algorithmSchema = new mongoose.Schema(
     deletedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
 
     // Publication state
-    published: { type: Boolean, default: false },
+    isPublished: { type: Boolean, default: false },
     publishedAt: { type: Date },
     publishedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-
   },
   { timestamps: true }
 );

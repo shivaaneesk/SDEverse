@@ -1,45 +1,53 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X, Plus } from "lucide-react";
 import MonacoEditor from "@monaco-editor/react";
-import AlgorithmPreview from "./AlgorithmPreview";
+import AlgorithmPreview from "../../pages/AlgorithmPreview";
 
-const EditAlgorithmForm = ({ algorithm = {}, onSave, onCancel, categories }) => {
-  const [editedData, setEditedData] = useState({
-    title: algorithm.title || "",
-    problemStatement: algorithm.problemStatement || "",
-    intuition: algorithm.intuition || "",
-    explanation: algorithm.explanation || "",
-    complexity: algorithm.complexity || { time: "", space: "" },
-    difficulty: algorithm.difficulty || "Easy",
-    category: algorithm.category || [],
-    tags: algorithm.tags || [],
-    links: algorithm.links || [],
-    codes: algorithm.codes?.length ? algorithm.codes : [{ language: "", code: "" }],
+const ProposalForm = ({ proposal = {}, onSave, categories = [] }) => {
+  const [data, setData] = useState({
+    title: proposal.title || "",
+    problemStatement: proposal.problemStatement || "",
+    intuition: proposal.intuition || "",
+    explanation: proposal.explanation || "",
+    complexity: proposal.complexity || { time: "", space: "" },
+    difficulty: proposal.difficulty || "Easy",
+    category: proposal.category || [],
+    tags: proposal.tags || [],
+    links: proposal.links || [],
+    codes: proposal.codes?.length
+      ? proposal.codes
+      : [{ language: "", code: "" }],
   });
 
   const [preview, setPreview] = useState(false);
   const [selectedCodeIndex, setSelectedCodeIndex] = useState(0);
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
 
+  useEffect(() => {
+    if (onSave) {
+      onSave(data);
+    }
+  }, [data, onSave]);
+
   const handleChange = (field, value) => {
-    setEditedData((prev) => ({ ...prev, [field]: value }));
+    setData((prev) => ({ ...prev, [field]: value }));
   };
 
   const updateArrayItem = (field, index, value) => {
-    const updated = [...editedData[field]];
+    const updated = [...data[field]];
     updated[index] = value;
     handleChange(field, updated);
   };
 
   const addArrayItem = (field, defaultValue = "") => {
-    const updated = [...editedData[field], defaultValue];
+    const updated = [...data[field], defaultValue];
     handleChange(field, updated);
     if (field === "codes") setSelectedCodeIndex(updated.length - 1);
   };
 
   const removeArrayItem = (field, index) => {
-    if (field === "codes" && editedData.codes.length === 1) return;
-    const updated = editedData[field].filter((_, i) => i !== index);
+    if (field === "codes" && data.codes.length === 1) return;
+    const updated = data[field].filter((_, i) => i !== index);
     handleChange(field, updated);
     if (field === "codes") {
       if (index === selectedCodeIndex && index > 0)
@@ -53,7 +61,9 @@ const EditAlgorithmForm = ({ algorithm = {}, onSave, onCancel, categories }) => 
 
   const renderInput = (label, value, onChange, multiline = false) => (
     <div className="space-y-2">
-      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">{label}</label>
+      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+        {label}
+      </label>
       {multiline ? (
         <textarea
           className="w-full p-3 border rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none"
@@ -73,7 +83,7 @@ const EditAlgorithmForm = ({ algorithm = {}, onSave, onCancel, categories }) => 
   );
 
   const renderCodeEditor = () => {
-    const codeObj = editedData.codes[selectedCodeIndex];
+    const codeObj = data.codes[selectedCodeIndex];
     if (!codeObj) return null;
 
     const editorHeight = calculateEditorHeight(codeObj.code || "");
@@ -85,7 +95,7 @@ const EditAlgorithmForm = ({ algorithm = {}, onSave, onCancel, categories }) => 
           placeholder="Language (e.g., JavaScript)"
           value={codeObj.language}
           onChange={(e) => {
-            const updated = [...editedData.codes];
+            const updated = [...data.codes];
             updated[selectedCodeIndex].language = e.target.value;
             handleChange("codes", updated);
           }}
@@ -96,13 +106,13 @@ const EditAlgorithmForm = ({ algorithm = {}, onSave, onCancel, categories }) => 
           language={codeObj.language}
           value={codeObj.code}
           onChange={(code) => {
-            const updated = [...editedData.codes];
+            const updated = [...data.codes];
             updated[selectedCodeIndex].code = code;
             handleChange("codes", updated);
           }}
           theme="vs-dark"
         />
-        {editedData.codes.length > 1 && (
+        {data.codes.length > 1 && (
           <button
             onClick={() => removeArrayItem("codes", selectedCodeIndex)}
             className="text-red-500 hover:text-red-700 absolute top-0 right-0 p-2"
@@ -134,26 +144,44 @@ const EditAlgorithmForm = ({ algorithm = {}, onSave, onCancel, categories }) => 
       </div>
 
       {preview ? (
-        <AlgorithmPreview algorithm={editedData} />
+        <AlgorithmPreview algorithm={data} />
       ) : (
         <div className="space-y-8">
-          {/* Text fields */}
-          {renderInput("Title", editedData.title, (val) => handleChange("title", val))}
-          {renderInput("Problem Statement", editedData.problemStatement, (val) => handleChange("problemStatement", val), true)}
-          {renderInput("Intuition", editedData.intuition, (val) => handleChange("intuition", val), true)}
-          {renderInput("Explanation", editedData.explanation, (val) => handleChange("explanation", val), true)}
+          {renderInput("Title", data.title, (val) =>
+            handleChange("title", val)
+          )}
+          {renderInput(
+            "Problem Statement",
+            data.problemStatement,
+            (val) => handleChange("problemStatement", val),
+            true
+          )}
+          {renderInput(
+            "Intuition",
+            data.intuition,
+            (val) => handleChange("intuition", val),
+            true
+          )}
+          {renderInput(
+            "Explanation",
+            data.explanation,
+            (val) => handleChange("explanation", val),
+            true
+          )}
 
           {/* Complexity */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {["time", "space"].map((key) => (
               <div className="space-y-2" key={key}>
-                <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 capitalize">{key} Complexity</label>
+                <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 capitalize">
+                  {key} Complexity
+                </label>
                 <input
                   type="text"
                   className="w-full px-4 py-2 border rounded-xl bg-white dark:bg-gray-800 text-black dark:text-white border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-blue-500"
-                  value={editedData.complexity[key]}
+                  value={data.complexity[key]}
                   onChange={(e) =>
-                    setEditedData((prev) => ({
+                    setData((prev) => ({
                       ...prev,
                       complexity: { ...prev.complexity, [key]: e.target.value },
                     }))
@@ -165,10 +193,12 @@ const EditAlgorithmForm = ({ algorithm = {}, onSave, onCancel, categories }) => 
 
           {/* Difficulty */}
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Difficulty</label>
+            <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+              Difficulty
+            </label>
             <div className="relative w-full md:w-[12rem]">
               <select
-                value={editedData.difficulty}
+                value={data.difficulty}
                 onChange={(e) => handleChange("difficulty", e.target.value)}
                 className="w-full appearance-none px-4 py-2 rounded-xl bg-gray-100 dark:bg-gray-800 dark:text-white pr-10 border border-gray-300 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
@@ -176,22 +206,28 @@ const EditAlgorithmForm = ({ algorithm = {}, onSave, onCancel, categories }) => 
                 <option>Medium</option>
                 <option>Hard</option>
               </select>
-              <div className="pointer-events-none absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-white">▼</div>
+              <div className="pointer-events-none absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-white">
+                ▼
+              </div>
             </div>
           </div>
 
-          {/* Category Dropdown */}
+          {/* Categories */}
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Categories</label>
+            <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+              Categories
+            </label>
             <div className="relative w-full md:w-[16rem]">
               <button
                 onClick={() => setShowCategoryDropdown((prev) => !prev)}
                 className="w-full px-4 py-2 text-left rounded-xl bg-gray-100 dark:bg-gray-800 dark:text-white border border-gray-300 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                {editedData.category.length > 0
-                  ? editedData.category.join(", ")
+                {data.category.length > 0
+                  ? data.category.join(", ")
                   : "Select categories"}
-                <span className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500">▼</span>
+                <span className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500">
+                  ▼
+                </span>
               </button>
               {showCategoryDropdown && (
                 <div className="absolute z-10 mt-2 w-full max-h-48 overflow-auto bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-300 dark:border-gray-700">
@@ -202,16 +238,18 @@ const EditAlgorithmForm = ({ algorithm = {}, onSave, onCancel, categories }) => 
                     >
                       <input
                         type="checkbox"
-                        checked={editedData.category.includes(cat)}
+                        checked={data.category.includes(cat)}
                         onChange={() => {
-                          const updated = editedData.category.includes(cat)
-                            ? editedData.category.filter((c) => c !== cat)
-                            : [...editedData.category, cat];
+                          const updated = data.category.includes(cat)
+                            ? data.category.filter((c) => c !== cat)
+                            : [...data.category, cat];
                           handleChange("category", updated);
                         }}
                         className="mr-2 accent-blue-600"
                       />
-                      <span className="text-sm text-gray-800 dark:text-gray-200">{cat}</span>
+                      <span className="text-sm text-gray-800 dark:text-gray-200">
+                        {cat}
+                      </span>
                     </label>
                   ))}
                 </div>
@@ -222,21 +260,31 @@ const EditAlgorithmForm = ({ algorithm = {}, onSave, onCancel, categories }) => 
           {/* Tags & Links */}
           {["tags", "links"].map((field) => (
             <div key={field} className="space-y-2">
-              <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 capitalize">{field}</label>
+              <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 capitalize">
+                {field}
+              </label>
               <div className="space-y-3">
-                {editedData[field].map((item, i) => (
+                {data[field].map((item, i) => (
                   <div key={i} className="flex gap-2 items-center">
                     <input
                       value={item}
-                      onChange={(e) => updateArrayItem(field, i, e.target.value)}
+                      onChange={(e) =>
+                        updateArrayItem(field, i, e.target.value)
+                      }
                       className="flex-1 px-4 py-2 border rounded-xl bg-white dark:bg-gray-800 text-black dark:text-white border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-blue-500"
                     />
-                    <button onClick={() => removeArrayItem(field, i)} className="text-red-500 hover:text-red-700">
+                    <button
+                      onClick={() => removeArrayItem(field, i)}
+                      className="text-red-500 hover:text-red-700"
+                    >
                       <X size={18} />
                     </button>
                   </div>
                 ))}
-                <button onClick={() => addArrayItem(field)} className="text-sm text-blue-600 hover:underline flex items-center gap-1">
+                <button
+                  onClick={() => addArrayItem(field)}
+                  className="text-sm text-blue-600 hover:underline flex items-center gap-1"
+                >
                   <Plus size={16} /> Add {field}
                 </button>
               </div>
@@ -245,9 +293,11 @@ const EditAlgorithmForm = ({ algorithm = {}, onSave, onCancel, categories }) => 
 
           {/* Code Snippets */}
           <div className="space-y-4">
-            <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Code Snippets</label>
+            <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+              Code Snippets
+            </label>
             <div className="flex flex-wrap gap-2">
-              {editedData.codes.map((code, index) => (
+              {data.codes.map((code, index) => (
                 <button
                   key={index}
                   onClick={() => setSelectedCodeIndex(index)}
@@ -269,16 +319,10 @@ const EditAlgorithmForm = ({ algorithm = {}, onSave, onCancel, categories }) => 
               <Plus size={16} /> Add Code Snippet
             </button>
           </div>
-
-          {/* Actions */}
-          <div className="flex justify-end space-x-4 pt-6">
-            <button onClick={onCancel} className="bg-gray-500 text-white px-6 py-2 rounded-xl hover:bg-gray-600">Cancel</button>
-            <button onClick={() => onSave(editedData)} className="bg-blue-600 text-white px-6 py-2 rounded-xl hover:bg-blue-700">Save</button>
-          </div>
         </div>
       )}
     </div>
   );
 };
 
-export default EditAlgorithmForm;
+export default ProposalForm;

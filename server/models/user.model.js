@@ -18,10 +18,38 @@ const userSchema = new mongoose.Schema(
       trim: true,
     },
     password: { type: String, required: true },
+    bio: { type: String, trim: true, default: "" },
+
+    competitiveProfiles: {
+      leetcode: { type: String, trim: true },
+      codeforces: { type: String, trim: true },
+      codechef: { type: String, trim: true },
+      atcoder: { type: String, trim: true },
+      spoj: { type: String, trim: true },
+    },
+
+    socialLinks: {
+      github: { type: String, trim: true },
+      linkedin: { type: String, trim: true },
+      twitter: { type: String, trim: true },
+      facebook: { type: String, trim: true },
+      instagram: { type: String, trim: true },
+    },
+    // New profile fields
+    fullName: { type: String, trim: true },
+    avatarUrl: { type: String, trim: true },
+    location: { type: String, trim: true },
+    website: { type: String, trim: true },
+
+    // Activity stats
+    totalProposals: { type: Number, default: 0 },
+    totalReviews: { type: Number, default: 0 },
+
     role: { type: String, enum: ["user", "admin"], default: "user" },
   },
   { timestamps: true }
 );
+
 // Hash password before saving
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();

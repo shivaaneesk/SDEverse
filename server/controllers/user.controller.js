@@ -43,9 +43,53 @@ const updateUserRole = asyncHandler(async (req, res) => {
   res.json({ message: `User role updated to ${role}` });
 });
 
+// Get current user's profile
+const getMyProfile = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id).select("-password");
+  if (!user) {
+    res.status(404);
+    throw new Error("User not found");
+  }
+  res.json(user);
+});
+
+// Update current user's profile
+const updateMyProfile = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id);
+  if (!user) {
+    res.status(404);
+    throw new Error("User not found");
+  }
+
+  // List of fields a user is allowed to update
+  const updatableFields = [
+    "fullName",
+    "avatarUrl",
+    "location",
+    "website",
+    "bio",
+    "competitiveProfiles",
+    "socialLinks"
+  ];
+
+  updatableFields.forEach((field) => {
+    if (req.body[field] !== undefined) {
+      user[field] = req.body[field];
+    }
+  });
+
+  await user.save();
+  const updatedUser = user.toObject();
+  delete updatedUser.password;
+
+  res.json({ message: "Profile updated", user: updatedUser });
+});
+
 module.exports = {
   getAllUsers,
   getUserById,
   deleteUser,
   updateUserRole,
+  getMyProfile,
+  updateMyProfile,
 };

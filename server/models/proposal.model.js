@@ -68,5 +68,6 @@ const proposalSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+proposalSchema.index({ title: "text", category: "text", tags: "text" });
 
 module.exports = mongoose.model("Proposal", proposalSchema);

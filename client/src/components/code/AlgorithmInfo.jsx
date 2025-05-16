@@ -1,12 +1,16 @@
 import ReactMarkdown from "react-markdown";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 
 const Section = ({ title, content }) => {
   if (!content) return null;
 
-  // Convert escaped \n to real newlines
-  const formattedContent = content.replace(/\\n/g, "\n");
+  const formattedContent = content
+  .replace(/\\n/g, "\n")      // fix literal \n
+  .replace(/\\\\/g, "\\");    // unescape \\ => \
+
 
   return (
     <div className="mt-6">
@@ -16,6 +20,8 @@ const Section = ({ title, content }) => {
       <div className="prose dark:prose-invert mt-4">
         <ReactMarkdown
           children={formattedContent}
+          remarkPlugins={[remarkMath]}
+          rehypePlugins={[rehypeKatex]}
           components={{
             code({ inline, className, children, ...props }) {
               const match = /language-(\w+)/.exec(className || "");

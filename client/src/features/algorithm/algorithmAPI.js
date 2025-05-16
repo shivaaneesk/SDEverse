@@ -1,129 +1,84 @@
 import api from "../../utils/api";
 
-// Create a new algorithm
+// Helper to attach Authorization header automatically
+const withAuth = (token) => ({
+  headers: { Authorization: `Bearer ${token}` },
+});
+
 export const createAlgorithm = async (data, token) => {
   try {
-    const response = await api.post("/algorithms", data, {
-      headers: {
-        Authorization: `Bearer ${token}`, // Include the token in the header
-      },
-    });
+    const response = await api.post("/algorithms", data, withAuth(token));
     return response.data;
   } catch (error) {
-    console.error("Error creating algorithm:", error);
-    throw error;
+    throw error?.response?.data || error;
   }
 };
 
-// Fetch all algorithms with optional filters
 export const getAllAlgorithms = async (params, token) => {
   try {
     const response = await api.get("/algorithms", {
       params,
-      headers: {
-        Authorization: `Bearer ${token}`, // Include the token in the header
-      },
+      ...(token ? withAuth(token) : {}),
     });
     return response.data;
   } catch (error) {
-    console.error("Error fetching algorithms:", error);
-    throw error;
+    throw error?.response?.data || error;
   }
 };
 
-// Get algorithm by slug
 export const getAlgorithmBySlug = async (slug, token) => {
   try {
-    const response = await api.get(`/algorithms/${slug}`, {
-      headers: {
-        Authorization: `Bearer ${token}`, // Include the token in the header
-      },
-    });
+    const response = await api.get(`/algorithms/${slug}`, withAuth(token));
     return response.data;
   } catch (error) {
-    console.error("Error fetching algorithm by slug:", error);
-    throw error;
+    throw error?.response?.data || error;
   }
 };
 
-// Update an algorithm
 export const updateAlgorithm = async (slug, data, token) => {
   try {
-    const response = await api.put(`/algorithms/${slug}`, data, {
-      headers: {
-        Authorization: `Bearer ${token}`, // Include the token in the header
-      },
-    });
+    const response = await api.put(`/algorithms/${slug}`, data, withAuth(token));
     return response.data;
   } catch (error) {
-    console.error("Error updating algorithm:", error);
-    throw error;
+    throw error?.response?.data || error;
   }
 };
 
-// Delete an algorithm
 export const deleteAlgorithm = async (slug, token) => {
   try {
-    const response = await api.delete(`/algorithms/${slug}`, {
-      headers: {
-        Authorization: `Bearer ${token}`, // Include the token in the header
-      },
-    });
+    const response = await api.delete(`/algorithms/${slug}`, withAuth(token));
     return response.data;
   } catch (error) {
-    console.error("Error deleting algorithm:", error);
-    throw error;
+    throw error?.response?.data || error;
   }
 };
 
-// Vote on an algorithm
 export const voteAlgorithm = async (slug, voteData, token) => {
-  const { voteType, userId } = voteData;
-
-  if (!voteType || !userId) {
-    throw new Error("Missing voteType or userId");
-  }
-
   try {
-    const response = await api.post(
-      `/algorithms/${slug}/vote`,
-      { type: voteType, userId },
-      {
-        headers: {
-          Authorization: `Bearer ${token}`, // Include the token in the header
-        },
-      }
-    );
+    const response = await api.post(`/algorithms/${slug}/vote`, voteData, withAuth(token));
     return response.data;
   } catch (error) {
-    console.error("Error voting on algorithm:", error);
-    throw error;
+    throw error?.response?.data || error;
   }
 };
 
-// Fetch categories
 export const getCategories = async () => {
   try {
     const response = await api.get("/algorithms/categories");
     return response.data;
   } catch (error) {
-    console.error("Error fetching categories:", error);
-    throw error;
+    throw error?.response?.data || error;
   }
 };
 
-// Search algorithms with filters
 export const searchAlgorithms = async (params, token) => {
   try {
     const response = await api.get("/algorithms/search", {
       params,
-      headers: {
-        Authorization: `Bearer ${token}`, // Include the token in the header
-      },
+      ...(token ? withAuth(token) : {}),
     });
     return response.data;
   } catch (error) {
-    console.error("Error searching algorithms:", error);
-    throw error;
+    throw error?.response?.data || error;
   }
 };

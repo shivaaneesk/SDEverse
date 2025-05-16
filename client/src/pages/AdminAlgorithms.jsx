@@ -9,7 +9,7 @@ import {
 } from "../features/algorithm/algorithmSlice";
 import { MdEdit, MdDelete, MdSearch } from "react-icons/md";
 import { toast } from "react-toastify";
-import EditAlgorithmForm from "./EditAlgorithmForm";
+import EditAlgorithmForm from "../components/forms/EditAlgorithmForm";
 import Loader from "../components/Loader";
 
 const formatArray = (input) =>
@@ -39,11 +39,6 @@ const AdminAlgorithms = () => {
     dispatch(fetchAlgorithms({}));
     dispatch(fetchCategories());
   }, [dispatch]);
-
-  
-  
-  
-  
 
   const handleSearch = () => {
     dispatch(
@@ -104,9 +99,9 @@ const AdminAlgorithms = () => {
           Manage Algorithms
         </h1>
 
-        <div className="flex flex-row flex-wrap md:flex-nowrap items-center gap-4">
+        <div className="flex flex-col md:flex-row flex-wrap gap-4 w-full md:w-auto">
           {/* Search */}
-          <div className="relative w-full md:w-[16rem]">
+          <div className="relative w-full md:w-64">
             <input
               type="text"
               placeholder="Search algorithms..."
@@ -123,12 +118,13 @@ const AdminAlgorithms = () => {
           </div>
 
           {/* Category Dropdown */}
-          <div className="relative w-full md:w-[12rem]">
+          <div className="relative w-full md:w-48">
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
               className="w-full appearance-none px-4 py-2 rounded-xl bg-gray-100 dark:bg-gray-800 dark:text-white pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
+              <option value="All">All</option>
               {categories.map((cat) => (
                 <option key={cat} value={cat}>
                   {cat}
@@ -143,7 +139,7 @@ const AdminAlgorithms = () => {
           {/* Add New Button */}
           <button
             onClick={() => setAddingNew(true)}
-            className="whitespace-nowrap px-5 py-2 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+            className="px-5 py-2 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
           >
             + New Algorithm
           </button>
@@ -152,7 +148,7 @@ const AdminAlgorithms = () => {
 
       {/* Add New Form */}
       {addingNew && (
-        <div className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-2xl shadow-lg p-6">
+        <div className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-2xl shadow-lg p-6 w-full max-w-4xl mx-auto">
           <EditAlgorithmForm
             algorithm={{}}
             categories={categories} 
@@ -183,7 +179,7 @@ const AdminAlgorithms = () => {
                 />
               ) : (
                 <div className="flex flex-col lg:flex-row justify-between gap-6">
-                  <div className="flex-1 space-y-2">
+                  <div className="flex-1 min-w-0 space-y-2">
                     <h2 className="text-xl font-semibold text-gray-900 dark:text-white break-words">
                       {algo.title}
                     </h2>
@@ -202,7 +198,7 @@ const AdminAlgorithms = () => {
                     </div>
                   </div>
 
-                  <div className="flex-shrink-0 flex gap-4 items-start lg:items-center">
+                  <div className="flex flex-wrap gap-4 items-start lg:items-center">
                     <button
                       onClick={() => handleEdit(algo)}
                       className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm transition"
