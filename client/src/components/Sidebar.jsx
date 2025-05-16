@@ -9,6 +9,8 @@ import {
   Moon,
   Menu,
   X,
+  Settings,
+  User,
 } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { toggleTheme } from "../features/theme/themeSlice";
@@ -87,6 +89,13 @@ const Sidebar = () => {
             {token && user?.role === "admin" && (
               <>
                 <Link
+                  to={`/profile/${user.username}`}
+                  onClick={handleLinkClick}
+                  className="flex items-center gap-3 px-2 py-2 rounded hover:bg-yellow-100 dark:hover:bg-yellow-700 hover:text-yellow-700 dark:hover:text-white transition-colors"
+                >
+                  <User size={20} /> Profile
+                </Link>
+                <Link
                   to="/admin/manage-users"
                   onClick={handleLinkClick}
                   className="flex items-center gap-3 px-2 py-2 rounded hover:bg-blue-100 dark:hover:bg-blue-700 hover:text-blue-700 dark:hover:text-white transition-colors"
@@ -112,7 +121,7 @@ const Sidebar = () => {
                   onClick={handleLinkClick}
                   className="flex items-center gap-3 px-2 py-2 rounded hover:bg-blue-100 dark:hover:bg-blue-700 hover:text-blue-700 dark:hover:text-white transition-colors"
                 >
-                  <ClipboardList size={20} /> Settings
+                  <Settings size={20} /> Settings
                 </Link>
               </>
             )}
@@ -121,25 +130,27 @@ const Sidebar = () => {
             {token && user?.role !== "admin" && (
               <>
                 <Link
-                  to="/profile"
+                  to={`/profile/${user.username}`}
                   onClick={handleLinkClick}
-                  className="flex items-center gap-3 px-2 py-2 rounded hover:bg-blue-100 dark:hover:bg-blue-700 hover:text-blue-700 dark:hover:text-white transition-colors"
+                  className="flex items-center gap-3 px-2 py-2 rounded hover:bg-yellow-100 dark:hover:bg-yellow-700 hover:text-yellow-700 dark:hover:text-white transition-colors"
                 >
-                  <Users size={20} /> Profile
+                  <User size={20} /> Profile
                 </Link>
                 <Link
                   to="/proposals"
                   onClick={handleLinkClick}
                   className="flex items-center gap-3 px-2 py-2 rounded hover:bg-green-100 dark:hover:bg-green-700 hover:text-green-700 dark:hover:text-white transition-colors"
                 >
-                  <ClipboardList size={20} className="text-green-500" /> My Proposals
+                  <ClipboardList size={20} className="text-green-500" /> My
+                  Proposals
                 </Link>
                 <Link
                   to="/proposals/new"
                   onClick={handleLinkClick}
                   className="flex items-center gap-3 px-2 py-2 rounded hover:bg-purple-100 dark:hover:bg-purple-700 hover:text-purple-700 dark:hover:text-white transition-colors"
                 >
-                  <FilePlus size={20} className="text-purple-500" /> Submit Proposal
+                  <FilePlus size={20} className="text-purple-500" /> Submit
+                  Proposal
                 </Link>
               </>
             )}

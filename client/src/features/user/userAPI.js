@@ -1,21 +1,47 @@
 import api from "../../utils/api";
 
-export const fetchAllUsers = async () => {
-  const response = await api.get("/users");
+export const fetchAllUsers = async (token) => {
+  const response = await api.get("/users", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
   return response.data;
 };
 
-export const fetchUserById = async (id) => {
-  const response = await api.get(`/users/${id}`);
+export const fetchUserById = async (id, token) => {
+  const response = await api.get(`/users/${id}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
   return response.data;
 };
 
-export const deleteUserById = async (id) => {
-  const response = await api.delete(`/users/${id}`);
+export const deleteUserById = async (id, token) => {
+  const response = await api.delete(`/users/${id}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
   return response.data;
 };
 
-export const updateUserRole = async (id, role) => {
-  const response = await api.put(`/users/${id}/role`, { role });
+export const updateUserRole = async (id, role, token) => {
+  const response = await api.put(
+    `/users/${id}/role`,
+    { role },
+    {
+      headers: { Authorization: `Bearer ${token}` },
+    }
+  );
+  return response.data;
+};
+
+export const fetchMyProfile = async (token) => {
+  const response = await api.get("/users/me", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return response.data;
+};
+
+export const updateMyProfile = async (profileData, token) => {
+  const response = await api.patch("/users/me", profileData, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
   return response.data;
 };

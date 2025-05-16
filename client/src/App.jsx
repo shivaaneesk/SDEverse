@@ -15,6 +15,7 @@ import AdminRoute from "./components/AdminRoute";
 import CreateProposal from "./pages/CreateProposal";
 import MyProposals from "./pages/MyProposals";
 import AdminProposalReview from "./pages/AdminProposalReview";
+import Profile from "./pages/Profile";
 import { getMe } from "./features/auth/authSlice";
 
 const router = createBrowserRouter([
@@ -33,6 +34,10 @@ const router = createBrowserRouter([
       {
         index: true,
         element: <Home />,
+      },
+      {
+        path: "profile/:username",
+        element: <Profile />,
       },
       {
         path: "algorithms",
