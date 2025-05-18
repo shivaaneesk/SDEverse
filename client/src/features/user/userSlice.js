@@ -6,25 +6,41 @@ import {
   updateUserRole,
   fetchMyProfile,
   updateMyProfile,
+  updateSocialProfiles,
+  updateCompetitiveStats,
 } from "./userAPI";
 
 const initialState = {
   users: [],
   selectedUser: null,
   myProfile: null,
-  status: "idle",
-  error: null,
+  status: {
+    fetchUsers: "idle",
+    fetchProfile: "idle",
+    updateProfile: "idle",
+    updateSocialStats: "idle",
+    updateCompetitiveStats: "idle",
+  },
+  error: {
+    fetchUsers: null,
+    fetchProfile: null,
+    updateProfile: null,
+    updateSocialStats: null,
+    updateCompetitiveStats: null,
+  },
 };
+
+const safeReject = (error) =>
+  error.response?.data?.message || error.message || "Unknown error";
 
 export const getAllUsers = createAsyncThunk(
   "user/getAll",
   async (_, thunkAPI) => {
     const token = thunkAPI.getState().auth.token;
-    console.log(token)
     try {
       return await fetchAllUsers(token);
     } catch (error) {
-      return thunkAPI.rejectWithValue(error.response.data.message);
+      return thunkAPI.rejectWithValue(safeReject(error));
     }
   }
 );
@@ -36,7 +52,7 @@ export const getUserById = createAsyncThunk(
     try {
       return await fetchUserById(id, token);
     } catch (error) {
-      return thunkAPI.rejectWithValue(error.response.data.message);
+      return thunkAPI.rejectWithValue(safeReject(error));
     }
   }
 );
@@ -49,7 +65,7 @@ export const removeUser = createAsyncThunk(
       await deleteUserById(id, token);
       return id;
     } catch (error) {
-      return thunkAPI.rejectWithValue(error.response.data.message);
+      return thunkAPI.rejectWithValue(safeReject(error));
     }
   }
 );
@@ -61,7 +77,7 @@ export const changeUserRole = createAsyncThunk(
     try {
       return await updateUserRole(id, role, token);
     } catch (error) {
-      return thunkAPI.rejectWithValue(error.response.data.message);
+      return thunkAPI.rejectWithValue(safeReject(error));
     }
   }
 );
@@ -70,12 +86,10 @@ export const getMyProfile = createAsyncThunk(
   "user/getMyProfile",
   async (_, thunkAPI) => {
     const token = thunkAPI.getState().auth.token;
-    console.log(token)
-
     try {
       return await fetchMyProfile(token);
     } catch (error) {
-      return thunkAPI.rejectWithValue(error.response?.data?.message || error.message);
+      return thunkAPI.rejectWithValue(safeReject(error));
     }
   }
 );
@@ -87,7 +101,33 @@ export const patchMyProfile = createAsyncThunk(
     try {
       return await updateMyProfile(profileData, token);
     } catch (error) {
-      return thunkAPI.rejectWithValue(error.response?.data?.message || error.message);
+      return thunkAPI.rejectWithValue(safeReject(error));
+    }
+  }
+);
+
+export const refreshSocialStats = createAsyncThunk(
+  "user/refreshSocialStats",
+  async (_, thunkAPI) => {
+    const token = thunkAPI.getState().auth.token;
+    try {
+      const { socialStats } = await updateSocialProfiles(token);
+      return socialStats;
+    } catch (error) {
+      return thunkAPI.rejectWithValue(safeReject(error));
+    }
+  }
+);
+
+export const refreshCompetitiveStats = createAsyncThunk(
+  "user/refreshCompetitiveStats",
+  async (_, thunkAPI) => {
+    const token = thunkAPI.getState().auth.token;
+    try {
+      const { competitiveStats } = await updateCompetitiveStats(token);
+      return competitiveStats;
+    } catch (error) {
+      return thunkAPI.rejectWithValue(safeReject(error));
     }
   }
 );
@@ -105,30 +145,36 @@ const userSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      // Admin users list
       .addCase(getAllUsers.pending, (state) => {
-        state.status = "loading";
+        state.status.fetchUsers = "loading";
+        state.error.fetchUsers = null;
       })
       .addCase(getAllUsers.fulfilled, (state, action) => {
-        state.status = "succeeded";
+        state.status.fetchUsers = "succeeded";
         state.users = action.payload;
       })
       .addCase(getAllUsers.rejected, (state, action) => {
-        state.status = "failed";
-        state.error = action.payload;
+        state.status.fetchUsers = "failed";
+        state.error.fetchUsers = action.payload;
       })
 
-      // Admin single user
+      .addCase(getUserById.pending, (state) => {
+        state.status.fetchSelectedUser = "loading";
+        state.error.fetchSelectedUser = null;
+      })
       .addCase(getUserById.fulfilled, (state, action) => {
+        state.status.fetchSelectedUser = "succeeded";
         state.selectedUser = action.payload;
       })
+      .addCase(getUserById.rejected, (state, action) => {
+        state.status.fetchSelectedUser = "failed";
+        state.error.fetchSelectedUser = action.payload;
+      })
 
-      // Admin delete user
       .addCase(removeUser.fulfilled, (state, action) => {
         state.users = state.users.filter((user) => user._id !== action.payload);
       })
 
-      // Admin update user role
       .addCase(changeUserRole.fulfilled, (state, action) => {
         const index = state.users.findIndex(
           (u) => u._id === action.meta.arg.id
@@ -138,34 +184,66 @@ const userSlice = createSlice({
         }
       })
 
-      // Current user profile
       .addCase(getMyProfile.pending, (state) => {
-        state.status = "loading";
+        state.status.fetchProfile = "loading";
+        state.error.fetchProfile = null;
       })
       .addCase(getMyProfile.fulfilled, (state, action) => {
-        state.status = "succeeded";
+        state.status.fetchProfile = "succeeded";
         state.myProfile = action.payload;
       })
       .addCase(getMyProfile.rejected, (state, action) => {
-        state.status = "failed";
-        state.error = action.payload;
+        state.status.fetchProfile = "failed";
+        state.error.fetchProfile = action.payload;
       })
 
-      // Update current user profile
       .addCase(patchMyProfile.pending, (state) => {
-        state.status = "loading";
+        state.status.updateProfile = "loading";
+        state.error.updateProfile = null;
       })
       .addCase(patchMyProfile.fulfilled, (state, action) => {
-        state.status = "succeeded";
-        state.myProfile = action.payload;
+        state.status.updateProfile = "succeeded";
+        state.myProfile = {
+          ...state.myProfile,
+          ...action.payload,
+        };
       })
       .addCase(patchMyProfile.rejected, (state, action) => {
-        state.status = "failed";
-        state.error = action.payload;
+        state.status.updateProfile = "failed";
+        state.error.updateProfile = action.payload;
+      })
+
+      .addCase(refreshSocialStats.pending, (state) => {
+        state.status.updateSocialStats = "loading";
+        state.error.updateSocialStats = null;
+      })
+      .addCase(refreshSocialStats.fulfilled, (state, action) => {
+        state.status.updateSocialStats = "succeeded";
+        if (state.myProfile) {
+          state.myProfile.socialStats = action.payload;
+        }
+      })
+      .addCase(refreshSocialStats.rejected, (state, action) => {
+        state.status.updateSocialStats = "failed";
+        state.error.updateSocialStats = action.payload;
+      })
+
+      .addCase(refreshCompetitiveStats.pending, (state) => {
+        state.status.updateCompetitiveStats = "loading";
+        state.error.updateCompetitiveStats = null;
+      })
+      .addCase(refreshCompetitiveStats.fulfilled, (state, action) => {
+        state.status.updateCompetitiveStats = "succeeded";
+        if (state.myProfile) {
+          state.myProfile.competitiveStats = action.payload;
+        }
+      })
+      .addCase(refreshCompetitiveStats.rejected, (state, action) => {
+        state.status.updateCompetitiveStats = "failed";
+        state.error.updateCompetitiveStats = action.payload;
       });
   },
 });
 
 export const { clearSelectedUser, clearMyProfile } = userSlice.actions;
-
 export default userSlice.reducer;

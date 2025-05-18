@@ -1,5 +1,122 @@
 const asyncHandler = require("express-async-handler");
 const User = require("../models/user.model");
+const {
+  fetchAllCompetitiveStats,
+  getDefaultStats,
+} = require("../utils/profileFetchers");
+
+const {
+  extractSocialUsernameFromUrl,
+  fetchSocialStats,
+} = require("../utils/socialProfileFetchers");
+
+const updateAllCompetitiveStats = asyncHandler(async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      res.status(404);
+      throw new Error("User not found");
+    }
+
+    // Fetch all stats (should now return { summary, moreInfo, profileUrl } per platform)
+    const allStatsWithExtra = await fetchAllCompetitiveStats(
+      user.competitiveProfiles
+    );
+
+    // Extract only summaries for DB update
+    const platforms = ["leetcode", "codeforces", "codechef", "atcoder", "spoj"];
+    const summariesOnly = {};
+    for (const platform of platforms) {
+      if (
+        allStatsWithExtra[platform] &&
+        typeof allStatsWithExtra[platform] === "object" &&
+        allStatsWithExtra[platform].summary
+      ) {
+        summariesOnly[platform] = allStatsWithExtra[platform].summary;
+      } else {
+        summariesOnly[platform] = getDefaultStats(platform);
+      }
+    }
+
+    // Update user stats in DB with summaries only
+    user.competitiveStats = summariesOnly;
+    await user.save();
+
+    // Send back both summaries and extra info for frontend usage
+    return res.status(200).json({
+      message: "Competitive stats update complete",
+      competitiveStats: summariesOnly,
+      extraStats: allStatsWithExtra, // includes summary, moreInfo, profileUrl for each platform
+    });
+  } catch (error) {
+    console.error("updateAllCompetitiveStats error:", error);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
+const updateSocialProfiles = asyncHandler(async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const socialLinks = user.socialLinks || {};
+    const updatedStats = {}; // Start fresh
+
+    const platforms = Object.keys(socialLinks);
+
+    for (const platform of platforms) {
+      const url = socialLinks[platform];
+      if (!url) continue;
+
+      const username = extractSocialUsernameFromUrl(platform, url);
+      if (!username) {
+        console.warn(
+          `Could not extract username for ${platform} from URL: ${url}`
+        );
+        updatedStats[platform] = getDefaultStats(platform); // Fallback
+        continue;
+      }
+
+      try {
+        const stats = await fetchSocialStats(platform, username);
+        if (stats && stats.moreInfo) {
+          const cleanStats = Object.fromEntries(
+            Object.entries(stats.moreInfo).filter(
+              ([_, v]) => v !== undefined && v !== null && !Number.isNaN(v)
+            )
+          );
+
+          updatedStats[platform] = {
+            ...cleanStats,
+            summary: stats.summary || "",
+            profileUrl: stats.profileUrl || url,
+            updatedAt: new Date(),
+          };
+        } else {
+          updatedStats[platform] = getDefaultStats(platform); // Fallback if no data
+        }
+      } catch (err) {
+        console.error(
+          `Error fetching stats for ${platform} (${username}):`,
+          err.message
+        );
+        updatedStats[platform] = getDefaultStats(platform); // Fallback on error
+      }
+    }
+
+    user.socialStats = updatedStats;
+    await user.save();
+
+    return res.status(200).json({
+      message: "Social stats updated",
+      socialStats: user.socialStats,
+    });
+  } catch (error) {
+    console.error("updateSocialProfiles error:", error);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
 
 const getAllUsers = asyncHandler(async (req, res) => {
   const users = await User.find().select("-password");
@@ -69,7 +186,7 @@ const updateMyProfile = asyncHandler(async (req, res) => {
     "website",
     "bio",
     "competitiveProfiles",
-    "socialLinks"
+    "socialLinks",
   ];
 
   updatableFields.forEach((field) => {
@@ -92,4 +209,6 @@ module.exports = {
   updateUserRole,
   getMyProfile,
   updateMyProfile,
+  updateAllCompetitiveStats,
+  updateSocialProfiles,
 };
