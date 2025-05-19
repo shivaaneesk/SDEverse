@@ -1,6 +1,8 @@
 const axios = require("axios");
 const cheerio = require("cheerio");
+const puppeteer = require("puppeteer");
 
+// === Extract username from URL ===
 function extractSocialUsernameFromUrl(platform, url) {
   try {
     const urlObj = new URL(url);
@@ -23,6 +25,7 @@ function extractSocialUsernameFromUrl(platform, url) {
   }
 }
 
+// === Main dispatcher ===
 async function fetchSocialStats(platform, username) {
   switch (platform) {
     case "github":
@@ -40,21 +43,24 @@ async function fetchSocialStats(platform, username) {
   }
 }
 
-// GitHub
+// === GitHub: public API fetch ===
 async function fetchGitHubStats(username) {
   try {
     const userRes = await axios.get(`https://api.github.com/users/${username}`);
-    const reposRes = await axios.get(`https://api.github.com/users/${username}/repos?per_page=100`);
+    const reposRes = await axios.get(
+      `https://api.github.com/users/${username}/repos?per_page=100`
+    );
 
-    const totalStars = reposRes.data.reduce((acc, repo) => acc + (repo.stargazers_count || 0), 0);
-    const totalForks = reposRes.data.reduce((acc, repo) => acc + (repo.forks_count || 0), 0);
+    const totalStars = reposRes.data.reduce(
+      (acc, repo) => acc + (repo.stargazers_count || 0),
+      0
+    );
 
     const moreInfo = {
       publicRepos: userRes.data.public_repos || 0,
       followers: userRes.data.followers || 0,
       following: userRes.data.following || 0,
       totalStars,
-      totalForks,
       updatedAt: new Date(),
     };
 
@@ -69,158 +75,126 @@ async function fetchGitHubStats(username) {
   }
 }
 
-// LinkedIn
+// === LinkedIn: no longer reliably scrapable without login and tokens ===
 async function fetchLinkedInStats(username) {
-  try {
-    const response = await axios.get(`https://www.linkedin.com/in/${username}`);
-    const $ = cheerio.load(response.data);
-
-    const connectionsText = $('span.t-bold').first().text();
-    const connections = connectionsText ? parseInt(connectionsText.replace(/[^\d]/g, "")) : null;
-
-    const moreInfo = {
-      connections,
+  // Return fallback data, scraping LinkedIn publicly doesn’t work well anymore.
+  return {
+    summary: "LinkedIn stats unavailable (login required)",
+    moreInfo: {
+      connections: null,
       profileViews: null,
       updatedAt: new Date(),
-    };
-
-    return {
-      summary: connections ? `${connections} connections` : "No visible stats",
-      moreInfo,
-      profileUrl: `https://www.linkedin.com/in/${username}`,
-    };
-  } catch (err) {
-    console.error("LinkedIn fetch error:", err.message);
-    return {
-      summary: "LinkedIn stats unavailable",
-      moreInfo: {
-        connections: null,
-        profileViews: null,
-        updatedAt: new Date(),
-      },
-      profileUrl: `https://www.linkedin.com/in/${username}`,
-    };
-  }
+    },
+    profileUrl: `https://www.linkedin.com/in/${username}`,
+  };
 }
 
-// Twitter
+// === Twitter: no public data scraping anymore without auth or headless browser ===
 async function fetchTwitterStats(username) {
-  try {
-    const response = await axios.get(`https://twitter.com/${username}`);
-    const $ = cheerio.load(response.data);
-
-    const followers = parseCount($('a[href$="/followers"] > span > span').text());
-    const following = parseCount($('a[href$="/following"] > span > span').text());
-    const tweets = parseCount($('a[href$="/with_replies"] > span > span').text());
-    const likes = parseCount($('a[href$="/likes"] > span > span').text());
-
-    const moreInfo = {
-      followers,
-      following,
-      tweets,
-      likes,
+  return {
+    summary: "Twitter stats unavailable (API/token required)",
+    moreInfo: {
+      followers: null,
+      following: null,
+      tweets: null,
+      likes: null,
       updatedAt: new Date(),
-    };
-
-    return {
-      summary: `${followers ?? "?"} followers • ${tweets ?? "?"} tweets`,
-      moreInfo,
-      profileUrl: `https://twitter.com/${username}`,
-    };
-  } catch (err) {
-    console.error("Twitter fetch error:", err.message);
-    return {
-      summary: "Twitter stats unavailable",
-      moreInfo: {
-        followers: null,
-        following: null,
-        tweets: null,
-        likes: null,
-        updatedAt: new Date(),
-      },
-      profileUrl: `https://twitter.com/${username}`,
-    };
-  }
+    },
+    profileUrl: `https://twitter.com/${username}`,
+  };
 }
 
-// Facebook
+// === Facebook: no public scraping without login ===
 async function fetchFacebookStats(username) {
-  try {
-    const response = await axios.get(`https://www.facebook.com/${username}`);
-    const $ = cheerio.load(response.data);
-
-    const moreInfo = {
+  return {
+    summary: "Facebook stats unavailable (login required)",
+    moreInfo: {
       friendsCount: null,
       followers: null,
       updatedAt: new Date(),
-    };
-
-    return {
-      summary: "Facebook stats not available",
-      moreInfo,
-      profileUrl: `https://www.facebook.com/${username}`,
-    };
-  } catch (err) {
-    console.error("Facebook fetch error:", err.message);
-    return {
-      summary: "Facebook stats unavailable",
-      moreInfo: {
-        friendsCount: null,
-        followers: null,
-        updatedAt: new Date(),
-      },
-      profileUrl: `https://www.facebook.com/${username}`,
-    };
-  }
+    },
+    profileUrl: `https://www.facebook.com/${username}`,
+  };
 }
 
-// Instagram
+// === Instagram: use Puppeteer to scrape follower count ===
 async function fetchInstagramStats(username) {
+  const puppeteer = require("puppeteer");
+  let browser;
   try {
-    const response = await axios.get(`https://www.instagram.com/${username}/`);
-    const $ = cheerio.load(response.data);
+    browser = await puppeteer.launch({ headless: true });
+    const page = await browser.newPage();
+    await page.setUserAgent(
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36"
+    );
 
-    const script = $('script[type="text/javascript"]').filter((i, el) => {
-      return $(el).html().includes("window._sharedData");
-    }).html();
+    await page.goto(`https://www.instagram.com/${username}/`, {
+      waitUntil: "networkidle2",
+    });
 
-    if (!script) throw new Error("Instagram data not found");
+    // Try multiple ways to get user data
+    const userData = await page.evaluate(() => {
+      // Try sharedData
+      if (window._sharedData) {
+        try {
+          return window._sharedData.entry_data.ProfilePage[0].graphql.user;
+        } catch {
+          // ignore
+        }
+      }
+      // Try __additionalDataLoaded - another place IG loads profile data dynamically
+      if (window.__additionalDataLoaded) {
+        try {
+          const [, data] = window.__additionalDataLoaded;
+          return data.graphql.user;
+        } catch {
+          // ignore
+        }
+      }
+      // Try JSON-LD script
+      const ldJson = document.querySelector('script[type="application/ld+json"]');
+      if (ldJson) {
+        try {
+          const json = JSON.parse(ldJson.textContent);
+          return {
+            followers: json.mainEntityofPage?.interactionStatistic?.userInteractionCount || null,
+            posts: json.mainEntityofPage?.numberOfPosts || null,
+          };
+        } catch {
+          // ignore
+        }
+      }
+      return null;
+    });
 
-    const jsonText = script.match(/window\._sharedData = (.+);/)[1];
-    const data = JSON.parse(jsonText);
-    const user = data.entry_data.ProfilePage[0].graphql.user;
+    if (!userData) throw new Error("Instagram user data not found");
 
-    const moreInfo = {
-      followers: user.edge_followed_by.count || 0,
-      following: user.edge_follow.count || 0,
-      posts: user.edge_owner_to_timeline_media.count || 0,
-      updatedAt: new Date(),
-    };
+    // Normalize data fields
+    const followers = userData.edge_followed_by?.count || userData.followers || 0;
+    const posts = userData.edge_owner_to_timeline_media?.count || userData.posts || 0;
 
     return {
-      summary: `${moreInfo.followers} followers • ${moreInfo.posts} posts`,
-      moreInfo,
+      summary: `${followers} followers • ${posts} posts`,
+      moreInfo: { followers, posts, updatedAt: new Date() },
       profileUrl: `https://www.instagram.com/${username}/`,
     };
   } catch (err) {
     console.error("Instagram fetch error:", err.message);
     return {
       summary: "Instagram stats unavailable",
-      moreInfo: {
-        followers: null,
-        following: null,
-        posts: null,
-        updatedAt: new Date(),
-      },
+      moreInfo: { followers: null, posts: null, updatedAt: new Date() },
       profileUrl: `https://www.instagram.com/${username}/`,
     };
+  } finally {
+    if (browser) await browser.close();
   }
 }
 
-// Utility to parse numbers like 1.2K, 3.4M, etc.
+
+// === Utility: parse shorthand counts like 1.2K, 3.4M ===
 function parseCount(text) {
   if (!text) return null;
-  text = text.trim().toUpperCase();
+  text = text.trim().toUpperCase().replace(/,/g, "");
 
   let multiplier = 1;
   if (text.endsWith("K")) multiplier = 1_000;
@@ -233,6 +207,7 @@ function parseCount(text) {
   return Math.round(number * multiplier);
 }
 
+// === Export all functions ===
 module.exports = {
   extractSocialUsernameFromUrl,
   fetchSocialStats,

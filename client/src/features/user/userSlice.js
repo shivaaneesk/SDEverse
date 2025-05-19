@@ -14,6 +14,7 @@ const initialState = {
   users: [],
   selectedUser: null,
   myProfile: null,
+  extraCompetitiveStats: null,
   status: {
     fetchUsers: "idle",
     fetchProfile: "idle",
@@ -111,8 +112,7 @@ export const refreshSocialStats = createAsyncThunk(
   async (_, thunkAPI) => {
     const token = thunkAPI.getState().auth.token;
     try {
-      const { socialStats } = await updateSocialProfiles(token);
-      return socialStats;
+      return await updateSocialProfiles(token); // ✅ use directly
     } catch (error) {
       return thunkAPI.rejectWithValue(safeReject(error));
     }
@@ -124,8 +124,7 @@ export const refreshCompetitiveStats = createAsyncThunk(
   async (_, thunkAPI) => {
     const token = thunkAPI.getState().auth.token;
     try {
-      const { competitiveStats } = await updateCompetitiveStats(token);
-      return competitiveStats;
+      return await updateCompetitiveStats(token); // ✅ use directly
     } catch (error) {
       return thunkAPI.rejectWithValue(safeReject(error));
     }
@@ -235,9 +234,22 @@ const userSlice = createSlice({
       .addCase(refreshCompetitiveStats.fulfilled, (state, action) => {
         state.status.updateCompetitiveStats = "succeeded";
         if (state.myProfile) {
-          state.myProfile.competitiveStats = action.payload;
+          state.myProfile.competitiveStats = action.payload.competitiveStats;
+
+          // Decompose and store moreInfo + profileUrl per platform
+          const extraStats = action.payload.extraStats || {};
+
+          state.myProfile.extraCompetitiveStats = {};
+
+          for (const platform in extraStats) {
+            state.myProfile.extraCompetitiveStats[platform] = {
+              profileUrl: extraStats[platform]?.profileUrl || "",
+              moreInfo: extraStats[platform]?.moreInfo || {},
+            };
+          }
         }
       })
+
       .addCase(refreshCompetitiveStats.rejected, (state, action) => {
         state.status.updateCompetitiveStats = "failed";
         state.error.updateCompetitiveStats = action.payload;

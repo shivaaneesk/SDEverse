@@ -48,7 +48,8 @@ async function fetchLeetCodeStats(username) {
       }
     );
 
-    const advancedContest = graphqlResponse?.data?.data?.userContestRanking || {};
+    const advancedContest =
+      graphqlResponse?.data?.data?.userContestRanking || {};
 
     const summary = {
       totalSolved: getCount("All"),
@@ -61,9 +62,12 @@ async function fetchLeetCodeStats(username) {
     };
 
     const moreInfo = {
-      globalRanking: advancedContest.globalRanking || baseContest.globalRanking || 0,
+      globalRanking:
+        advancedContest.globalRanking || baseContest.globalRanking || 0,
       totalContests:
-        advancedContest.attendedContestsCount || baseContest.attendedContestsCount || 0,
+        advancedContest.attendedContestsCount ||
+        baseContest.attendedContestsCount ||
+        0,
       totalParticipants: advancedContest.totalParticipants || 0,
       topPercentage: advancedContest.topPercentage || null,
     };
@@ -80,7 +84,9 @@ async function fetchLeetCodeStats(username) {
 async function fetchCodeforcesStats(username) {
   if (!username) return null;
   try {
-    const res = await axios.get(`https://codeforces.com/api/user.info?handles=${username}`);
+    const res = await axios.get(
+      `https://codeforces.com/api/user.info?handles=${username}`
+    );
     if (res.data.status === "OK") {
       const user = res.data.result[0];
 
@@ -116,9 +122,16 @@ async function fetchCodechefStats(username) {
     const summary = {
       currentRating: parseInt($(".rating-number").first().text()) || 0,
       stars: $(".rating-star").text().length || 0,
-      maxRating: parseInt($(".rating-header small").text().match(/\d+/)?.[0]) || 0,
-      globalRank: parseInt($(".rating-ranks ul li:nth-child(1) strong").text().replace("#", "")) || 0,
-      countryRank: parseInt($(".rating-ranks ul li:nth-child(2) strong").text().replace("#", "")) || 0,
+      maxRating:
+        parseInt($(".rating-header small").text().match(/\d+/)?.[0]) || 0,
+      globalRank:
+        parseInt(
+          $(".rating-ranks ul li:nth-child(1) strong").text().replace("#", "")
+        ) || 0,
+      countryRank:
+        parseInt(
+          $(".rating-ranks ul li:nth-child(2) strong").text().replace("#", "")
+        ) || 0,
       updatedAt: new Date(),
     };
 
@@ -161,8 +174,15 @@ async function fetchSpojStats(username) {
     const res = await axios.get(`https://www.spoj.com/users/${username}`);
     const $ = cheerio.load(res.data);
 
-    const totalSolved = parseInt($(".user-profile-left table tr:nth-child(3) td").text().match(/\d+/)?.[0]) || 0;
-    const rankMatch = $('h3:contains("Rank")').text().match(/Rank\s*:\s*(\d+)/);
+    const totalSolved =
+      parseInt(
+        $(".user-profile-left table tr:nth-child(3) td")
+          .text()
+          .match(/\d+/)?.[0]
+      ) || 0;
+    const rankMatch = $('h3:contains("Rank")')
+      .text()
+      .match(/Rank\s*:\s*(\d+)/);
     const rank = rankMatch ? parseInt(rankMatch[1]) : 0;
 
     const summary = {
@@ -210,32 +230,45 @@ async function fetchAllCompetitiveStats(competitiveProfiles) {
       switch (platform) {
         case "leetcode":
           stats.leetcode = (await fetchLeetCodeStats(username)) || {
-            summary: getDefaultStats("leetcode"), moreInfo: {}, profileUrl: ""
+            summary: getDefaultStats("leetcode"),
+            moreInfo: {},
+            profileUrl: "",
           };
           break;
         case "codeforces":
           stats.codeforces = (await fetchCodeforcesStats(username)) || {
-            summary: getDefaultStats("codeforces"), moreInfo: {}, profileUrl: ""
+            summary: getDefaultStats("codeforces"),
+            moreInfo: {},
+            profileUrl: "",
           };
           break;
         case "codechef":
           stats.codechef = (await fetchCodechefStats(username)) || {
-            summary: getDefaultStats("codechef"), moreInfo: {}, profileUrl: ""
+            summary: getDefaultStats("codechef"),
+            moreInfo: {},
+            profileUrl: "",
           };
           break;
         case "atcoder":
           stats.atcoder = (await fetchAtCoderStats(username)) || {
-            summary: getDefaultStats("atcoder"), moreInfo: {}, profileUrl: ""
+            summary: getDefaultStats("atcoder"),
+            moreInfo: {},
+            profileUrl: "",
           };
           break;
         case "spoj":
           stats.spoj = (await fetchSpojStats(username)) || {
-            summary: getDefaultStats("spoj"), moreInfo: {}, profileUrl: ""
+            summary: getDefaultStats("spoj"),
+            moreInfo: {},
+            profileUrl: "",
           };
           break;
       }
     } catch (e) {
-      console.error(`fetchAllCompetitiveStats error for ${platform}:`, e.message);
+      console.error(
+        `fetchAllCompetitiveStats error for ${platform}:`,
+        e.message
+      );
       stats[platform] = {
         summary: getDefaultStats(platform),
         moreInfo: {},
@@ -250,20 +283,41 @@ async function fetchAllCompetitiveStats(competitiveProfiles) {
 function getDefaultStats(platform) {
   const defaults = {
     leetcode: {
-      totalSolved: 0, easy: 0, medium: 0, hard: 0, ranking: 0, contestRating: 0,
-      globalRanking: 0, totalContests: 0, updatedAt: null,
+      totalSolved: 0,
+      easy: 0,
+      medium: 0,
+      hard: 0,
+      ranking: 0,
+      contestRating: 0,
+      globalRanking: 0,
+      totalContests: 0,
+      updatedAt: null,
     },
     codeforces: {
-      currentRating: 0, maxRating: 0, rank: "", totalSolved: 0, updatedAt: null,
+      currentRating: 0,
+      maxRating: 0,
+      rank: "",
+      totalSolved: 0,
+      updatedAt: null,
     },
     codechef: {
-      currentRating: 0, maxRating: 0, stars: 0, globalRank: 0, countryRank: 0, updatedAt: null,
+      currentRating: 0,
+      maxRating: 0,
+      stars: 0,
+      globalRank: 0,
+      countryRank: 0,
+      updatedAt: null,
     },
     atcoder: {
-      rating: 0, rank: "", performance: 0, updatedAt: null,
+      rating: 0,
+      rank: "",
+      performance: 0,
+      updatedAt: null,
     },
     spoj: {
-      totalSolved: 0, rank: 0, updatedAt: null,
+      totalSolved: 0,
+      rank: 0,
+      updatedAt: null,
     },
   };
   return defaults[platform] || {};

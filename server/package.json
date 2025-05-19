@@ -30,6 +30,7 @@
     "jsonwebtoken": "^9.0.2",
     "leetcode-query": "^2.0.0",
     "mongoose": "^8.14.1",
+    "puppeteer": "^24.8.2",
     "slugify": "^1.6.6"
   },
   "devDependencies": {

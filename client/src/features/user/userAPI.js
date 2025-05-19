@@ -50,14 +50,12 @@ export const updateSocialProfiles = async (token) => {
   const response = await api.get("/users/update-social-stats", {
     headers: { Authorization: `Bearer ${token}` },
   });
-  // ✅ Expect full response object and extract correctly
-  return response.data.socialStats;
+  return response.data;
 };
 
 export const updateCompetitiveStats = async (token) => {
   const response = await api.get("/users/update-competitive-stats", {
     headers: { Authorization: `Bearer ${token}` },
   });
-  // ✅ Expect full response object and extract correctly
-  return response.data.competitiveStats;
+  return response.data;
 };
