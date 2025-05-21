@@ -7,6 +7,7 @@ export default function LinksSection({
   links,
   stats,
   isEditing,
+  readonly,
   handleChange,
   refreshing,
   onRefresh,
@@ -20,7 +21,7 @@ export default function LinksSection({
         <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
           {title}
         </h2>
-        {!isEditing && (
+        {!isEditing && !readonly && (
           <div className="flex items-center gap-3 text-sm text-gray-500">
             {lastUpdated && (
               <span>
@@ -74,11 +75,11 @@ export default function LinksSection({
                     </a>
                   )}
                 </div>
-                {link && !isEditing && (
+                {link && !isEditing && !readonly && (
                   <button
                     className="text-green-600 text-sm font-medium hover:underline"
                     onClick={() => {
-                      // Replace with navigation logic, e.g., navigate(`/more-info/${platform}`)
+                      // Add navigation or info modal here
                     }}
                   >
                     Get More Info

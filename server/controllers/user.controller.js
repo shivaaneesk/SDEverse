@@ -116,16 +116,20 @@ const updateSocialProfiles = asyncHandler(async (req, res) => {
 
 const getAllUsers = async (req, res) => {
   try {
-    const { search = "", page = 1, limit = 10 } = req.query;
+    const { search = "", page = 1, limit = 10, role } = req.query;
 
-    const query = search
-      ? {
-          $or: [
-            { name: { $regex: search, $options: "i" } },
-            { email: { $regex: search, $options: "i" } },
-          ],
-        }
-      : {};
+    const query = {};
+
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { email: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    if (role) {
+      query.role = role.toLowerCase(); // Ensure consistent role format
+    }
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
 

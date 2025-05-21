@@ -1,33 +1,27 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, Fragment } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   getAllUsers,
   removeUser,
   changeUserRole,
 } from "../features/user/userSlice";
-import {
-  FaTrash,
-  FaChevronDown,
-  FaChevronUp,
-  FaUserCircle,
-  FaEnvelope,
-  FaUserTag,
-  FaMapMarkerAlt,
-  FaLink,
-  FaInfoCircle,
-} from "react-icons/fa";
+import { FaEye, FaTrash, FaUserEdit } from "react-icons/fa";
 import { toast } from "react-toastify";
+import ProfileForm from "./ProfileForm";
+import Pagination from "./Pagination";
+import RoleEditModal from "./RoleEditModal";
 
 function AdminUsersPage() {
   const dispatch = useDispatch();
-  const { users = [], status, error, totalPages = 1 } = useSelector((state) => state.user);
+  const { users = [], totalPages = 1 } = useSelector((state) => state.user);
 
   const [input, setInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
-  const [expandedUserIds, setExpandedUserIds] = useState([]);
-  const [roleEdits, setRoleEdits] = useState({});
+  const [expandedUserId, setExpandedUserId] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
+
+  const [selectedUserForRoleEdit, setSelectedUserForRoleEdit] = useState(null);
 
   useEffect(() => {
     dispatch(
@@ -40,12 +34,6 @@ function AdminUsersPage() {
     );
   }, [dispatch, searchQuery, roleFilter, currentPage]);
 
-  const toggleExpand = (id) => {
-    setExpandedUserIds((prev) =>
-      prev.includes(id) ? prev.filter((uid) => uid !== id) : [...prev, id]
-    );
-  };
-
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this user?")) return;
     try {
@@ -56,56 +44,44 @@ function AdminUsersPage() {
     }
   };
 
-  const handleRoleChangeLocal = (id, newRole) => {
-    setRoleEdits((prev) => ({ ...prev, [id]: newRole }));
+  const handleExpand = (id) => {
+    setExpandedUserId((prev) => (prev === id ? null : id));
   };
 
-  const handleRoleSave = async (id) => {
-    const newRole = roleEdits[id];
-    if (!newRole) return;
+  const handleRoleChangeConfirm = async (newRole) => {
+    const id = selectedUserForRoleEdit?._id;
     try {
       await dispatch(changeUserRole({ id, role: newRole })).unwrap();
       toast.success("User role updated.");
-      setRoleEdits((prev) => {
-        const copy = { ...prev };
-        delete copy[id];
-        return copy;
-      });
+      setSelectedUserForRoleEdit(null);
     } catch (err) {
       toast.error(`Failed to update role: ${err.message || err}`);
     }
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-10 text-gray-900 dark:text-gray-100">
-      <h1 className="text-4xl sm:text-5xl font-extrabold mb-12 text-center text-indigo-600 dark:text-indigo-400">
-        User Management
-      </h1>
+    <div className="max-w-7xl mx-auto px-4 py-10 text-white">
+      <h1 className="text-4xl font-bold text-center mb-8">User Management</h1>
 
-      {/* Search and Filter */}
+      {/* Search & Filters */}
       <form
         onSubmit={(e) => {
           e.preventDefault();
           setSearchQuery(input);
           setCurrentPage(1);
         }}
-        className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4 mb-10"
+        className="flex flex-wrap md:flex-nowrap items-center gap-3 mb-6"
       >
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Search users by name, email, or username"
-          className="flex-grow px-4 py-3 rounded-xl border border-indigo-300 focus:ring-2 focus:ring-indigo-500
-                     bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 shadow-md"
+          placeholder="Search by name, email, or username"
+          className="flex-1 min-w-[200px] px-4 py-2 rounded bg-gray-800 border border-gray-600 text-white"
         />
         <select
           value={roleFilter}
-          onChange={(e) => {
-            setRoleFilter(e.target.value);
-            setCurrentPage(1);
-          }}
-          className="w-full lg:w-56 px-4 py-3 rounded-xl border border-indigo-300 focus:ring-2 focus:ring-indigo-500
-                     bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-md"
+          onChange={(e) => setRoleFilter(e.target.value)}
+          className="w-full md:w-48 px-4 py-2 rounded bg-gray-800 border border-gray-600 text-white"
         >
           <option value="">All Roles</option>
           <option value="admin">Admin</option>
@@ -113,114 +89,110 @@ function AdminUsersPage() {
         </select>
         <button
           type="submit"
-          className="w-full lg:w-auto px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700
-                     text-white font-semibold shadow-lg transition"
+          className="bg-indigo-600 px-6 py-2 rounded font-semibold text-white hover:bg-indigo-700"
         >
           Search
         </button>
       </form>
 
-      {/* Status and Error */}
-      {status.fetchUsers === "loading" && (
-        <p className="text-center text-indigo-500 font-medium animate-pulse">Loading users...</p>
-      )}
-      {error.fetchUsers && (
-        <p className="text-center text-red-500 font-semibold">{error.fetchUsers}</p>
-      )}
+      {/* Users Table */}
+      <div className="overflow-x-auto">
+        <table className="w-full text-left border-collapse">
+          <thead className="bg-gray-800">
+            <tr>
+              <th className="px-4 py-3">Name</th>
+              <th className="px-4 py-3">Username</th>
+              <th className="px-4 py-3">Email</th>
+              <th className="px-4 py-3">Role</th>
+              <th className="px-4 py-3">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {users.map((user) => {
+              const isExpanded = expandedUserId === user._id;
 
-      {/* Users List */}
-      <div className="grid gap-8">
-        {users.length === 0 && status.fetchUsers !== "loading" ? (
-          <p className="text-center text-indigo-400 font-medium">No users found.</p>
-        ) : (
-          users.map((user) => {
-            const isExpanded = expandedUserIds.includes(user._id);
-            const pendingRole = roleEdits[user._id] ?? user.role ?? "user";
+              return (
+                <Fragment key={user._id}>
+                  <tr className="bg-gray-900 border-b border-gray-700">
+                    <td className="px-4 py-3 font-medium">{user.fullName}</td>
+                    <td className="px-4 py-3">{user.username}</td>
+                    <td className="px-4 py-3">{user.email}</td>
+                    <td className="px-4 py-3 capitalize">{user.role}</td>
+                    <td className="px-4 py-3 space-x-4">
+                      <button
+                        onClick={() => handleExpand(user._id)}
+                        title="View Profile"
+                      >
+                        <FaEye className="inline text-lg hover:text-blue-400" />
+                      </button>
+                      <button
+                        onClick={() => setSelectedUserForRoleEdit(user)}
+                        title="Edit Role"
+                      >
+                        <FaUserEdit className="inline text-lg hover:text-green-400" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(user._id)}
+                        title="Delete"
+                      >
+                        <FaTrash className="inline text-lg hover:text-red-500" />
+                      </button>
+                    </td>
+                  </tr>
 
-            return (
-              <div
-                key={user._id}
-                className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-6 transition-all duration-300 hover:shadow-xl"
-              >
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex-1">
-                    <h2 className="text-2xl font-semibold text-indigo-700 dark:text-indigo-300">{user.fullName}</h2>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      @{user.username} &middot; {user.email}
-                    </p>
-                  </div>
-
-                  <div className="mt-4 sm:mt-0 flex items-center gap-4 text-gray-600 dark:text-gray-300">
-                    <button onClick={() => toggleExpand(user._id)}>
-                      {isExpanded ? <FaChevronUp /> : <FaChevronDown />}
-                    </button>
-                    <button onClick={() => handleDelete(user._id)} className="hover:text-red-600">
-                      <FaTrash />
-                    </button>
-                  </div>
-                </div>
-
-                {isExpanded && (
-                  <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                    <div className="flex items-center space-x-3"><FaUserCircle /><span><strong>Name:</strong> {user.fullName}</span></div>
-                    <div className="flex items-center space-x-3"><FaUserTag /><span><strong>Username:</strong> {user.username}</span></div>
-                    <div className="flex items-center space-x-3"><FaEnvelope /><span><strong>Email:</strong> {user.email}</span></div>
-                    <div className="flex items-center space-x-3"><FaMapMarkerAlt /><span><strong>Location:</strong> {user.location || "N/A"}</span></div>
-                    <div className="flex items-center space-x-3"><FaUserTag /><span><strong>Role:</strong> {user.role}</span></div>
-                    <div className="flex items-center space-x-3"><FaLink /><span><strong>Website:</strong> {user.website ? <a href={user.website} className="underline" target="_blank" rel="noreferrer">Portfolio</a> : "N/A"}</span></div>
-                    <div className="flex items-center space-x-3 col-span-full"><FaInfoCircle /><span><strong>Bio:</strong> {user.bio || "N/A"}</span></div>
-
-                    <div className="col-span-full mt-4">
-                      <label className="block mb-2 font-semibold">Change Role</label>
-                      <div className="flex items-center gap-3">
-                        <select
-                          value={pendingRole}
-                          onChange={(e) => handleRoleChangeLocal(user._id, e.target.value)}
-                          className="rounded-xl px-4 py-2 border border-indigo-300 bg-white dark:bg-gray-800 dark:text-indigo-100"
-                        >
-                          <option value="user">User</option>
-                          <option value="admin">Admin</option>
-                        </select>
-                        {pendingRole !== user.role && (
-                          <button
-                            onClick={() => handleRoleSave(user._id)}
-                            className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold transition"
-                          >
-                            Save
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })
-        )}
+                  {isExpanded && (
+                    <tr className="bg-gray-800">
+                      <td colSpan="5" className="px-4 py-6">
+                        <ProfileForm
+                          formData={{
+                            fullName: user.fullName || "",
+                            bio: user.bio || "",
+                            avatarUrl: user.avatarUrl || "",
+                            location: user.location || "",
+                            website: user.website || "",
+                            socialLinks: user.socialLinks || {},
+                            competitiveProfiles: user.competitiveProfiles || {},
+                            socialStats: user.socialStats || {},
+                            competitiveStats: user.competitiveStats || {},
+                          }}
+                          isEditing={false}
+                          hasChanges={false}
+                          refreshing={{ type: null }}
+                          lastRefreshed={{
+                            competitive: user.lastCompetitiveRefresh || null,
+                            social: user.lastSocialRefresh || null,
+                          }}
+                          onChange={() => {}}
+                          onSubmit={() => {}}
+                          onCancel={() => {}}
+                          onEditToggle={() => {}}
+                          onRefresh={() => {}}
+                          readonly={true}
+                        />
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
 
       {/* Pagination */}
-      <div className="mt-12 flex justify-center items-center space-x-6">
-        <button
-          onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-          disabled={currentPage === 1}
-          className="px-6 py-3 rounded-full bg-indigo-100 text-indigo-700 font-semibold
-                     hover:bg-indigo-200 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          Previous
-        </button>
-        <span className="font-semibold text-indigo-600 dark:text-indigo-300">
-          Page {currentPage} of {totalPages}
-        </span>
-        <button
-          onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-          disabled={currentPage >= totalPages}
-          className="px-6 py-3 rounded-full bg-indigo-100 text-indigo-700 font-semibold
-                     hover:bg-indigo-200 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          Next
-        </button>
-      </div>
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+      />
+
+      {/* Role Edit Modal */}
+      <RoleEditModal
+        isOpen={!!selectedUserForRoleEdit}
+        user={selectedUserForRoleEdit}
+        onClose={() => setSelectedUserForRoleEdit(null)}
+        onConfirm={handleRoleChangeConfirm}
+      />
     </div>
   );
 }

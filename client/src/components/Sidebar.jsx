@@ -55,7 +55,9 @@ const Sidebar = () => {
       {/* Sidebar */}
       <aside
         className={`fixed top-0 left-0 h-full w-64 bg-white dark:bg-gray-900 shadow-lg z-50 transform transition-transform duration-300 ease-in-out
-        ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0 md:block`}
+        ${
+          isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+        } md:translate-x-0 md:block`}
         aria-label="Sidebar Navigation"
       >
         <div className="p-6 flex flex-col gap-6 h-full relative">

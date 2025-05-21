@@ -1,6 +1,6 @@
 export default function ProfileSection({ isEditing, formData, handleChange }) {
   return (
-    <section className="space-y-2">
+    <section className="space-y-6">
       <h2 className="text-2xl font-bold text-left text-gray-900 dark:text-white">
         Profile Details
       </h2>

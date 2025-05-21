@@ -47,6 +47,7 @@ export const getAllUsers = createAsyncThunk(
       page: params.page || 1,
       limit: params.limit || 10,
       search: params.search || "",
+      ...(params.role ? { role: params.role } : {}),
     };
 
     try {
