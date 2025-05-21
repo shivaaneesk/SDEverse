@@ -1,7 +1,9 @@
 import api from "../../utils/api";
 
-export const fetchAllUsers = async (token) => {
-  const response = await api.get("/users", {
+export const fetchAllUsers = async (token, params = {}) => {
+  const queryString = new URLSearchParams(params).toString();
+
+  const response = await api.get(`/users?${queryString}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   return response.data;

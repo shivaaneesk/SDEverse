@@ -16,6 +16,7 @@ import CreateProposal from "./pages/CreateProposal";
 import MyProposals from "./pages/MyProposals";
 import AdminProposalReview from "./pages/AdminProposalReview";
 import Profile from "./pages/Profile";
+import AdminUsersPage from "./pages/AdminUsersPage";
 import { getMe } from "./features/auth/authSlice";
 
 const router = createBrowserRouter([
@@ -81,6 +82,14 @@ const router = createBrowserRouter([
         element: (
           <AdminRoute>
             <AdminProposalReview />
+          </AdminRoute>
+        ),
+      },
+      {
+        path: "admin/manage-users",
+        element: (
+          <AdminRoute>
+            <AdminUsersPage />
           </AdminRoute>
         ),
       },

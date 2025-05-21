@@ -12,6 +12,9 @@ import {
 
 const initialState = {
   users: [],
+  totalUsers: 0,
+  currentPage: 1,
+  totalPages: 1,
   selectedUser: null,
   myProfile: null,
   extraCompetitiveStats: null,
@@ -28,6 +31,7 @@ const initialState = {
     updateProfile: null,
     updateSocialStats: null,
     updateCompetitiveStats: null,
+    fetchSelectedUser: null,
   },
 };
 
@@ -36,10 +40,17 @@ const safeReject = (error) =>
 
 export const getAllUsers = createAsyncThunk(
   "user/getAll",
-  async (_, thunkAPI) => {
+  async (params = {}, thunkAPI) => {
     const token = thunkAPI.getState().auth.token;
+
+    const finalParams = {
+      page: params.page || 1,
+      limit: params.limit || 10,
+      search: params.search || "",
+    };
+
     try {
-      return await fetchAllUsers(token);
+      return await fetchAllUsers(token, finalParams);
     } catch (error) {
       return thunkAPI.rejectWithValue(safeReject(error));
     }
@@ -112,7 +123,7 @@ export const refreshSocialStats = createAsyncThunk(
   async (_, thunkAPI) => {
     const token = thunkAPI.getState().auth.token;
     try {
-      return await updateSocialProfiles(token); // ✅ use directly
+      return await updateSocialProfiles(token);
     } catch (error) {
       return thunkAPI.rejectWithValue(safeReject(error));
     }
@@ -124,7 +135,7 @@ export const refreshCompetitiveStats = createAsyncThunk(
   async (_, thunkAPI) => {
     const token = thunkAPI.getState().auth.token;
     try {
-      return await updateCompetitiveStats(token); // ✅ use directly
+      return await updateCompetitiveStats(token);
     } catch (error) {
       return thunkAPI.rejectWithValue(safeReject(error));
     }
@@ -150,7 +161,10 @@ const userSlice = createSlice({
       })
       .addCase(getAllUsers.fulfilled, (state, action) => {
         state.status.fetchUsers = "succeeded";
-        state.users = action.payload;
+        state.users = action.payload.users;
+        state.totalUsers = action.payload.total;
+        state.currentPage = action.payload.page;
+        state.totalPages = action.payload.totalPages;
       })
       .addCase(getAllUsers.rejected, (state, action) => {
         state.status.fetchUsers = "failed";
@@ -236,7 +250,6 @@ const userSlice = createSlice({
         if (state.myProfile) {
           state.myProfile.competitiveStats = action.payload.competitiveStats;
 
-          // Decompose and store moreInfo + profileUrl per platform
           const extraStats = action.payload.extraStats || {};
 
           state.myProfile.extraCompetitiveStats = {};

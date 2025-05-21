@@ -21,7 +21,6 @@ const Sidebar = () => {
   const dispatch = useDispatch();
   const darkMode = useSelector((state) => state.theme.mode === "dark");
   const { token, user } = useSelector((state) => state.auth);
-
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const handleSidebarToggle = () => setIsSidebarOpen((prev) => !prev);
@@ -34,7 +33,7 @@ const Sidebar = () => {
 
   return (
     <>
-      {/* Hamburger Button (Mobile Only) */}
+      {/* Hamburger Button */}
       <div className="md:hidden fixed top-4 left-4 z-50">
         <button
           onClick={handleSidebarToggle}
@@ -45,13 +44,12 @@ const Sidebar = () => {
         </button>
       </div>
 
-      {/* Overlay when sidebar is open on mobile */}
       {isSidebarOpen && (
         <div
           className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
           onClick={handleOverlayClick}
           aria-hidden="true"
-        ></div>
+        />
       )}
 
       {/* Sidebar */}
@@ -61,7 +59,6 @@ const Sidebar = () => {
         aria-label="Sidebar Navigation"
       >
         <div className="p-6 flex flex-col gap-6 h-full relative">
-          {/* Close button (Mobile Only) */}
           <button
             className="md:hidden absolute top-4 right-4 p-2 rounded bg-gray-200 dark:bg-gray-700"
             onClick={handleSidebarToggle}
@@ -70,7 +67,6 @@ const Sidebar = () => {
             <X size={24} />
           </button>
 
-          {/* App Title */}
           <h2 className="text-2xl font-bold text-blue-600 dark:text-white">
             SDEverse
           </h2>
@@ -98,30 +94,23 @@ const Sidebar = () => {
                 <Link
                   to="/admin/manage-users"
                   onClick={handleLinkClick}
-                  className="flex items-center gap-3 px-2 py-2 rounded hover:bg-blue-100 dark:hover:bg-blue-700 hover:text-blue-700 dark:hover:text-white transition-colors"
+                  className="flex items-center gap-3 px-2 py-2 rounded hover:bg-pink-100 dark:hover:bg-pink-700 hover:text-pink-700 dark:hover:text-white transition-colors"
                 >
                   <Users size={20} /> Manage Users
                 </Link>
                 <Link
                   to="/admin/manage-algorithms"
                   onClick={handleLinkClick}
-                  className="flex items-center gap-3 px-2 py-2 rounded hover:bg-blue-100 dark:hover:bg-blue-700 hover:text-blue-700 dark:hover:text-white transition-colors"
+                  className="flex items-center gap-3 px-2 py-2 rounded hover:bg-purple-100 dark:hover:bg-purple-700 hover:text-purple-700 dark:hover:text-white transition-colors"
                 >
                   <ClipboardList size={20} /> Manage Algorithms
                 </Link>
                 <Link
                   to="/admin/proposals/review"
                   onClick={handleLinkClick}
-                  className="flex items-center gap-3 px-2 py-2 rounded hover:bg-blue-100 dark:hover:bg-blue-700 hover:text-blue-700 dark:hover:text-white transition-colors"
+                  className="flex items-center gap-3 px-2 py-2 rounded hover:bg-green-100 dark:hover:bg-green-700 hover:text-green-700 dark:hover:text-white transition-colors"
                 >
                   <ClipboardList size={20} /> Review Proposals
-                </Link>
-                <Link
-                  to="/admin/settings"
-                  onClick={handleLinkClick}
-                  className="flex items-center gap-3 px-2 py-2 rounded hover:bg-blue-100 dark:hover:bg-blue-700 hover:text-blue-700 dark:hover:text-white transition-colors"
-                >
-                  <Settings size={20} /> Settings
                 </Link>
               </>
             )}
@@ -141,16 +130,14 @@ const Sidebar = () => {
                   onClick={handleLinkClick}
                   className="flex items-center gap-3 px-2 py-2 rounded hover:bg-green-100 dark:hover:bg-green-700 hover:text-green-700 dark:hover:text-white transition-colors"
                 >
-                  <ClipboardList size={20} className="text-green-500" /> My
-                  Proposals
+                  <ClipboardList size={20} /> My Proposals
                 </Link>
                 <Link
                   to="/proposals/new"
                   onClick={handleLinkClick}
                   className="flex items-center gap-3 px-2 py-2 rounded hover:bg-purple-100 dark:hover:bg-purple-700 hover:text-purple-700 dark:hover:text-white transition-colors"
                 >
-                  <FilePlus size={20} className="text-purple-500" /> Submit
-                  Proposal
+                  <FilePlus size={20} /> Submit Proposal
                 </Link>
               </>
             )}

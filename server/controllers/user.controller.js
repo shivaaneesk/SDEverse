@@ -18,12 +18,10 @@ const updateAllCompetitiveStats = asyncHandler(async (req, res) => {
       throw new Error("User not found");
     }
 
-    // Fetch all stats (should now return { summary, moreInfo, profileUrl } per platform)
     const allStatsWithExtra = await fetchAllCompetitiveStats(
       user.competitiveProfiles
     );
 
-    // Extract only summaries for DB update
     const platforms = ["leetcode", "codeforces", "codechef", "atcoder", "spoj"];
     const summariesOnly = {};
     for (const platform of platforms) {
@@ -38,15 +36,13 @@ const updateAllCompetitiveStats = asyncHandler(async (req, res) => {
       }
     }
 
-    // Update user stats in DB with summaries only
     user.competitiveStats = summariesOnly;
     await user.save();
 
-    // Send back both summaries and extra info for frontend usage
     return res.status(200).json({
       message: "Competitive stats update complete",
       competitiveStats: summariesOnly,
-      extraStats: allStatsWithExtra, // includes summary, moreInfo, profileUrl for each platform
+      extraStats: allStatsWithExtra,
     });
   } catch (error) {
     console.error("updateAllCompetitiveStats error:", error);
@@ -61,7 +57,7 @@ const updateSocialProfiles = asyncHandler(async (req, res) => {
     if (!user) return res.status(404).json({ error: "User not found" });
 
     const socialLinks = user.socialLinks || {};
-    const updatedStats = {}; // Start fresh
+    const updatedStats = {};
 
     const platforms = Object.keys(socialLinks);
 
@@ -74,7 +70,7 @@ const updateSocialProfiles = asyncHandler(async (req, res) => {
         console.warn(
           `Could not extract username for ${platform} from URL: ${url}`
         );
-        updatedStats[platform] = getDefaultStats(platform); // Fallback
+        updatedStats[platform] = getDefaultStats(platform);
         continue;
       }
 
@@ -94,14 +90,14 @@ const updateSocialProfiles = asyncHandler(async (req, res) => {
             updatedAt: new Date(),
           };
         } else {
-          updatedStats[platform] = getDefaultStats(platform); // Fallback if no data
+          updatedStats[platform] = getDefaultStats(platform);
         }
       } catch (err) {
         console.error(
           `Error fetching stats for ${platform} (${username}):`,
           err.message
         );
-        updatedStats[platform] = getDefaultStats(platform); // Fallback on error
+        updatedStats[platform] = getDefaultStats(platform);
       }
     }
 
@@ -118,10 +114,36 @@ const updateSocialProfiles = asyncHandler(async (req, res) => {
   }
 });
 
-const getAllUsers = asyncHandler(async (req, res) => {
-  const users = await User.find().select("-password");
-  res.json(users);
-});
+const getAllUsers = async (req, res) => {
+  try {
+    const { search = "", page = 1, limit = 10 } = req.query;
+
+    const query = search
+      ? {
+          $or: [
+            { name: { $regex: search, $options: "i" } },
+            { email: { $regex: search, $options: "i" } },
+          ],
+        }
+      : {};
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const [users, total] = await Promise.all([
+      User.find(query).skip(skip).limit(parseInt(limit)),
+      User.countDocuments(query),
+    ]);
+
+    res.json({
+      users,
+      total,
+      page: parseInt(page),
+      totalPages: Math.ceil(total / parseInt(limit)),
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
 
 const getUserById = asyncHandler(async (req, res) => {
   const user = await User.findById(req.params.id).select("-password");
@@ -160,7 +182,6 @@ const updateUserRole = asyncHandler(async (req, res) => {
   res.json({ message: `User role updated to ${role}` });
 });
 
-// Get current user's profile
 const getMyProfile = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user._id).select("-password");
   if (!user) {
@@ -170,7 +191,6 @@ const getMyProfile = asyncHandler(async (req, res) => {
   res.json(user);
 });
 
-// Update current user's profile
 const updateMyProfile = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user._id);
   if (!user) {
@@ -178,7 +198,6 @@ const updateMyProfile = asyncHandler(async (req, res) => {
     throw new Error("User not found");
   }
 
-  // List of fields a user is allowed to update
   const updatableFields = [
     "fullName",
     "avatarUrl",

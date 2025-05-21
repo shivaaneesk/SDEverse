@@ -20,21 +20,19 @@ const userSchema = new mongoose.Schema(
     password: { type: String, required: true },
     bio: { type: String, trim: true, default: "" },
 
-    fullName: { type: String, trim: true },
-    avatarUrl: { type: String, trim: true },
-    location: { type: String, trim: true },
-    website: { type: String, trim: true },
+    fullName: { type: String, trim: true, default: "" },
+    avatarUrl: { type: String, trim: true, default: "" },
+    location: { type: String, trim: true, default: "" },
+    website: { type: String, trim: true, default: "" },
 
-    // Store profile URLs
     competitiveProfiles: {
-      leetcode: { type: String, trim: true },
-      codeforces: { type: String, trim: true },
-      codechef: { type: String, trim: true },
-      atcoder: { type: String, trim: true },
-      spoj: { type: String, trim: true },
+      leetcode: { type: String, trim: true, default: "" },
+      codeforces: { type: String, trim: true, default: "" },
+      codechef: { type: String, trim: true, default: "" },
+      atcoder: { type: String, trim: true, default: "" },
+      spoj: { type: String, trim: true, default: "" },
     },
 
-    // Store competitive stats summary (cached, updated from APIs)
     competitiveStats: {
       codeforces: {
         currentRating: { type: Number, default: 0 },
@@ -73,16 +71,14 @@ const userSchema = new mongoose.Schema(
       },
     },
 
-    // Store social profile URLs
     socialLinks: {
-      github: { type: String, trim: true },
-      linkedin: { type: String, trim: true },
-      twitter: { type: String, trim: true },
-      facebook: { type: String, trim: true },
-      instagram: { type: String, trim: true },
+      github: { type: String, trim: true, default: "" },
+      linkedin: { type: String, trim: true, default: "" },
+      twitter: { type: String, trim: true, default: "" },
+      facebook: { type: String, trim: true, default: "" },
+      instagram: { type: String, trim: true, default: "" },
     },
 
-    // Store social stats summary (cached, updated from APIs)
     socialStats: {
       github: {
         publicRepos: { type: Number, default: 0 },
@@ -116,16 +112,14 @@ const userSchema = new mongoose.Schema(
         updatedAt: { type: Date, default: null },
       },
     },
-    // Activity stats for your app
+
     totalProposals: { type: Number, default: 0 },
     totalReviews: { type: Number, default: 0 },
-
     role: { type: String, enum: ["user", "admin"], default: "user" },
   },
   { timestamps: true }
 );
 
-// Hash password before saving
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
   const salt = await bcrypt.genSalt(10);
@@ -133,7 +127,6 @@ userSchema.pre("save", async function (next) {
   next();
 });
 
-// Compare passwords
 userSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };

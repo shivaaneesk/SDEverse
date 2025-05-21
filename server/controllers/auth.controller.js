@@ -11,14 +11,18 @@ const registerUser = asyncHandler(async (req, res) => {
     throw new Error("User already exists");
   }
 
-  const user = await User.create({ username, email, password });
+  const user = await User.create({
+    username,
+    email,
+    password,
+  });
 
   if (user) {
+    const userObj = user.toObject();
+    delete userObj.password;
+
     res.status(201).json({
-      _id: user._id,
-      username: user.username,
-      email: user.email,
-      role: user.role,
+      ...userObj,
       token: generateToken(user._id),
     });
   } else {
@@ -33,11 +37,11 @@ const loginUser = asyncHandler(async (req, res) => {
   const user = await User.findOne({ email });
 
   if (user && (await user.matchPassword(password))) {
+    const userObj = user.toObject();
+    delete userObj.password;
+
     res.json({
-      _id: user._id,
-      username: user.username,
-      email: user.email,
-      role: user.role,
+      ...userObj,
       token: generateToken(user._id),
     });
   } else {
@@ -47,7 +51,10 @@ const loginUser = asyncHandler(async (req, res) => {
 });
 
 const getMe = asyncHandler(async (req, res) => {
-  res.status(200).json(req.user);
+  const user = req.user.toObject();
+  delete user.password;
+
+  res.status(200).json(user);
 });
 
 module.exports = {
