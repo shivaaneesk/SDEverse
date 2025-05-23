@@ -22,7 +22,6 @@ module.exports = [
   "Matrix",
   "Segment Tree",
   "Disjoint Set",
-  "Search Algorithms",
   "Topological Sorting",
   "Network Flow",
   "Game Theory",

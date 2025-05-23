@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState, Fragment } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   fetchAlgorithms,
+  searchAllAlgorithms,
   deleteExistingAlgorithm,
   updateExistingAlgorithm,
   createNewAlgorithm,
@@ -11,6 +12,7 @@ import { MdEdit, MdDelete, MdSearch } from "react-icons/md";
 import { toast } from "react-toastify";
 import EditAlgorithmForm from "../components/forms/EditAlgorithmForm";
 import Loader from "../components/Loader";
+import Pagination from "./Pagination";
 
 const formatArray = (input) =>
   Array.isArray(input)
@@ -27,24 +29,46 @@ const formatCodes = (input) =>
 
 const AdminAlgorithms = () => {
   const dispatch = useDispatch();
-  const { algorithms, loading, categories } = useSelector(
-    (state) => state.algorithm
-  );
+
+  const {
+    algorithms = [],
+    loading,
+    categories = [],
+    totalPages,
+  } = useSelector((state) => state.algorithm);
+
   const [search, setSearch] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [selectedCategories, setSelectedCategories] = useState([]);
   const [editingSlug, setEditingSlug] = useState(null);
   const [addingNew, setAddingNew] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isSearchMode, setIsSearchMode] = useState(false);
 
   useEffect(() => {
-    dispatch(fetchAlgorithms({}));
+    if (isSearchMode) {
+      dispatch(
+        searchAllAlgorithms({
+          q: search,
+          category: selectedCategories.length
+            ? selectedCategories.join(",")
+            : undefined,
+          page: currentPage,
+        })
+      );
+    } else {
+      dispatch(fetchAlgorithms({ page: currentPage }));
+    }
     dispatch(fetchCategories());
-  }, [dispatch]);
+  }, [dispatch, currentPage, isSearchMode, search, selectedCategories]);
 
   const handleSearch = () => {
+    setIsSearchMode(true);
+    setCurrentPage(1);
     dispatch(
-      fetchAlgorithms({
+      searchAllAlgorithms({
         search,
-        category: selectedCategory !== "All" ? selectedCategory : undefined,
+        categories: selectedCategories.length ? selectedCategories : undefined,
+        page: 1,
       })
     );
   };
@@ -80,6 +104,19 @@ const AdminAlgorithms = () => {
         toast.success(addingNew ? "Algorithm created" : "Updated successfully");
         setEditingSlug(null);
         setAddingNew(false);
+        if (isSearchMode) {
+          dispatch(
+            searchAllAlgorithms({
+              search,
+              categories: selectedCategories.length
+                ? selectedCategories
+                : undefined,
+              page: currentPage,
+            })
+          );
+        } else {
+          dispatch(fetchAlgorithms({ page: currentPage }));
+        }
       })
       .catch(() =>
         toast.error(addingNew ? "Creation failed" : "Update failed")
@@ -91,133 +128,147 @@ const AdminAlgorithms = () => {
     setAddingNew(false);
   };
 
+  const toggleCategory = (category) => {
+    setSelectedCategories((prev) =>
+      prev.includes(category)
+        ? prev.filter((cat) => cat !== category)
+        : [...prev, category]
+    );
+  };
+
   return (
-    <div className="container mx-auto px-4 py-8 space-y-10">
-      {/* Header & Controls */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+    <div className="max-w-7xl mx-auto px-4 py-10 space-y-8">
+      {/* Header and New Button */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
           Manage Algorithms
         </h1>
-
-        <div className="flex flex-col md:flex-row flex-wrap gap-4 w-full md:w-auto">
-          {/* Search */}
-          <div className="relative w-full md:w-64">
-            <input
-              type="text"
-              placeholder="Search algorithms..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full px-4 py-2 rounded-xl bg-gray-100 dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <button
-              onClick={handleSearch}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-white hover:text-blue-600 transition-colors"
-            >
-              <MdSearch size={20} />
-            </button>
-          </div>
-
-          {/* Category Dropdown */}
-          <div className="relative w-full md:w-48">
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="w-full appearance-none px-4 py-2 rounded-xl bg-gray-100 dark:bg-gray-800 dark:text-white pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="All">All</option>
-              {categories.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
-                </option>
-              ))}
-            </select>
-            <div className="pointer-events-none absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-white">
-              ▼
-            </div>
-          </div>
-
-          {/* Add New Button */}
-          <button
-            onClick={() => setAddingNew(true)}
-            className="px-5 py-2 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-          >
-            + New Algorithm
-          </button>
-        </div>
+        <button
+          onClick={() => setAddingNew(true)}
+          className="px-6 py-2 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          + New Algorithm
+        </button>
       </div>
 
-      {/* Add New Form */}
+      {/* New Form */}
       {addingNew && (
-        <div className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-2xl shadow-lg p-6 w-full max-w-4xl mx-auto">
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md p-6 border border-gray-200 dark:border-gray-700">
           <EditAlgorithmForm
             algorithm={{}}
-            categories={categories} 
+            categories={categories}
             onSave={handleSave}
             onCancel={handleCancel}
           />
         </div>
       )}
 
-      {/* Algorithm List */}
-      {loading && algorithms.length === 0 ? (
-        <div className="flex justify-center items-center min-h-[200px]">
-          <Loader />
+      {/* Search + Category Filters */}
+      <div className="space-y-4">
+        <div className="relative">
+          <input
+            type="text"
+            placeholder="Search by algorithm title..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full px-4 py-2 rounded-xl bg-gray-100 dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <button
+            onClick={handleSearch}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-white hover:text-blue-600"
+          >
+            <MdSearch size={20} />
+          </button>
         </div>
-      ) : (
-        <div className="space-y-6">
-          {algorithms.map((algo) => (
-            <div
-              key={algo.slug}
-              className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-md hover:shadow-xl transition-all p-6"
-            >
-              {editingSlug === algo.slug ? (
-                <EditAlgorithmForm
-                  algorithm={algo}
-                  categories={categories} 
-                  onSave={handleSave}
-                  onCancel={handleCancel}
-                />
-              ) : (
-                <div className="flex flex-col lg:flex-row justify-between gap-6">
-                  <div className="flex-1 min-w-0 space-y-2">
-                    <h2 className="text-xl font-semibold text-gray-900 dark:text-white break-words">
-                      {algo.title}
-                    </h2>
-                    <p className="text-sm text-gray-700 dark:text-gray-300 break-words">
-                      {algo.description}
-                    </p>
-                    <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-                      <p>
-                        <span className="font-medium">Category:</span>{" "}
-                        {algo.category.join(", ")}
-                      </p>
-                      <p>
-                        <span className="font-medium">Difficulty:</span>{" "}
-                        {algo.difficulty}
-                      </p>
-                    </div>
-                  </div>
 
-                  <div className="flex flex-wrap gap-4 items-start lg:items-center">
-                    <button
-                      onClick={() => handleEdit(algo)}
-                      className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm transition"
-                    >
-                      <MdEdit size={18} /> Edit
-                    </button>
-                    <button
-                      onClick={() => handleDelete(algo.slug)}
-                      className="flex items-center gap-1 text-red-600 hover:text-red-800 text-sm transition"
-                    >
-                      <MdDelete size={18} /> Delete
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
+        <div className="flex flex-wrap gap-2">
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => toggleCategory(cat)}
+              className={`px-3 py-1 rounded-full text-sm border transition-all ${
+                selectedCategories.includes(cat)
+                  ? "bg-blue-600 text-white border-blue-600"
+                  : "bg-white dark:bg-gray-700 text-gray-800 dark:text-white border-gray-300 dark:border-gray-600"
+              }`}
+            >
+              {cat}
+            </button>
           ))}
         </div>
-      )}
+      </div>
+
+      {/* Algorithm Table */}
+      <div className="overflow-x-auto bg-white dark:bg-gray-800 rounded-xl shadow-md">
+        <table className="min-w-full text-sm text-left text-gray-500 dark:text-gray-300">
+          <thead className="text-xs uppercase bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-white">
+            <tr>
+              <th className="px-6 py-3">Title</th>
+              <th className="px-6 py-3">Category</th>
+              <th className="px-6 py-3">Difficulty</th>
+              <th className="px-6 py-3 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading && algorithms.length === 0 ? (
+              <tr>
+                <td colSpan="4" className="text-center py-6">
+                  <Loader />
+                </td>
+              </tr>
+            ) : (
+              algorithms.map((algo) => (
+                <Fragment key={algo.slug}>
+                  <tr className="border-b border-gray-200 dark:border-gray-700">
+                    <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">
+                      {algo.title}
+                    </td>
+                    <td className="px-6 py-4">
+                      {Array.isArray(algo.category)
+                        ? algo.category.join(", ")
+                        : algo.category}
+                    </td>
+                    <td className="px-6 py-4">{algo.difficulty}</td>
+                    <td className="px-6 py-4 text-right space-x-4">
+                      <button
+                        onClick={() => handleEdit(algo)}
+                        className="text-blue-600 hover:text-blue-800"
+                      >
+                        <MdEdit size={18} />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(algo.slug)}
+                        className="text-red-600 hover:text-red-800"
+                      >
+                        <MdDelete size={18} />
+                      </button>
+                    </td>
+                  </tr>
+                  {editingSlug === algo.slug && (
+                    <tr className="bg-gray-50 dark:bg-gray-900">
+                      <td colSpan="4" className="px-6 py-4">
+                        <EditAlgorithmForm
+                          algorithm={algo}
+                          categories={categories}
+                          onSave={handleSave}
+                          onCancel={handleCancel}
+                        />
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Pagination */}
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages || 1}
+        onPageChange={(page) => setCurrentPage(page)}
+      />
     </div>
   );
 };

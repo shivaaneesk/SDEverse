@@ -13,7 +13,6 @@ import {
 const initialState = {
   algorithms: [],
   algorithm: null,
-  searchResults: [],
   categories: [],
   total: 0,
   pages: 0,
@@ -24,7 +23,7 @@ const initialState = {
 };
 
 const getToken = (getState) => getState().auth?.token;
-const getUser = (getState) => getState().auth?.user; // returns full user object
+const getUser = (getState) => getState().auth?.user;
 
 export const createNewAlgorithm = createAsyncThunk(
   "algorithm/createNewAlgorithm",
@@ -98,7 +97,7 @@ export const deleteExistingAlgorithm = createAsyncThunk(
 
     try {
       await deleteAlgorithm(slug, token);
-      return slug; // Return slug explicitly for reducer
+      return slug;
     } catch (error) {
       return rejectWithValue(error);
     }
@@ -154,10 +153,9 @@ const algorithmSlice = createSlice({
   extraReducers: (builder) => {
     builder
 
-      // Fetch Algorithms
       .addCase(fetchAlgorithms.pending, (state) => {
         state.loading = true;
-        state.error = null; // clear previous errors
+        state.error = null;
       })
       .addCase(fetchAlgorithms.fulfilled, (state, action) => {
         state.loading = false;
@@ -171,7 +169,6 @@ const algorithmSlice = createSlice({
         state.error = action.payload;
       })
 
-      // Fetch single Algorithm
       .addCase(fetchAlgorithmBySlug.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -185,7 +182,6 @@ const algorithmSlice = createSlice({
         state.error = action.payload;
       })
 
-      // Create Algorithm
       .addCase(createNewAlgorithm.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -199,7 +195,6 @@ const algorithmSlice = createSlice({
         state.error = action.payload;
       })
 
-      // Update Algorithm
       .addCase(updateExistingAlgorithm.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -219,7 +214,6 @@ const algorithmSlice = createSlice({
         state.error = action.payload;
       })
 
-      // Delete Algorithm
       .addCase(deleteExistingAlgorithm.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -235,7 +229,6 @@ const algorithmSlice = createSlice({
         state.error = action.payload;
       })
 
-      // Vote on Algorithm
       .addCase(voteOnAlgorithm.pending, (state) => {
         state.voteLoading = true;
         state.error = null;
@@ -254,7 +247,6 @@ const algorithmSlice = createSlice({
         state.error = action.payload;
       })
 
-      // Fetch Categories
       .addCase(fetchCategories.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -268,14 +260,13 @@ const algorithmSlice = createSlice({
         state.error = action.payload;
       })
 
-      // Search Algorithms
       .addCase(searchAllAlgorithms.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
       .addCase(searchAllAlgorithms.fulfilled, (state, action) => {
         state.loading = false;
-        state.searchResults = action.payload.results;
+        state.algorithms = action.payload.algorithms;
         state.total = action.payload.total;
         state.pages = action.payload.pages;
         state.currentPage = action.payload.currentPage;

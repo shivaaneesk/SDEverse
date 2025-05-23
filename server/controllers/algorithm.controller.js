@@ -3,7 +3,6 @@ const Algorithm = require("../models/algorithm.model");
 const generateUniqueSlug = require("../utils/generateUniqueSlug");
 const categoriesList = require("../utils/categories");
 
-// **Admin only**: Algorithm Creation
 const createAlgorithm = asyncHandler(async (req, res) => {
   const {
     title,
@@ -50,7 +49,7 @@ const createAlgorithm = asyncHandler(async (req, res) => {
     links,
     codes,
     createdBy: req.user._id,
-    isPublished: true, // Admin-created algorithm is automatically published
+    isPublished: true,
   });
 
   const createdAlgorithm = await algorithm.save();
@@ -58,7 +57,6 @@ const createAlgorithm = asyncHandler(async (req, res) => {
   res.status(201).json(createdAlgorithm);
 });
 
-// **Admin or Algorithm Creator**: Update Algorithm
 const updateAlgorithm = asyncHandler(async (req, res) => {
   const algorithm = await Algorithm.findOne({ slug: req.params.slug });
 
@@ -67,7 +65,6 @@ const updateAlgorithm = asyncHandler(async (req, res) => {
     throw new Error("Algorithm not found");
   }
 
-  // Check if the user is the creator or an admin
   if (
     algorithm.createdBy.toString() !== req.user._id.toString() &&
     req.user.role !== "admin"
@@ -89,7 +86,6 @@ const updateAlgorithm = asyncHandler(async (req, res) => {
     codes,
   } = req.body;
 
-  // Update algorithm properties
   algorithm.title = title || algorithm.title;
   algorithm.problemStatement = problemStatement || algorithm.problemStatement;
   algorithm.category = category || algorithm.category;
@@ -106,7 +102,6 @@ const updateAlgorithm = asyncHandler(async (req, res) => {
   res.json(updatedAlgorithm);
 });
 
-// **Both Admin & User**: Get All Algorithms
 const getAllAlgorithms = asyncHandler(async (req, res) => {
   const {
     page = 1,
@@ -121,11 +116,17 @@ const getAllAlgorithms = asyncHandler(async (req, res) => {
 
   const filters = {};
 
-  if (category) filters.category = category;
+  if (category) {
+    if (Array.isArray(category)) {
+      filters.category = { $in: category };
+    } else {
+      filters.category = category;
+    }
+  }
+
   if (difficulty) filters.difficulty = difficulty;
   if (search) filters.$text = { $search: search };
 
-  // ⚠️ Check if req.user exists before checking role
   if (req.user?.role !== "admin") {
     filters.isPublished = true;
   }
@@ -152,7 +153,6 @@ const getAllAlgorithms = asyncHandler(async (req, res) => {
   }
 });
 
-// **Both Admin & User**: Get Algorithm By Slug
 const getAlgorithmBySlug = asyncHandler(async (req, res) => {
   const algorithm = await Algorithm.findOne({ slug: req.params.slug });
 
@@ -161,7 +161,6 @@ const getAlgorithmBySlug = asyncHandler(async (req, res) => {
     throw new Error("Algorithm not found");
   }
 
-  // Logic for tracking user views
   const user = req.user;
   if (user) {
     const alreadyViewedToday = algorithm.viewedBy?.some(
@@ -180,7 +179,6 @@ const getAlgorithmBySlug = asyncHandler(async (req, res) => {
   res.json(algorithm);
 });
 
-// **Admin only**: Soft Delete Algorithm
 const deleteAlgorithm = asyncHandler(async (req, res) => {
   const algorithm = await Algorithm.findOne({ slug: req.params.slug });
 
@@ -194,7 +192,6 @@ const deleteAlgorithm = asyncHandler(async (req, res) => {
     throw new Error("Not authorized to delete this algorithm");
   }
 
-  // Soft delete logic
   algorithm.isDeleted = true;
   algorithm.deletedAt = Date.now();
   algorithm.deletedBy = req.user._id;
@@ -204,7 +201,6 @@ const deleteAlgorithm = asyncHandler(async (req, res) => {
   res.json({ message: "Algorithm soft-deleted successfully" });
 });
 
-// **User only**: Vote Algorithm (Upvote/Downvote)
 const voteAlgorithm = asyncHandler(async (req, res) => {
   const { type } = req.body || {};
   const userId = req.user._id;
@@ -263,7 +259,6 @@ const voteAlgorithm = asyncHandler(async (req, res) => {
     }
   }
 
-  // Apply the update only if there's a change
   if (!update.$inc && !update.$addToSet && !update.$pull) {
     return res.json({ message: "No changes made", algorithm });
   }
@@ -280,7 +275,6 @@ const voteAlgorithm = asyncHandler(async (req, res) => {
   });
 });
 
-// **Both Admin & User**: Get All Categories
 const getAllCategories = (req, res) => {
   try {
     res.status(200).json({
@@ -296,11 +290,10 @@ const getAllCategories = (req, res) => {
   }
 };
 
-// **Both Admin & User**: Search Algorithms
 const searchAlgorithms = asyncHandler(async (req, res) => {
-  const {
-    q = "",
+  let {
     category = "",
+    q = "",
     difficulty = "",
     tags = "",
     page = 1,
@@ -310,11 +303,19 @@ const searchAlgorithms = asyncHandler(async (req, res) => {
   const filters = {};
 
   if (q) filters.$text = { $search: q };
-  if (category) {
-    const categories = category.split(",").map((c) => c.trim());
+
+  const categories = Array.isArray(category)
+    ? category
+    : category
+    ? category.split(",").map((c) => c.trim())
+    : [];
+
+  if (categories.length) {
     filters.category = { $in: categories };
   }
+
   if (difficulty) filters.difficulty = difficulty;
+
   if (tags) {
     const tagList = tags.split(",").map((tag) => tag.trim());
     filters.tags = { $in: tagList };
