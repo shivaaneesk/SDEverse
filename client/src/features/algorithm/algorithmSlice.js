@@ -149,6 +149,9 @@ const algorithmSlice = createSlice({
       state.voteLoading = false;
       state.error = null;
     },
+    clearAlgorithm: (state) => {
+      state.algorithm = null;
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -278,5 +281,5 @@ const algorithmSlice = createSlice({
   },
 });
 
-export const { resetAlgorithmState } = algorithmSlice.actions;
+export const { resetAlgorithmState,clearAlgorithm } = algorithmSlice.actions;
 export default algorithmSlice.reducer;

@@ -57,7 +57,7 @@ const router = createBrowserRouter([
       // Create a new proposal for an algorithm (contribute)
       {
         path: "algorithms/:slug/contribute",
-        element: <CreateProposal />,
+        element: <EditProposal />,
       },
 
       // Create a new proposal from scratch (no slug)

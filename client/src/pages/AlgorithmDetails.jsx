@@ -50,7 +50,7 @@ const AlgorithmDetail = () => {
       </div>
       <AlgorithmPreview algorithm={algorithm} />
       <VotingSection algorithm={algorithm} user={user} />
-      <ContributeSection />
+      <ContributeSection algorithmSlug={algorithm.slug} />
     </div>
   );
 };

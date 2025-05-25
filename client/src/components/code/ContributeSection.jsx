@@ -1,11 +1,11 @@
 import { useNavigate } from "react-router-dom";
 import { Sparkles } from "lucide-react";
 
-const ContributeSection = ({ algorithmId }) => {
+const ContributeSection = ({ algorithmSlug }) => {
   const navigate = useNavigate();
 
   const handleContribute = () => {
-    navigate(`/algorithms/${algorithmId}/contribute`);
+    navigate(`/algorithms/${algorithmSlug}/contribute`);
   };
 
   return (

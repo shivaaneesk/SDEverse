@@ -8,7 +8,8 @@ const EditProposal = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { slug } = useParams();
-  const { currentProposal, categories, loading } = useSelector((state) => state.proposal);
+  const { currentProposal, loading } = useSelector((state) => state.proposal);
+  const { categories } = useSelector((state) => state.algorithm);
   const [formData, setFormData] = useState(null);
 
   useEffect(() => {

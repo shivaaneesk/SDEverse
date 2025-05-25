@@ -26,7 +26,9 @@ const CreateProposal = () => {
   const handleSubmit = async () => {
     if (!formData) return;
     try {
-      await dispatch(submitNewProposal({ ...formData, algorithmSlug: slug })).unwrap();
+      await dispatch(
+        submitNewProposal({ ...formData, algorithmSlug: slug })
+      ).unwrap();
       navigate(-1);
     } catch (err) {
       console.error("Create failed", err);
@@ -34,7 +36,7 @@ const CreateProposal = () => {
   };
 
   const handleCancel = () => {
-    navigate(-1); // Go back to previous page
+    navigate(-1);
   };
 
   return (
