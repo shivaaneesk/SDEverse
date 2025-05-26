@@ -1,13 +1,13 @@
 import { useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchAlgorithmBySlug } from "../features/algorithm/algorithmSlice";
 import Loader from "../components/Loader";
 import VotingSection from "../components/code/VotingSection";
 import ContributeSection from "../components/code/ContributeSection";
-import { useNavigate } from "react-router-dom";
-import { ArrowLeft, ArrowRight } from "lucide-react";
 import AlgorithmPreview from "./AlgorithmPreview";
+import CommentSection from "./CommentSection"; // ✅ Import comment section
+import { ArrowLeft, ArrowRight } from "lucide-react";
 
 const AlgorithmDetail = () => {
   const { slug } = useParams();
@@ -23,12 +23,8 @@ const AlgorithmDetail = () => {
   }, [slug, dispatch]);
 
   if (loading) return <Loader />;
-  if (error)
-    return (
-      <p className="text-red-500">{error.message || "Something went wrong."}</p>
-    );
-  if (!algorithm)
-    return <p className="text-center mt-10">No algorithm found.</p>;
+  if (error) return <p className="text-red-500">{error.message || "Something went wrong."}</p>;
+  if (!algorithm) return <p className="text-center mt-10">No algorithm found.</p>;
 
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-6">
@@ -48,9 +44,13 @@ const AlgorithmDetail = () => {
           <ArrowRight size={20} />
         </button>
       </div>
+
       <AlgorithmPreview algorithm={algorithm} />
       <VotingSection algorithm={algorithm} user={user} />
       <ContributeSection algorithmSlug={algorithm.slug} />
+
+      {/* ✅ Comment Section */}
+      <CommentSection parentType="Algorithm" parentId={algorithm._id} />
     </div>
   );
 };

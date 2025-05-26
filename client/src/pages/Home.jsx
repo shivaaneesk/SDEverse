@@ -1,15 +1,18 @@
 import { Link } from "react-router-dom";
 import Button from "../components/ui/Button";
 import { Sparkles } from "lucide-react";
-import { useEffect } from "react";
+import NotificationBell from "./NotificationBell";
 
 const Home = () => {
-  useEffect(() => {}, []);
-
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8 relative">
+      {/* Notification Bell positioned absolutely in top-right */}
+      <div className="absolute top-6 right-6 z-50">
+        <NotificationBell />
+      </div>
+
       {/* Hero Section */}
-      <div className="max-w-4xl mx-auto text-center">
+      <div className="max-w-4xl mx-auto text-center mt-12">
         <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">
           Welcome to SDEverse 🚀
         </h1>

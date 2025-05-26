@@ -5,6 +5,7 @@ import commentReducer from "../features/comment/commentSlice";
 import userReducer from "../features/user/userSlice";
 import themeReducer from "../features/theme/themeSlice";
 import proposalReducer from "../features/proposal/proposalSlice";
+import notificationReducer from "../features/notification/notificationSlice";
 
 const store = configureStore({
   reducer: {
@@ -14,6 +15,7 @@ const store = configureStore({
     user: userReducer,
     theme: themeReducer,
     proposal: proposalReducer,
+    notification: notificationReducer,
   },
   devTools: import.meta.env.MODE !== "production",
 });

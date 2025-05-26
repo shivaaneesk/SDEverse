@@ -1,13 +1,11 @@
 const mongoose = require("mongoose");
 
-const replySchema = new mongoose.Schema(
-  {
-    user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    text: { type: String, required: true },
-    createdAt: { type: Date, default: Date.now },
-  },
-  { _id: false }
-);
+const replySchema = new mongoose.Schema({
+  user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  text: { type: String, required: true },
+  createdAt: { type: Date, default: Date.now },
+  mentions: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+});
 
 const commentSchema = new mongoose.Schema(
   {
@@ -23,7 +21,8 @@ const commentSchema = new mongoose.Schema(
     },
     user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     text: { type: String, required: true },
-    codeRef: { type: String }, // e.g. "line 3 in JS snippet"
+    codeRef: { type: String },
+    mentions: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     replies: [replySchema],
   },
   { timestamps: true }

@@ -41,19 +41,18 @@ export const replyToComment = createAsyncThunk(
   async ({ commentId, replyData }, { rejectWithValue }) => {
     try {
       const response = await addReplyToComment(commentId, replyData);
-      return response;
+      return { commentId, replies: response.replies };
     } catch (error) {
       return rejectWithValue(error.response.data);
     }
   }
 );
-
 export const removeComment = createAsyncThunk(
   "comment/removeComment",
   async (id, { rejectWithValue }) => {
     try {
-      const response = await deleteComment(id);
-      return response;
+      await deleteComment(id);
+      return id; // return deleted comment id
     } catch (error) {
       return rejectWithValue(error.response.data);
     }
@@ -95,7 +94,7 @@ const commentSlice = createSlice({
     builder.addCase(replyToComment.fulfilled, (state, action) => {
       state.loading = false;
       const updatedComment = state.comments.find(
-        (comment) => comment._id === action.payload._id
+        (comment) => comment._id === action.payload.commentId
       );
       if (updatedComment) {
         updatedComment.replies = action.payload.replies;
