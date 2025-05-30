@@ -17,10 +17,17 @@ const notificationSchema = new mongoose.Schema(
       enum: ["mention", "comment", "reply", "platform_request"],
       required: true,
     },
-    commentId: { type: mongoose.Schema.Types.ObjectId, ref: "Comment" },
+    commentId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Comment",
+    },
     read: { type: Boolean, default: false },
+    message: { type: String }, // For custom platform messages
+    link: { type: String }, // For linking to comment
+    preview: { type: String }, // Short preview of comment
   },
   { timestamps: true }
 );
+
 
 module.exports = mongoose.model("Notification", notificationSchema);

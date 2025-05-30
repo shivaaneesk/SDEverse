@@ -1,58 +1,57 @@
 const asyncHandler = require("express-async-handler");
 const Notification = require("../models/notification.model");
 
-// Get current user's notifications
 const getUserNotifications = asyncHandler(async (req, res) => {
   const notifications = await Notification.find({ recipient: req.user._id })
     .sort({ createdAt: -1 })
-    .populate("sender", "username")
-    .populate("commentId", "text");
+    .populate("sender", "username");
 
   const formatted = notifications.map((n) => {
-    let message = "";
-    let link = null;
-    let preview = n.commentId?.text?.slice(0, 100);
+    const senderName = n.sender?.username || "Someone";
+
+    let color = "gray";
+    let message = "You have a new notification";
 
     switch (n.type) {
       case "mention":
-        message = `@${n.sender.username} mentioned you in a comment`;
+        message = `@${senderName} mentioned you in a comment`;
+        color = "blue";
         break;
       case "comment":
-        message = `@${n.sender.username} commented on your post`;
+        message = `@${senderName} commented on your post`;
+        color = "green";
         break;
       case "reply":
-        message = `@${n.sender.username} replied to your comment`;
+        message = `@${senderName} replied to your comment`;
+        color = "purple";
         break;
       case "platform_request":
-        message = `@${n.sender.username} submitted a platform request`;
-        link = "/"; // or any safe fallback
-        preview = null;
+        message = n.message || `Platform Request from @${senderName}`;
+        color = "red";
         break;
-      default:
-        message = "You have a new notification";
-    }
-
-    if (n.commentId) {
-      const { parentType, parentId, _id: commentId } = n.commentId;
-      if (parentType === "algorithm") {
-        link = `/algorithms/${parentId}?commentId=${commentId}`;
-      } else if (parentType === "proposal") {
-        link = `/proposals/${parentId}?commentId=${commentId}`;
-      }
     }
 
     return {
-      ...n.toObject(),
+      _id: n._id,
+      recipient: n.recipient,
+      sender: {
+        _id: n.sender?._id,
+        username: n.sender?.username,
+      },
+      type: n.type,
+      read: n.read,
+      createdAt: n.createdAt,
+      updatedAt: n.updatedAt,
       message,
-      link,
-      preview,
+      preview: n.preview || null,
+      link: n.link || null,
+      color,
     };
   });
 
   res.json(formatted);
 });
 
-// Mark a notification as read
 const markNotificationRead = asyncHandler(async (req, res) => {
   const notification = await Notification.findById(req.params.id);
   if (!notification) {

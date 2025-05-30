@@ -109,7 +109,7 @@ const authSlice = createSlice({
         state.user = null;
         state.token = null;
         localStorage.removeItem("token");
-      })      
+      })
       .addCase(getMe.fulfilled, (state, action) => {
         state.user = {
           _id: action.payload._id,
@@ -120,6 +120,7 @@ const authSlice = createSlice({
       });
   },
 });
+export const selectCurrentUser = (state) => state.auth.user;
 
 export const { logout } = authSlice.actions;
 export default authSlice.reducer;

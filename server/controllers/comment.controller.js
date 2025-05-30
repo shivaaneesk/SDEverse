@@ -5,10 +5,9 @@ const Proposal = require("../models/proposal.model");
 const User = require("../models/user.model");
 const Notification = require("../models/notification.model");
 
-// Helper to extract mentioned usernames like @johnDoe
 const extractMentions = (text) => {
   const matches = text.match(/@(\w+)/g) || [];
-  return matches.map((m) => m.substring(1)); // Remove @
+  return matches.map((m) => m.substring(1));
 };
 
 const addComment = asyncHandler(async (req, res) => {
@@ -19,36 +18,14 @@ const addComment = asyncHandler(async (req, res) => {
     throw new Error("Invalid parent type");
   }
 
-  const parent = await (parentType === "Algorithm"
-    ? Algorithm
-    : Proposal
-  ).findById(parentId);
+  const parentModel = parentType === "Algorithm" ? Algorithm : Proposal;
+  const parent = await parentModel.findById(parentId);
   if (!parent) {
     res.status(404);
     throw new Error(`${parentType} not found`);
   }
 
   const mentionedUsernames = extractMentions(text);
-  // Check for @sdeverse and notify all admins
-  if (mentionedUsernames.includes("sdeverse")) {
-    const admins = await User.find({ role: "admin" });
-
-    const adminNotifications = admins.map((admin) => ({
-      recipient: admin._id,
-      sender: req.user._id, // <--- Add sender here
-      type: "platform_request",
-      message: `${
-        req.user.name
-      } mentioned @sdeverse in a ${parentType.toLowerCase()} comment: "${text.slice(
-        0,
-        100
-      )}..."`,
-      link: `/${parentType.toLowerCase()}s/${parentId}`,
-    }));
-
-    await Notification.insertMany(adminNotifications);
-  }
-
   const mentionedUsers = await User.find({
     username: { $in: mentionedUsernames },
   });
@@ -56,21 +33,62 @@ const addComment = asyncHandler(async (req, res) => {
   const newComment = new Comment({
     parentType,
     parentId,
+    parentSlug: parent.slug,
     user: req.user._id,
     text,
     codeRef,
-    mentions: mentionedUsers.map((user) => user._id),
+    mentions: mentionedUsers.map((u) => u._id),
   });
 
   const createdComment = await newComment.save();
 
-  // Create notifications for mentions
-  const notifications = mentionedUsers.map((user) => ({
-    recipient: user._id,
-    sender: req.user._id,
-    type: "mention",
-    commentId: createdComment._id,
-  }));
+  const slug = parent.slug;
+  const baseLink = `/${parentType.toLowerCase()}s/${slug}?commentId=${
+    createdComment._id
+  }`;
+  const preview = createdComment.text.slice(0, 100);
+  const notifications = [];
+
+  mentionedUsers.forEach((user) => {
+    if (user._id.toString() !== req.user._id.toString()) {
+      notifications.push({
+        recipient: user._id,
+        sender: req.user._id,
+        type: "mention",
+        commentId: createdComment._id,
+        preview,
+        link: baseLink,
+      });
+    }
+  });
+
+  if (parent.user && parent.user.toString() !== req.user._id.toString()) {
+    notifications.push({
+      recipient: parent.user,
+      sender: req.user._id,
+      type: "comment",
+      commentId: createdComment._id,
+      preview,
+      link: baseLink,
+    });
+  }
+
+  if (mentionedUsernames.includes("sdeverse")) {
+    const admins = await User.find({ role: "admin" });
+    admins.forEach((admin) => {
+      if (admin._id.toString() !== req.user._id.toString()) {
+        notifications.push({
+          recipient: admin._id,
+          sender: req.user._id,
+          type: "platform_request",
+          message: `Platform Request from @${req.user.username}`,
+          commentId: createdComment._id,
+          link: baseLink,
+          preview,
+        });
+      }
+    });
+  }
 
   if (notifications.length > 0) {
     await Notification.insertMany(notifications);
@@ -87,20 +105,9 @@ const getCommentsByParent = asyncHandler(async (req, res) => {
     throw new Error("Invalid parent type");
   }
 
-  let parent;
-  if (parentType === "Algorithm") {
-    parent = await Algorithm.findById(parentId);
-  } else if (parentType === "Proposal") {
-    parent = await Proposal.findById(parentId);
-  }
-
-  if (!parent) {
-    res.status(404);
-    throw new Error(`${parentType} not found`);
-  }
-
   const comments = await Comment.find({ parentType, parentId })
-    .populate("user", "name")
+    .populate("user", "username avatarUrl")
+    .populate("replies.user", "username avatarUrl")
     .lean();
 
   res.json(comments);
@@ -115,28 +122,15 @@ const addReplyToComment = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error("Comment not found");
   }
+
   const parentType = comment.parentType;
   const parentId = comment.parentId;
+
+  const parentModel = parentType === "Algorithm" ? Algorithm : Proposal;
+  const parent = await parentModel.findById(parentId);
+  const slug = parent?.slug || "unknown";
+
   const mentionedUsernames = extractMentions(text);
-  // Check for @sdeverse and notify all admins
-  if (mentionedUsernames.includes("sdeverse")) {
-    const admins = await User.find({ role: "admin" });
-
-    const adminNotifications = admins.map((admin) => ({
-      recipient: admin._id,
-      type: "platform_request",
-      message: `${
-        req.user.name
-      } mentioned @sdeverse in a ${parentType.toLowerCase()} comment: "${text.slice(
-        0,
-        100
-      )}..."`,
-      link: `/${parentType.toLowerCase()}s/${parentId}`, // Link to the related Algorithm/Proposal
-    }));
-
-    await Notification.insertMany(adminNotifications);
-  }
-
   const mentionedUsers = await User.find({
     username: { $in: mentionedUsernames },
   });
@@ -144,27 +138,64 @@ const addReplyToComment = asyncHandler(async (req, res) => {
   const newReply = {
     user: req.user._id,
     text,
-    mentions: mentionedUsers.map((user) => user._id),
+    mentions: mentionedUsers.map((u) => u._id),
   };
 
   comment.replies.push(newReply);
   await comment.save();
 
-  // Create notifications for mentions in replies
-  const notifications = mentionedUsers.map((user) => ({
-    recipient: user._id,
-    sender: req.user._id,
-    type: "mention",
-    commentId: comment._id,
-  }));
+  const baseLink = `/${parentType.toLowerCase()}s/${slug}?commentId=${
+    comment._id
+  }`;
+  const preview = text.slice(0, 100);
+  const notifications = [];
+
+  mentionedUsers.forEach((user) => {
+    if (user._id.toString() !== req.user._id.toString()) {
+      notifications.push({
+        recipient: user._id,
+        sender: req.user._id,
+        type: "mention",
+        commentId: comment._id,
+        preview,
+        link: baseLink,
+      });
+    }
+  });
+
+  if (comment.user.toString() !== req.user._id.toString()) {
+    notifications.push({
+      recipient: comment.user,
+      sender: req.user._id,
+      type: "reply",
+      commentId: comment._id,
+      preview,
+      link: baseLink,
+    });
+  }
+
+  if (mentionedUsernames.includes("sdeverse")) {
+    const admins = await User.find({ role: "admin" });
+    admins.forEach((admin) => {
+      if (admin._id.toString() !== req.user._id.toString()) {
+        notifications.push({
+          recipient: admin._id,
+          sender: req.user._id,
+          type: "platform_request",
+          message: `Platform Request from @${req.user.username}`,
+          commentId: comment._id,
+          link: baseLink,
+          preview,
+        });
+      }
+    });
+  }
 
   if (notifications.length > 0) {
     await Notification.insertMany(notifications);
   }
 
-  res
-    .status(201)
-    .json({ message: "Reply added successfully", replies: comment.replies });
+  res.status(201).json({ message: "Reply added", replies: comment.replies });
 });
 
 const deleteComment = asyncHandler(async (req, res) => {
@@ -183,16 +214,16 @@ const deleteComment = asyncHandler(async (req, res) => {
     throw new Error("Not authorized to delete this comment");
   }
 
-  // Delete the comment by ID
+  await Notification.deleteMany({ commentId: comment._id });
+
   await Comment.findByIdAndDelete(req.params.id);
 
-  res.json({ message: "Comment deleted successfully" });
+  res.json({ message: "Comment and related notifications deleted" });
 });
-
 
 module.exports = {
   addComment,
-  addReplyToComment,
   getCommentsByParent,
+  addReplyToComment,
   deleteComment,
 };

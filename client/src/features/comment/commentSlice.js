@@ -111,7 +111,7 @@ const commentSlice = createSlice({
     builder.addCase(removeComment.fulfilled, (state, action) => {
       state.loading = false;
       state.comments = state.comments.filter(
-        (comment) => comment._id !== action.payload._id
+        (comment) => comment._id !== action.payload
       );
     });
     builder.addCase(removeComment.rejected, (state, action) => {
