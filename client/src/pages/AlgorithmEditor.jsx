@@ -1,4 +1,3 @@
-// components/AlgorithmEditor.jsx
 import { useState, useEffect } from "react";
 import AlgorithmFields from "./AlgorithmFields";
 import AlgorithmPreview from "../pages/AlgorithmPreview";
@@ -26,7 +25,7 @@ const AlgorithmEditor = ({
 
   useEffect(() => {
     onChange?.(formData);
-  }, [formData]);
+  }, [formData,onChange]);
 
   const updateField = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));

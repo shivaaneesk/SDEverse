@@ -26,4 +26,15 @@ module.exports = [
   "Network Flow",
   "Game Theory",
   "Computational Geometry",
+  "Hashing",
+  "Divide and Conquer",
+  "String Matching",
+  "Bitmasking",
+  "Number Theory",
+  "Geometry",
+  "Probability",
+  "Randomized Algorithms",
+  "Heuristics",
+  "Approximation Algorithms",
+  "String Compression"
 ];

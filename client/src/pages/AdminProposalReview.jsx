@@ -94,7 +94,12 @@ const AdminProposalReview = () => {
         <p className="text-center text-gray-500">Loading proposals...</p>
       )}
       {error && (
-        <p className="text-center text-red-500 font-semibold">Error: {error}</p>
+        <p className="text-center text-red-500 font-semibold">
+          Error:{" "}
+          {typeof error === "string"
+            ? error
+            : error.message || JSON.stringify(error)}
+        </p>
       )}
 
       {!loading && proposals.length === 0 && (
@@ -106,9 +111,15 @@ const AdminProposalReview = () => {
           <table className="min-w-full text-sm text-left text-gray-700 dark:text-gray-200 table-auto">
             <thead className="bg-gray-100 dark:bg-gray-800 text-xs uppercase font-semibold">
               <tr>
-                <th className="px-4 py-3 max-w-[150px] w-[20%] truncate">Title</th>
-                <th className="px-4 py-3 max-w-[120px] w-[15%] truncate">Contributor</th>
-                <th className="px-4 py-3 max-w-[150px] w-[20%] truncate">Category</th>
+                <th className="px-4 py-3 max-w-[150px] w-[20%] truncate">
+                  Title
+                </th>
+                <th className="px-4 py-3 max-w-[120px] w-[15%] truncate">
+                  Contributor
+                </th>
+                <th className="px-4 py-3 max-w-[150px] w-[20%] truncate">
+                  Category
+                </th>
                 <th className="px-4 py-3 w-[10%]">Difficulty</th>
                 <th className="px-4 py-3 w-[10%]">Status</th>
                 <th className="px-4 py-3 w-[15%]">Created</th>
@@ -119,7 +130,9 @@ const AdminProposalReview = () => {
               {proposals.map((proposal) => (
                 <React.Fragment key={proposal._id}>
                   <tr className="border-t border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition">
-                    <td className="px-4 py-3 max-w-[150px] truncate">{proposal.title}</td>
+                    <td className="px-4 py-3 max-w-[150px] truncate">
+                      {proposal.title}
+                    </td>
                     <td className="px-4 py-3 max-w-[120px] truncate">
                       {proposal.contributor?.username || "N/A"}
                     </td>
@@ -150,7 +163,9 @@ const AdminProposalReview = () => {
                         onClick={() => toggleExpand(proposal)}
                         className="inline-flex items-center gap-1 px-3 py-1 text-sm font-medium text-blue-600 hover:underline"
                       >
-                        {expandedProposalId === proposal._id ? "Close" : "Review"}
+                        {expandedProposalId === proposal._id
+                          ? "Close"
+                          : "Review"}
                       </button>
                     </td>
                   </tr>
@@ -169,7 +184,9 @@ const AdminProposalReview = () => {
                               Review Status:
                               <select
                                 value={reviewStatus}
-                                onChange={(e) => setReviewStatus(e.target.value)}
+                                onChange={(e) =>
+                                  setReviewStatus(e.target.value)
+                                }
                                 className="ml-2 p-2 border rounded-md"
                               >
                                 <option value="approved">Approve</option>

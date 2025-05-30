@@ -1,8 +1,11 @@
+import { useEffect } from "react";
 import AlgorithmInfo from "../components/code/AlgorithmInfo";
 import AlgorithmMetadata from "../components/code/AlgorithmMetadata";
 import CodeDisplay from "../components/code/CodeDisplay";
-
 const AlgorithmPreview = ({ algorithm }) => {
+  useEffect(() => {
+    console.log("AlgorithmPreview received new algorithm:", algorithm);
+  }, [algorithm]);
   if (!algorithm) return <div>Loading...</div>;
 
   return (

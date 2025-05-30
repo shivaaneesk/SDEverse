@@ -14,7 +14,6 @@ const notificationSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ["mention", "comment", "reply", "platform_request"],
       required: true,
     },
     commentId: {
@@ -28,6 +27,5 @@ const notificationSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
-
 
 module.exports = mongoose.model("Notification", notificationSchema);

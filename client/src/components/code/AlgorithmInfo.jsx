@@ -6,13 +6,34 @@ import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import "katex/dist/katex.min.css";
 
+function ensureBlankLineBeforeLists(markdown) {
+  const lines = markdown.split("\n");
+  const fixedLines = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const current = lines[i];
+    const previous = lines[i - 1] || "";
+
+    const isListItem = /^(\s*)([-*+]|\d+\.)\s+/.test(current);
+    const isPrevEmpty = previous.trim() === "";
+
+    if (isListItem && !isPrevEmpty) {
+      fixedLines.push(""); // Insert a blank line before the list
+    }
+
+    fixedLines.push(current);
+  }
+
+  const result = fixedLines.join("\n");
+  return result;
+}
+
 const Section = ({ title, content }) => {
   if (!content) return null;
 
-  // If your data was incorrectly saved with "\\n", keep this.
-  const formattedContent = content
-    .replace(/\\n/g, "\n")  // Converts literal \n into newlines if needed
-    .replace(/\\\\/g, "\\");
+  const formattedContent = ensureBlankLineBeforeLists(
+    content.replace(/\\n/g, "\n").replace(/\\\\/g, "\\")
+  );
 
   return (
     <div className="mt-6">

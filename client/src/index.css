@@ -1,1 +1,11 @@
 @import "tailwindcss";
+
+/* Force ordered list numbers to show inside the prose container */
+.prose ol {
+  list-style-type: decimal !important;
+  padding-left: 1.25rem;
+}
+
+.prose ol li {
+  margin-left: 0;
+}

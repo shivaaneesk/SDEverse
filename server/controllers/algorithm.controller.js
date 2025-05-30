@@ -1,6 +1,9 @@
 const asyncHandler = require("express-async-handler");
 const Algorithm = require("../models/algorithm.model");
+const Notification = require("../models/notification.model");
+const User = require("../models/user.model");
 const generateUniqueSlug = require("../utils/generateUniqueSlug");
+
 const categoriesList = require("../utils/categories");
 
 const createAlgorithm = asyncHandler(async (req, res) => {
@@ -53,6 +56,20 @@ const createAlgorithm = asyncHandler(async (req, res) => {
   });
 
   const createdAlgorithm = await algorithm.save();
+
+  // Notify all users about the new algorithm
+  const users = await User.find({}, "_id").lean();
+
+  const notifications = users.map((user) => ({
+    recipient: user._id,
+    sender: req.user._id,
+    type: "new_algorithm", // dynamic type, can be changed as needed
+    message: `A new algorithm "${title}" has been added.`,
+    link: `/algorithms/${slug}`,
+    read: false,
+  }));
+
+  await Notification.insertMany(notifications);
 
   res.status(201).json(createdAlgorithm);
 });
@@ -136,7 +153,7 @@ const getAllAlgorithms = asyncHandler(async (req, res) => {
     const algorithms = await Algorithm.find(filters)
       .skip((pageNumber - 1) * limitNumber)
       .limit(limitNumber)
-      .sort({ createdAt: -1 })
+      .sort({ title: 1 })  // Sort by title ascending
       .lean();
 
     res.json({
@@ -277,9 +294,10 @@ const voteAlgorithm = asyncHandler(async (req, res) => {
 
 const getAllCategories = (req, res) => {
   try {
+    const sortedCategories = [...categoriesList].sort();
     res.status(200).json({
       success: true,
-      categories: categoriesList,
+      categories: sortedCategories,
     });
   } catch (error) {
     res.status(500).json({
