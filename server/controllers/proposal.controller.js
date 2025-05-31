@@ -60,7 +60,10 @@ const createProposal = asyncHandler(async (req, res) => {
 
 // --- Get All Proposals ---
 const getAllProposals = asyncHandler(async (req, res) => {
-  const { page = 1, limit = 10, status = "", search = "" } = req.query;
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  const { status = "", search = "" } = req.query;
+
   const filters = {};
 
   if (status) filters.status = status;
@@ -71,6 +74,7 @@ const getAllProposals = asyncHandler(async (req, res) => {
   }
 
   const proposals = await Proposal.find(filters)
+    .populate("contributor", "username")
     .skip((page - 1) * limit)
     .limit(limit)
     .sort({ createdAt: -1 });
@@ -81,7 +85,7 @@ const getAllProposals = asyncHandler(async (req, res) => {
     proposals,
     total,
     pages: Math.ceil(total / limit),
-    currentPage: Number(page),
+    currentPage: page,
   });
 });
 

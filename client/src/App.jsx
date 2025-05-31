@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { useDispatch } from "react-redux";
+import { ToastContainer } from "react-toastify";
 
 import Layout from "./components/Layout";
 import Loader from "./components/Loader";
@@ -13,6 +14,7 @@ import EditProposal from "./pages/EditProposal";
 import AdminAlgorithms from "./pages/AdminAlgorithms";
 import AdminRoute from "./components/AdminRoute";
 import CreateProposal from "./pages/CreateProposal";
+import MoreInfoPage from "./pages/MoreInfoPage";
 import MyProposals from "./pages/MyProposals";
 import AdminProposalReview from "./pages/AdminProposalReview";
 import Profile from "./pages/Profile";
@@ -36,6 +38,11 @@ const router = createBrowserRouter([
         index: true,
         element: <Home />,
       },
+      {
+        path: "moreinfo/:platform",
+        element: <MoreInfoPage />,
+      },
+
       {
         path: "profile/:username",
         element: <Profile />,
@@ -122,7 +129,21 @@ function App() {
       <Loader />
     </div>
   ) : (
-    <RouterProvider router={router} />
+    <>
+      <RouterProvider router={router} />
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
+    </>
   );
 }
 

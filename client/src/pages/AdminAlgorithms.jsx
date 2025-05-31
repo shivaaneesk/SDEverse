@@ -1,4 +1,4 @@
-import React, { useEffect, useState, Fragment } from "react";
+import React, { useEffect, useState, useCallback, Fragment } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   fetchAlgorithms,
@@ -10,32 +10,21 @@ import {
 } from "../features/algorithm/algorithmSlice";
 import { MdEdit, MdDelete, MdSearch } from "react-icons/md";
 import { toast } from "react-toastify";
-import EditAlgorithmForm from "../components/forms/EditAlgorithmForm";
 import Loader from "../components/Loader";
+import EditAlgorithmForm from "../components/forms/EditAlgorithmForm";
 import Pagination from "./Pagination";
+import clsx from "clsx";
 
+// Helpers
 const formatArray = (input) =>
-  Array.isArray(input)
-    ? input
-    : input
-        .split(",")
-        .map((v) => v.trim())
-        .filter(Boolean);
+  Array.isArray(input) ? input : input.split(",").map((v) => v.trim()).filter(Boolean);
 
 const formatCodes = (input) =>
-  Array.isArray(input)
-    ? input
-    : input.split("\n").map((code) => ({ language: "cpp", code }));
+  Array.isArray(input) ? input : input.split("\n").map((code) => ({ language: "cpp", code }));
 
 const AdminAlgorithms = () => {
   const dispatch = useDispatch();
-
-  const {
-    algorithms = [],
-    loading,
-    categories = [],
-    totalPages,
-  } = useSelector((state) => state.algorithm);
+  const { algorithms = [], loading, categories = [], pages: totalPages } = useSelector((state) => state.algorithm);
 
   const [search, setSearch] = useState("");
   const [selectedCategories, setSelectedCategories] = useState([]);
@@ -45,33 +34,25 @@ const AdminAlgorithms = () => {
   const [isSearchMode, setIsSearchMode] = useState(false);
 
   useEffect(() => {
-    if (isSearchMode) {
-      dispatch(
-        searchAllAlgorithms({
-          q: search,
-          category: selectedCategories.length
-            ? selectedCategories.join(",")
-            : undefined,
-          page: currentPage,
-        })
-      );
-    } else {
-      dispatch(fetchAlgorithms({ page: currentPage }));
-    }
+    const payload = isSearchMode
+      ? { q: search, category: selectedCategories.join(","), page: currentPage }
+      : { page: currentPage };
+
+    dispatch(isSearchMode ? searchAllAlgorithms(payload) : fetchAlgorithms(payload));
     dispatch(fetchCategories());
   }, [dispatch, currentPage, isSearchMode, search, selectedCategories]);
 
-  const handleSearch = () => {
+  const handleSearch = useCallback(() => {
     setIsSearchMode(true);
     setCurrentPage(1);
     dispatch(
       searchAllAlgorithms({
-        search,
-        categories: selectedCategories.length ? selectedCategories : undefined,
+        q: search,
+        category: selectedCategories.join(","),
         page: 1,
       })
     );
-  };
+  }, [dispatch, search, selectedCategories]);
 
   const handleDelete = (slug) => {
     dispatch(deleteExistingAlgorithm(slug))
@@ -79,8 +60,6 @@ const AdminAlgorithms = () => {
       .then(() => toast.success("Deleted successfully"))
       .catch(() => toast.error("Delete failed"));
   };
-
-  const handleEdit = (algo) => setEditingSlug(algo.slug);
 
   const handleSave = (data) => {
     const formatted = {
@@ -93,89 +72,72 @@ const AdminAlgorithms = () => {
 
     const action = addingNew
       ? createNewAlgorithm(formatted)
-      : updateExistingAlgorithm({
-          slug: editingSlug,
-          algorithmData: formatted,
-        });
+      : updateExistingAlgorithm({ slug: editingSlug, algorithmData: formatted });
 
     dispatch(action)
       .unwrap()
       .then(() => {
-        toast.success(addingNew ? "Algorithm created" : "Updated successfully");
+        toast.success(addingNew ? "Created successfully" : "Updated successfully");
         setEditingSlug(null);
         setAddingNew(false);
-        if (isSearchMode) {
-          dispatch(
-            searchAllAlgorithms({
-              search,
-              categories: selectedCategories.length
-                ? selectedCategories
-                : undefined,
-              page: currentPage,
-            })
-          );
-        } else {
-          dispatch(fetchAlgorithms({ page: currentPage }));
-        }
+        const payload = isSearchMode
+          ? { q: search, category: selectedCategories.join(","), page: currentPage }
+          : { page: currentPage };
+        dispatch(isSearchMode ? searchAllAlgorithms(payload) : fetchAlgorithms(payload));
       })
-      .catch(() =>
-        toast.error(addingNew ? "Creation failed" : "Update failed")
-      );
+      .catch(() => toast.error(addingNew ? "Creation failed" : "Update failed"));
   };
 
-  const handleCancel = () => {
-    setEditingSlug(null);
-    setAddingNew(false);
-  };
-
-  const toggleCategory = (category) => {
+  const toggleCategory = (cat) => {
     setSelectedCategories((prev) =>
-      prev.includes(category)
-        ? prev.filter((cat) => cat !== category)
-        : [...prev, category]
+      prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]
     );
   };
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-10 space-y-8">
-      {/* Header and New Button */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-          Manage Algorithms
-        </h1>
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Manage Algorithms</h1>
         <button
-          onClick={() => setAddingNew(true)}
-          className="px-6 py-2 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          onClick={() => {
+            setAddingNew(true);
+            setEditingSlug(null);
+          }}
+          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-xl"
         >
           + New Algorithm
         </button>
       </div>
 
-      {/* New Form */}
+      {/* Add New Form */}
       {addingNew && (
-        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md p-6 border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-900 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow">
           <EditAlgorithmForm
             algorithm={{}}
             categories={categories}
             onSave={handleSave}
-            onCancel={handleCancel}
+            onCancel={() => {
+              setAddingNew(false);
+              setEditingSlug(null);
+            }}
           />
         </div>
       )}
 
-      {/* Search + Category Filters */}
+      {/* Search and Filter */}
       <div className="space-y-4">
         <div className="relative">
           <input
             type="text"
-            placeholder="Search by algorithm title..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full px-4 py-2 rounded-xl bg-gray-100 dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Search algorithms..."
+            className="w-full px-4 py-2 rounded-xl bg-gray-100 dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500"
           />
           <button
             onClick={handleSearch}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-white hover:text-blue-600"
+            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-blue-600"
           >
             <MdSearch size={20} />
           </button>
@@ -186,11 +148,12 @@ const AdminAlgorithms = () => {
             <button
               key={cat}
               onClick={() => toggleCategory(cat)}
-              className={`px-3 py-1 rounded-full text-sm border transition-all ${
+              className={clsx(
+                "px-3 py-1 rounded-full text-sm border transition",
                 selectedCategories.includes(cat)
                   ? "bg-blue-600 text-white border-blue-600"
                   : "bg-white dark:bg-gray-700 text-gray-800 dark:text-white border-gray-300 dark:border-gray-600"
-              }`}
+              )}
             >
               {cat}
             </button>
@@ -198,10 +161,10 @@ const AdminAlgorithms = () => {
         </div>
       </div>
 
-      {/* Algorithm Table */}
-      <div className="overflow-x-auto bg-white dark:bg-gray-800 rounded-xl shadow-md">
-        <table className="min-w-full text-sm text-left text-gray-500 dark:text-gray-300">
-          <thead className="text-xs uppercase bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-white">
+      {/* Table */}
+      <div className="overflow-x-auto bg-white dark:bg-gray-800 rounded-xl shadow">
+        <table className="min-w-full text-sm text-left text-gray-600 dark:text-gray-300">
+          <thead className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-white text-xs uppercase">
             <tr>
               <th className="px-6 py-3">Title</th>
               <th className="px-6 py-3">Category</th>
@@ -231,7 +194,10 @@ const AdminAlgorithms = () => {
                     <td className="px-6 py-4">{algo.difficulty}</td>
                     <td className="px-6 py-4 text-right space-x-4">
                       <button
-                        onClick={() => handleEdit(algo)}
+                        onClick={() => {
+                          setEditingSlug(algo.slug);
+                          setAddingNew(false);
+                        }}
                         className="text-blue-600 hover:text-blue-800"
                       >
                         <MdEdit size={18} />
@@ -251,7 +217,7 @@ const AdminAlgorithms = () => {
                           algorithm={algo}
                           categories={categories}
                           onSave={handleSave}
-                          onCancel={handleCancel}
+                          onCancel={() => setEditingSlug(null)}
                         />
                       </td>
                     </tr>

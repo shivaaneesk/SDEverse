@@ -1,7 +1,5 @@
 const axios = require("axios");
 const cheerio = require("cheerio");
-const { LeetCode } = require("leetcode-query");
-const leetcode = new LeetCode();
 
 function extractUsernameFromUrl(platform, url) {
   try {
@@ -14,104 +12,220 @@ function extractUsernameFromUrl(platform, url) {
 }
 
 async function fetchLeetCodeStats(username) {
-  if (!username) return null;
-  try {
-    const userData = await leetcode.user(username);
-    if (!userData || !userData.matchedUser) return null;
+  if (!username) throw new Error("Username is required");
 
-    const acStats = userData.matchedUser.submitStats.acSubmissionNum || [];
-    const getCount = (difficulty) =>
-      acStats.find((item) => item.difficulty === difficulty)?.count || 0;
+  const graphqlUrl = "https://leetcode.com/graphql";
+  const headers = {
+    "Content-Type": "application/json",
+    "User-Agent": "Mozilla/5.0",
+    Referer: `https://leetcode.com/${username}/`,
+  };
 
-    const baseContest = userData.matchedUser.contestRating || {};
-
-    const graphqlQuery = `
-      query userContestRankingInfo($username: String!) {
-        userContestRanking(username: $username) {
-          attendedContestsCount
-          rating
-          globalRanking
-          totalParticipants
-          topPercentage
+  const profileQuery = `
+    query getUserProfile($username: String!) {
+      matchedUser(username: $username) {
+        profile {
+          ranking
+        }
+        submitStats {
+          acSubmissionNum {
+            difficulty
+            count
+          }
         }
       }
-    `;
-
-    const graphqlResponse = await axios.post(
-      "https://leetcode.com/graphql",
-      {
-        query: graphqlQuery,
-        variables: { username },
-      },
-      {
-        headers: { "Content-Type": "application/json" },
+      allQuestionsCount {
+        difficulty
+        count
       }
-    );
+    }
+  `;
 
-    const advancedContest =
-      graphqlResponse?.data?.data?.userContestRanking || {};
+  const contestQuery = `
+    query userContestRankingInfo($username: String!) {
+      userContestRanking(username: $username) {
+        attendedContestsCount
+        rating
+        globalRanking
+        totalParticipants
+        topPercentage
+      }
+      userContestRankingHistory(username: $username) {
+        rating
+        contest {
+          title
+          startTime
+        }
+      }
+    }
+  `;
 
-    const summary = {
-      totalSolved: getCount("All"),
-      easy: getCount("Easy"),
-      medium: getCount("Medium"),
-      hard: getCount("Hard"),
-      ranking: userData.matchedUser.profile?.ranking || 0,
-      contestRating: advancedContest.rating || baseContest.rating || 0,
-      updatedAt: new Date(),
-    };
+  try {
+    const [profileRes, contestRes] = await Promise.all([
+      axios.post(graphqlUrl, {
+        query: profileQuery,
+        variables: { username },
+      }, { headers }),
+      axios.post(graphqlUrl, {
+        query: contestQuery,
+        variables: { username },
+      }, { headers }),
+    ]);
 
-    const moreInfo = {
-      globalRanking:
-        advancedContest.globalRanking || baseContest.globalRanking || 0,
-      totalContests:
-        advancedContest.attendedContestsCount ||
-        baseContest.attendedContestsCount ||
-        0,
-      totalParticipants: advancedContest.totalParticipants || 0,
-      topPercentage: advancedContest.topPercentage || null,
-    };
+    const userData = profileRes.data.data;
+    const contestData = contestRes.data.data;
 
-    const profileUrl = `https://leetcode.com/${username}/`;
-
-    return { summary, moreInfo, profileUrl };
-  } catch (e) {
-    console.error("LeetCode fetch error:", e.message);
+    return parseLeetCodeData(userData, contestData, username);
+  } catch (err) {
+    console.error("Error fetching data:", err?.response?.data || err.message);
     return null;
   }
 }
 
+function parseLeetCodeData(userData, contestData, username) {
+  const profile = userData?.matchedUser?.profile || {};
+  const acSubmission = userData?.matchedUser?.submitStats?.acSubmissionNum || [];
+  const totalQuestions = userData?.allQuestionsCount || [];
+
+  const getCount = (arr, diff) =>
+    arr.find((x) => x.difficulty === diff)?.count || 0;
+
+  const easySolved = getCount(acSubmission, "Easy");
+  const mediumSolved = getCount(acSubmission, "Medium");
+  const hardSolved = getCount(acSubmission, "Hard");
+
+  const easyTotal = getCount(totalQuestions, "Easy");
+  const mediumTotal = getCount(totalQuestions, "Medium");
+  const hardTotal = getCount(totalQuestions, "Hard");
+
+  const contest = contestData?.userContestRanking || {};
+
+  // ✅ Filter only public contests
+  const actualContests = filterActualContests(contestData.userContestRankingHistory || []);
+
+  return {
+    summary: {
+      totalSolved: easySolved + mediumSolved + hardSolved,
+      easy: easySolved,
+      medium: mediumSolved,
+      hard: hardSolved,
+      ranking: profile.ranking || 0,
+      contestRating: contest.rating || 0,
+      globalRanking: contest.globalRanking || 0,
+      totalContests: contest.attendedContestsCount || 0,
+      updatedAt: new Date().toISOString(),
+    },
+    moreInfo: {
+      totalQuestions: {
+        easy: easyTotal,
+        medium: mediumTotal,
+        hard: hardTotal,
+      },
+      contestStats: contest,
+      contestHistory: actualContests,
+      username
+    },
+    profileUrl: `https://leetcode.com/${username}/`,
+  };
+}
+
+function filterActualContests(contests) {
+  const seen = new Set();
+  return contests.filter((c) => {
+    const isValid =
+      c.contest &&
+      typeof c.contest.title === "string" &&
+      typeof c.contest.startTime === "number" &&
+      c.rating !== 1500 &&
+      !seen.has(c.rating); // avoid repeats from virtuals
+
+    if (isValid) seen.add(c.rating);
+    return isValid;
+  });
+}
+
 async function fetchCodeforcesStats(username) {
   if (!username) return null;
+
   try {
-    const res = await axios.get(
+    // Fetch user info
+    const userInfoRes = await axios.get(
       `https://codeforces.com/api/user.info?handles=${username}`
     );
-    if (res.data.status === "OK") {
-      const user = res.data.result[0];
+    if (userInfoRes.data.status !== "OK") throw new Error("Failed to fetch user info");
+    const user = userInfoRes.data.result[0];
 
-      const summary = {
-        currentRating: user.rating || 0,
-        maxRating: user.maxRating || 0,
-        rank: user.rank || "",
-        totalSolved: 0, // API doesn't provide this
-        updatedAt: new Date(),
-      };
+    // Fetch user rating changes (contests)
+    const ratingRes = await axios.get(
+      `https://codeforces.com/api/user.rating?handle=${username}`
+    );
+    if (ratingRes.data.status !== "OK") throw new Error("Failed to fetch rating history");
+    const contests = ratingRes.data.result;
 
-      const moreInfo = {
-        friendOfCount: user.friendOfCount || 0,
-        lastOnlineTimeSeconds: user.lastOnlineTimeSeconds || 0,
-      };
+    // Fetch submissions to extract solved problems by tags
+    const submissionsRes = await axios.get(
+      `https://codeforces.com/api/user.status?handle=${username}&from=1&count=10000`
+    );
+    if (submissionsRes.data.status !== "OK") throw new Error("Failed to fetch submissions");
+    const submissions = submissionsRes.data.result;
 
-      const profileUrl = `https://codeforces.com/profile/${username}`;
-      return { summary, moreInfo, profileUrl };
+    // Process contests info
+    const totalContests = contests.length;
+    const lastContest = contests[totalContests - 1];
+    const lastContestDate = lastContest ? new Date(lastContest.ratingUpdateTimeSeconds * 1000) : null;
+
+    // Average rating change
+    const avgRatingChange =
+      totalContests > 0
+        ? contests.reduce((acc, c) => acc + (c.newRating - c.oldRating), 0) / totalContests
+        : 0;
+
+    // Process submissions to find unique solved problems and count tags
+    const solvedProblems = new Map();
+    for (const sub of submissions) {
+      if (sub.verdict === "OK") {
+        const problemId = `${sub.problem.contestId}-${sub.problem.index}`;
+        if (!solvedProblems.has(problemId)) {
+          solvedProblems.set(problemId, sub.problem);
+        }
+      }
     }
-    return null;
+
+    const tagCounts = {};
+    for (const problem of solvedProblems.values()) {
+      for (const tag of problem.tags) {
+        tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+      }
+    }
+
+    // Compose summary
+    const summary = {
+      currentRating: user.rating || 0,
+      maxRating: user.maxRating || 0,
+      rank: user.rank || "",
+      totalContests,
+      lastContestDate,
+      avgRatingChange,
+      totalSolved: solvedProblems.size,
+      updatedAt: new Date(),
+    };
+
+    const moreInfo = {
+      friendOfCount: user.friendOfCount || 0,
+      lastOnlineTimeSeconds: user.lastOnlineTimeSeconds || 0,
+      contests, // full contest rating history
+      solvedByTags: tagCounts, // solved problems count by tag
+    };
+
+    const profileUrl = `https://codeforces.com/profile/${username}`;
+
+    return { summary, moreInfo, profileUrl };
   } catch (e) {
     console.error("Codeforces fetch error:", e.message);
     return null;
   }
 }
+
 
 async function fetchCodechefStats(username) {
   if (!username) return null;

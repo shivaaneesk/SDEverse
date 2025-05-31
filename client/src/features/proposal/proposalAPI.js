@@ -15,7 +15,8 @@ export const createProposal = async ( proposalData, token) => {
 
 // Get all proposals (admin or user)
 export const getAllProposals = async (query, token) => {
-  const response = await api.get(`proposal?${query}`, config(token));
+  const queryString = new URLSearchParams(query).toString();
+  const response = await api.get(`proposal?${queryString}`, config(token));
   return response.data;
 };
 

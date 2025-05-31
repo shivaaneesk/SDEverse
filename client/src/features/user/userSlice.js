@@ -259,6 +259,7 @@ const userSlice = createSlice({
             state.myProfile.extraCompetitiveStats[platform] = {
               profileUrl: extraStats[platform]?.profileUrl || "",
               moreInfo: extraStats[platform]?.moreInfo || {},
+              summary: extraStats[platform]?.summary || {},
             };
           }
         }

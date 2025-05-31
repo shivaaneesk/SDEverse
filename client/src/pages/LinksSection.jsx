@@ -1,6 +1,6 @@
-import React from "react";
 import { ExternalLink, Loader2, RefreshCcw } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { useNavigate } from "react-router-dom";
 
 export default function LinksSection({
   title,
@@ -14,7 +14,7 @@ export default function LinksSection({
   lastUpdated,
 }) {
   const platforms = Object.keys(links);
-
+  const navigate = useNavigate();
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -78,9 +78,7 @@ export default function LinksSection({
                 {link && !isEditing && !readonly && (
                   <button
                     className="text-green-600 text-sm font-medium hover:underline"
-                    onClick={() => {
-                      // Add navigation or info modal here
-                    }}
+                    onClick={() => navigate(`/moreinfo/${platform}`)}
                   >
                     Get More Info
                   </button>

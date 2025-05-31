@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   createComment,
@@ -6,8 +6,9 @@ import {
   replyToComment,
   removeComment,
 } from "../features/comment/commentSlice";
-import { Send, Trash2 } from "lucide-react";
-import { Link, useLocation } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
+import { Send, Trash2, X } from "lucide-react";
+import { Link } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
@@ -15,13 +16,15 @@ import rehypeKatex from "rehype-katex";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import "katex/dist/katex.min.css";
+import { toast } from "react-toastify";
+import { formatDistanceToNow } from "date-fns";
 
 const MarkdownRenderer = ({ children }) => (
   <ReactMarkdown
     remarkPlugins={[remarkGfm, remarkMath]}
     rehypePlugins={[rehypeKatex]}
     components={{
-      code({ node, inline, className, children, ...props }) {
+      code({ inline, className, children, ...props }) {
         const match = /language-(\w+)/.exec(className || "");
         return !inline && match ? (
           <SyntaxHighlighter
@@ -33,7 +36,10 @@ const MarkdownRenderer = ({ children }) => (
             {String(children).replace(/\n$/, "")}
           </SyntaxHighlighter>
         ) : (
-          <code className={className} {...props}>
+          <code
+            className="bg-gray-200 dark:bg-gray-700 rounded px-1.5 py-0.5 font-mono text-sm"
+            {...props}
+          >
             {children}
           </code>
         );
@@ -44,206 +50,323 @@ const MarkdownRenderer = ({ children }) => (
   </ReactMarkdown>
 );
 
-const ReplyInput = ({ onReply }) => {
-  const [reply, setReply] = useState("");
-  const handleReplySubmit = () => {
-    if (reply.trim()) {
-      onReply(reply.trim());
-      setReply("");
+const ReplyInput = ({ initialText = "", onCancel, onSubmit }) => {
+  const [text, setText] = useState(initialText);
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.setSelectionRange(text.length, text.length);
+      inputRef.current.focus();
     }
+  }, [text]);
+
+  const handleSubmit = () => {
+    if (text.trim().length === 0) return;
+    onSubmit(text.trim());
+    setText("");
   };
+
   return (
-    <div className="flex items-center gap-2 mt-2">
+    <div className="relative w-full mt-4 flex items-start space-x-3">
       <input
+        ref={inputRef}
         type="text"
-        value={reply}
-        onChange={(e) => setReply(e.target.value)}
-        placeholder="Reply..."
-        className="flex-1 px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 text-sm text-gray-800 dark:text-white focus:ring-1 focus:ring-blue-500 outline-none"
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        className="flex-1 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-2 text-sm text-gray-900 dark:text-gray-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+        placeholder="Write a reply..."
+        spellCheck={false}
+        aria-label="Reply input"
       />
-      <button
-        onClick={handleReplySubmit}
-        disabled={!reply.trim()}
-        className={`text-sm transition ${
-          reply.trim()
-            ? "text-blue-600 hover:underline cursor-pointer"
-            : "text-gray-400 cursor-not-allowed"
-        }`}
-      >
-        Reply
-      </button>
+      <div className="flex space-x-1.5">
+        <button
+          onClick={handleSubmit}
+          disabled={text.trim().length === 0}
+          className={`px-3 py-2 rounded-lg text-white text-sm font-medium transition ${
+            text.trim()
+              ? "bg-blue-600 hover:bg-blue-700"
+              : "bg-blue-300 cursor-not-allowed"
+          }`}
+          aria-label="Send reply"
+        >
+          <Send size={16} />
+        </button>
+        <button
+          onClick={onCancel}
+          className="px-3 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 transition"
+          aria-label="Cancel reply"
+        >
+          <X size={16} />
+        </button>
+      </div>
     </div>
   );
 };
 
 const CommentSection = ({ parentType, parentId, parentSlug }) => {
   const dispatch = useDispatch();
-  const location = useLocation();
-  const queryParams = new URLSearchParams(location.search);
-  const targetCommentId = queryParams.get("commentId");
-
   const { comments, loading } = useSelector((state) => state.comment);
   const currentUser = useSelector((state) => state.auth.user);
-  const [text, setText] = useState("");
-  const commentRefs = useRef({});
+  const [newCommentText, setNewCommentText] = useState("");
+  const [replyOpenFor, setReplyOpenFor] = useState(null);
+  const [searchParams] = useSearchParams();
 
   useEffect(() => {
     dispatch(fetchCommentsByParent({ parentType, parentId }));
   }, [dispatch, parentType, parentId]);
 
   useEffect(() => {
-    if (targetCommentId && commentRefs.current[targetCommentId]) {
-      const el = commentRefs.current[targetCommentId];
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
-      el.classList.add(
-        "ring-2",
-        "ring-blue-500",
-        "bg-blue-50",
-        "dark:bg-gray-800"
-      );
+    if (!loading) {
+      const commentId = searchParams.get("commentId");
+      if (commentId) {
+        const element = document.getElementById(`comment-${commentId}`);
+        if (element) {
+          const headerOffset = 80; // adjust based on your fixed header height
+          const elementPosition = element.getBoundingClientRect().top;
+          const offsetPosition =
+            elementPosition + window.pageYOffset - headerOffset;
 
-      setTimeout(() => {
-        el.classList.remove(
-          "ring-2",
-          "ring-blue-500",
-          "bg-blue-50",
-          "dark:bg-gray-800"
-        );
-      }, 2500);
+          window.scrollTo({
+            top: offsetPosition,
+            behavior: "smooth",
+          });
+        }
+      }
     }
-  }, [comments, targetCommentId]);
+  }, [loading, searchParams]);
 
-  const handleSubmit = async () => {
-    if (!text.trim()) return;
-    await dispatch(createComment({ parentType, parentId, parentSlug, text }));
-    await dispatch(fetchCommentsByParent({ parentType, parentId }));
-    setText("");
+  const handleNewCommentSubmit = async () => {
+    if (!newCommentText.trim()) return;
+    try {
+      await dispatch(
+        createComment({
+          parentType,
+          parentId,
+          parentSlug,
+          text: newCommentText,
+        })
+      ).unwrap();
+      toast.success("Comment posted!");
+      setNewCommentText("");
+      await dispatch(fetchCommentsByParent({ parentType, parentId }));
+    } catch {
+      toast.error("Failed to post comment.");
+    }
   };
 
-  const handleReply = async (commentId, replyText) => {
-    await dispatch(
-      replyToComment({ commentId, replyData: { text: replyText } })
-    );
-    await dispatch(fetchCommentsByParent({ parentType, parentId }));
+  const handleReplySubmit = async (commentId, replyText) => {
+    try {
+      await dispatch(
+        replyToComment({ commentId, replyData: { text: replyText } })
+      ).unwrap();
+      toast.success("Reply posted!");
+      setReplyOpenFor(null);
+      await dispatch(fetchCommentsByParent({ parentType, parentId }));
+    } catch {
+      toast.error("Failed to post reply.");
+    }
   };
 
   const handleDelete = async (id) => {
-    await dispatch(removeComment(id));
-    await dispatch(fetchCommentsByParent({ parentType, parentId }));
+    if (!window.confirm("Are you sure you want to delete this comment?"))
+      return;
+    try {
+      await dispatch(removeComment(id)).unwrap();
+      toast.success("Comment deleted!");
+      await dispatch(fetchCommentsByParent({ parentType, parentId }));
+    } catch {
+      toast.error("Failed to delete comment.");
+    }
   };
 
   return (
-    <div className="w-full max-w-[1600px] mx-auto mt-12 px-6 md:px-12">
-      <h2 className="text-3xl font-semibold text-gray-800 dark:text-white mb-6">
+    <div className="w-full max-w-full px-4 sm:px-6 md:px-10 lg:px-16 mx-auto mt-12">
+      <h2 className="text-3xl font-semibold text-gray-900 dark:text-white mb-8 select-none">
         Discussion
       </h2>
 
-      <div className="flex gap-3 mb-6">
+      <div className="flex flex-col sm:flex-row gap-3 mb-10">
         <input
           type="text"
           placeholder="Leave a comment..."
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          className="flex-1 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+          value={newCommentText}
+          onChange={(e) => setNewCommentText(e.target.value)}
+          className="flex-1 rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3 text-gray-900 dark:text-gray-100 text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
+          spellCheck={false}
+          aria-label="New comment input"
         />
         <button
-          onClick={handleSubmit}
-          disabled={!text.trim()}
-          className={`px-4 py-2 rounded-lg text-white transition ${
-            text.trim()
+          onClick={handleNewCommentSubmit}
+          disabled={!newCommentText.trim()}
+          className={`flex items-center justify-center gap-1 rounded-md px-5 py-3 text-white text-base transition ${
+            newCommentText.trim()
               ? "bg-blue-600 hover:bg-blue-700"
               : "bg-blue-300 cursor-not-allowed"
           }`}
+          aria-label="Submit comment"
+          title="Post comment"
         >
-          <Send size={18} />
+          Post <Send size={18} />
         </button>
       </div>
 
       {loading ? (
-        <p className="text-gray-500 dark:text-gray-300">Loading comments...</p>
+        <p className="text-gray-500 dark:text-gray-400">Loading comments...</p>
       ) : comments.length === 0 ? (
-        <p className="text-gray-600 dark:text-gray-400">
+        <p className="text-gray-700 dark:text-gray-400">
           No comments yet. Be the first to comment!
         </p>
       ) : (
-        <div className="space-y-6">
-          {comments.map((comment) => (
-            <div
-              key={comment._id}
-              ref={(el) => (commentRefs.current[comment._id] = el)}
-              className="p-6 rounded-xl border bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 shadow-sm transition-all duration-300"
-              id={`comment-${comment._id}`}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Link to={`/profile/${comment.user.username}`}>
-                    <img
-                      src={comment.user.avatarUrl || "/default-avatar.png"}
-                      alt={comment.user.username}
-                      className="w-8 h-8 rounded-full object-cover"
-                    />
-                  </Link>
-                  <Link
-                    to={`/profile/${comment.user.username}`}
-                    className="text-sm font-semibold text-gray-800 dark:text-white hover:underline"
-                  >
-                    {comment.user.username}
-                  </Link>
-                </div>
-                {currentUser?._id === comment.user._id && (
-                  <button
-                    onClick={() => handleDelete(comment._id)}
-                    className="text-red-500 hover:text-red-600"
-                    title="Delete comment"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                )}
-              </div>
-
-              <div className="mt-2 prose prose-sm dark:prose-invert max-w-none">
-                <MarkdownRenderer>{comment.text}</MarkdownRenderer>
-              </div>
-
-              <div className="mt-4 space-y-4 pl-4 border-l-2 border-blue-500">
-                {comment.replies?.map((reply) => (
-                  <div key={reply._id} className="space-y-1">
-                    <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                      <Link to={`/profile/${reply.user.username}`}>
-                        <img
-                          src={reply.user.avatarUrl || "/default-avatar.png"}
-                          alt={reply.user.username}
-                          className="w-6 h-6 rounded-full object-cover"
-                        />
-                      </Link>
+        <ul className="space-y-8">
+          {comments.map((comment) => {
+            const isReplyOpen = replyOpenFor === comment._id;
+            return (
+              <li
+                id={`comment-${comment._id}`}
+                key={comment._id}
+                className="bg-white dark:bg-gray-900 p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-700"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center space-x-3">
+                    <Link to={`/profile/${comment.user.username}`}>
+                      <img
+                        src={comment.user.avatarUrl || "/default-avatar.png"}
+                        alt={comment.user.username}
+                        className="w-10 h-10 rounded-full object-cover"
+                      />
+                    </Link>
+                    <div className="flex flex-col sm:flex-row sm:items-center">
                       <Link
-                        to={`/profile/${reply.user.username}`}
-                        className="font-medium text-gray-800 dark:text-white hover:underline"
+                        to={`/profile/${comment.user.username}`}
+                        className="font-semibold text-gray-900 dark:text-white hover:underline"
                       >
-                        {reply.user.username}
+                        {comment.user.username}
                       </Link>
-                      {currentUser?._id === reply.user._id && (
-                        <button
-                          onClick={() => handleDelete(reply._id)}
-                          className="ml-auto text-xs text-red-500 hover:text-red-600"
-                          title="Delete reply"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      )}
-                    </div>
-                    <div className="ml-8 prose prose-sm dark:prose-invert max-w-none">
-                      <MarkdownRenderer>{reply.text}</MarkdownRenderer>
+                      <span className="text-xs text-gray-500 dark:text-gray-400 ml-2 sm:ml-3">
+                        {formatDistanceToNow(new Date(comment.createdAt), {
+                          addSuffix: true,
+                        })}
+                      </span>
                     </div>
                   </div>
-                ))}
-                <ReplyInput
-                  onReply={(replyText) => handleReply(comment._id, replyText)}
-                />
-              </div>
-            </div>
-          ))}
-        </div>
+                  {currentUser?._id === comment.user._id && (
+                    <button
+                      onClick={() => handleDelete(comment._id)}
+                      className="p-1.5 rounded-md hover:bg-red-600 hover:text-white transition text-red-600"
+                      aria-label="Delete comment"
+                      title="Delete comment"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  )}
+                </div>
+
+                <div className="prose prose-sm dark:prose-invert max-w-none mb-4">
+                  <MarkdownRenderer>{comment.text}</MarkdownRenderer>
+                </div>
+
+                <button
+                  onClick={() =>
+                    setReplyOpenFor(isReplyOpen ? null : comment._id)
+                  }
+                  className="text-sm font-semibold text-blue-600 hover:underline focus:outline-none"
+                  aria-expanded={isReplyOpen}
+                >
+                  {isReplyOpen ? "Cancel Reply" : "Reply"}
+                </button>
+
+                {isReplyOpen && (
+                  <ReplyInput
+                    initialText={`@${comment.user.username} `}
+                    onCancel={() => setReplyOpenFor(null)}
+                    onSubmit={(text) => handleReplySubmit(comment._id, text)}
+                  />
+                )}
+
+                {comment.replies?.length > 0 && (
+                  <ul className="mt-6 pl-8 border-l border-gray-300 dark:border-gray-700 space-y-6">
+                    {comment.replies.map((reply) => {
+                      const isReplyOpen = replyOpenFor === reply._id;
+                      return (
+                        <li
+                          id={`comment-${reply._id}`}
+                          key={reply._id}
+                          className="relative space-y-2"
+                        >
+                          <div className="flex items-center space-x-3 mb-1">
+                            <Link to={`/profile/${reply.user.username}`}>
+                              <img
+                                src={
+                                  reply.user.avatarUrl || "/default-avatar.png"
+                                }
+                                alt={reply.user.username}
+                                className="w-8 h-8 rounded-full object-cover"
+                              />
+                            </Link>
+                            <div className="flex flex-col sm:flex-row sm:items-center">
+                              <Link
+                                to={`/profile/${reply.user.username}`}
+                                className="font-semibold text-gray-900 dark:text-white hover:underline text-sm"
+                              >
+                                {reply.user.username}
+                              </Link>
+                              <span className="text-xs text-gray-500 dark:text-gray-400 ml-2 sm:ml-3">
+                                {formatDistanceToNow(
+                                  new Date(reply.createdAt),
+                                  {
+                                    addSuffix: true,
+                                  }
+                                )}
+                              </span>
+                            </div>
+                            {reply.user &&
+                              currentUser?._id === reply.user._id && (
+                                <button
+                                  onClick={() => handleDelete(reply._id)}
+                                  className="ml-auto p-1 rounded-md hover:bg-red-600 hover:text-white transition text-red-600"
+                                  aria-label="Delete reply"
+                                  title="Delete reply"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              )}
+                          </div>
+
+                          <div className="prose prose-sm dark:prose-invert max-w-none text-sm">
+                            <MarkdownRenderer>{reply.text}</MarkdownRenderer>
+                          </div>
+
+                          {/* NEW: Reply button for replying to replies */}
+                          <button
+                            onClick={() =>
+                              setReplyOpenFor(isReplyOpen ? null : reply._id)
+                            }
+                            className="text-xs font-medium text-blue-600 hover:underline mt-1"
+                            aria-expanded={isReplyOpen}
+                          >
+                            {isReplyOpen ? "Cancel Reply" : "Reply"}
+                          </button>
+
+                          {/* NEW: Reply input for replies */}
+                          {isReplyOpen && (
+                            <ReplyInput
+                              initialText={`@${reply.user.username} `}
+                              onCancel={() => setReplyOpenFor(null)}
+                              onSubmit={(text) =>
+                                handleReplySubmit(reply._id, text)
+                              }
+                            />
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </li>
+            );
+          })}
+        </ul>
       )}
     </div>
   );
