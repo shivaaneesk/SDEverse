@@ -2,6 +2,7 @@ import React from "react";
 import { useParams } from "react-router-dom";
 import LeetCode from "./LeetCode";
 import Codeforces from "./Codeforces"
+import Codechef from "./Codechef"
 // In future, you can import more like:
 // import MoreInfoCodeforces from "./MoreInfoCodeforces";
 
@@ -11,6 +12,7 @@ export default function MoreInfoPage() {
   const componentMap = {
     leetcode: <LeetCode />,
     codeforces: <Codeforces />,
+    codechef: <Codechef />,
     // codeforces: <MoreInfoCodeforces />,
     // add more when ready
   };

@@ -1,6 +1,5 @@
 const axios = require("axios");
 const cheerio = require("cheerio");
-const puppeteer = require("puppeteer");
 
 // === Extract username from URL ===
 function extractSocialUsernameFromUrl(platform, url) {

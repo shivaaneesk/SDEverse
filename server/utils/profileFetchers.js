@@ -1,5 +1,7 @@
 const axios = require("axios");
 const cheerio = require("cheerio");
+const jsdom = require("jsdom");
+const { JSDOM } = jsdom;
 
 function extractUsernameFromUrl(platform, url) {
   try {
@@ -62,14 +64,22 @@ async function fetchLeetCodeStats(username) {
 
   try {
     const [profileRes, contestRes] = await Promise.all([
-      axios.post(graphqlUrl, {
-        query: profileQuery,
-        variables: { username },
-      }, { headers }),
-      axios.post(graphqlUrl, {
-        query: contestQuery,
-        variables: { username },
-      }, { headers }),
+      axios.post(
+        graphqlUrl,
+        {
+          query: profileQuery,
+          variables: { username },
+        },
+        { headers }
+      ),
+      axios.post(
+        graphqlUrl,
+        {
+          query: contestQuery,
+          variables: { username },
+        },
+        { headers }
+      ),
     ]);
 
     const userData = profileRes.data.data;
@@ -84,7 +94,8 @@ async function fetchLeetCodeStats(username) {
 
 function parseLeetCodeData(userData, contestData, username) {
   const profile = userData?.matchedUser?.profile || {};
-  const acSubmission = userData?.matchedUser?.submitStats?.acSubmissionNum || [];
+  const acSubmission =
+    userData?.matchedUser?.submitStats?.acSubmissionNum || [];
   const totalQuestions = userData?.allQuestionsCount || [];
 
   const getCount = (arr, diff) =>
@@ -101,7 +112,9 @@ function parseLeetCodeData(userData, contestData, username) {
   const contest = contestData?.userContestRanking || {};
 
   // ✅ Filter only public contests
-  const actualContests = filterActualContests(contestData.userContestRankingHistory || []);
+  const actualContests = filterActualContests(
+    contestData.userContestRankingHistory || []
+  );
 
   return {
     summary: {
@@ -123,7 +136,7 @@ function parseLeetCodeData(userData, contestData, username) {
       },
       contestStats: contest,
       contestHistory: actualContests,
-      username
+      username,
     },
     profileUrl: `https://leetcode.com/${username}/`,
   };
@@ -152,32 +165,38 @@ async function fetchCodeforcesStats(username) {
     const userInfoRes = await axios.get(
       `https://codeforces.com/api/user.info?handles=${username}`
     );
-    if (userInfoRes.data.status !== "OK") throw new Error("Failed to fetch user info");
+    if (userInfoRes.data.status !== "OK")
+      throw new Error("Failed to fetch user info");
     const user = userInfoRes.data.result[0];
 
     // Fetch user rating changes (contests)
     const ratingRes = await axios.get(
       `https://codeforces.com/api/user.rating?handle=${username}`
     );
-    if (ratingRes.data.status !== "OK") throw new Error("Failed to fetch rating history");
+    if (ratingRes.data.status !== "OK")
+      throw new Error("Failed to fetch rating history");
     const contests = ratingRes.data.result;
 
     // Fetch submissions to extract solved problems by tags
     const submissionsRes = await axios.get(
       `https://codeforces.com/api/user.status?handle=${username}&from=1&count=10000`
     );
-    if (submissionsRes.data.status !== "OK") throw new Error("Failed to fetch submissions");
+    if (submissionsRes.data.status !== "OK")
+      throw new Error("Failed to fetch submissions");
     const submissions = submissionsRes.data.result;
 
     // Process contests info
     const totalContests = contests.length;
     const lastContest = contests[totalContests - 1];
-    const lastContestDate = lastContest ? new Date(lastContest.ratingUpdateTimeSeconds * 1000) : null;
+    const lastContestDate = lastContest
+      ? new Date(lastContest.ratingUpdateTimeSeconds * 1000)
+      : null;
 
     // Average rating change
     const avgRatingChange =
       totalContests > 0
-        ? contests.reduce((acc, c) => acc + (c.newRating - c.oldRating), 0) / totalContests
+        ? contests.reduce((acc, c) => acc + (c.newRating - c.oldRating), 0) /
+          totalContests
         : 0;
 
     // Process submissions to find unique solved problems and count tags
@@ -226,37 +245,112 @@ async function fetchCodeforcesStats(username) {
   }
 }
 
-
 async function fetchCodechefStats(username) {
   if (!username) return null;
+
+  const profileUrl = `https://www.codechef.com/users/${username}`;
+
   try {
-    const res = await axios.get(`https://www.codechef.com/users/${username}`);
-    const $ = cheerio.load(res.data);
+    const res = await axios.get(profileUrl, {
+      headers: { "User-Agent": "Mozilla/5.0" },
+    });
+    if (res.status !== 200) {
+      return {
+        summary: defaultSummary(),
+        moreInfo: {},
+        profileUrl: "",
+      };
+    }
 
-    const summary = {
-      currentRating: parseInt($(".rating-number").first().text()) || 0,
-      stars: $(".rating-star").text().length || 0,
-      maxRating:
-        parseInt($(".rating-header small").text().match(/\d+/)?.[0]) || 0,
-      globalRank:
-        parseInt(
-          $(".rating-ranks ul li:nth-child(1) strong").text().replace("#", "")
-        ) || 0,
-      countryRank:
-        parseInt(
-          $(".rating-ranks ul li:nth-child(2) strong").text().replace("#", "")
-        ) || 0,
-      updatedAt: new Date(),
+    const html = res.data;
+    const dom = new JSDOM(html);
+    const document = dom.window.document;
+
+    // Extract heatmap JSON data from embedded JS
+    const heatMapStart =
+      html.indexOf("var userDailySubmissionsStats =") +
+      "var userDailySubmissionsStats =".length;
+    const heatMapEnd = html.indexOf("'#js-heatmap") - 34;
+    const heatMapStr = html.substring(heatMapStart, heatMapEnd);
+    const heatMap = JSON.parse(heatMapStr);
+
+    // Extract all_rating JSON data from embedded JS
+    const ratingStart =
+      html.indexOf("var all_rating = ") + "var all_rating = ".length;
+    const ratingEnd = html.indexOf("var current_user_rating =") - 6;
+    const ratingData = JSON.parse(html.substring(ratingStart, ratingEnd));
+
+    // Institution & Country (some profiles may lack these)
+    let institution = null;
+    let country = null;
+    const detailsLis = document.querySelectorAll(".user-details ul li");
+    detailsLis.forEach((li) => {
+      const label = li.querySelector("strong")?.textContent.trim();
+      const value = li.querySelector("span")?.textContent.trim();
+      if (label === "Institution:") institution = value;
+      if (label === "Country:") country = value;
+    });
+
+    // Build final response
+
+    return {
+      summary: {
+        currentRating:
+          parseInt(document.querySelector(".rating-number")?.textContent) || 0,
+        maxRating:
+          parseInt(
+            document
+              .querySelector(".rating-number")
+              ?.parentNode?.children[4]?.textContent.split("Rating")[1]
+          ) || 0,
+        stars:
+          document.querySelector(".rating-star")?.textContent.trim().length ||
+          0,
+        globalRank:
+          parseInt(
+            document
+              .querySelector(".rating-ranks ul li:nth-child(1) strong")
+              ?.textContent.replace("#", "")
+              .trim()
+          ) || 0,
+        countryRank:
+          parseInt(
+            document
+              .querySelector(".rating-ranks ul li:nth-child(2) strong")
+              ?.textContent.replace("#", "")
+              .trim()
+          ) || 0,
+        updatedAt: new Date(),
+      },
+      moreInfo: {
+        institution,
+        country,
+        totalContests: ratingData.length,
+        recentContests: ratingData.slice(-5).reverse(),
+        ratingHistory: ratingData,
+        heatMap,
+      },
+      profileUrl,
     };
-
-    const moreInfo = {};
-    const profileUrl = `https://www.codechef.com/users/${username}`;
-
-    return { summary, moreInfo, profileUrl };
-  } catch (e) {
-    console.error("CodeChef fetch error:", e.message);
-    return null;
+  } catch (error) {
+    console.error("CodeChef fetch error:", error.message);
+    return {
+      summary: defaultSummary(),
+      moreInfo: {},
+      profileUrl: "",
+    };
   }
+}
+
+function defaultSummary() {
+  return {
+    currentRating: 0,
+    maxRating: 0,
+    stars: 0,
+    globalRank: 0,
+    countryRank: 0,
+    updatedAt: null,
+  };
 }
 
 async function fetchAtCoderStats(username) {
