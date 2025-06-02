@@ -8,6 +8,8 @@ import {
   updateMyProfile,
   updateSocialProfiles,
   updateCompetitiveStats,
+  updateSingleSocialStat,
+  updateSingleCompetitiveStat,
 } from "./userAPI";
 
 const initialState = {
@@ -24,6 +26,8 @@ const initialState = {
     updateProfile: "idle",
     updateSocialStats: "idle",
     updateCompetitiveStats: "idle",
+    updateSingleSocialStat: "idle",
+    updateSingleCompetitiveStat: "idle",
   },
   error: {
     fetchUsers: null,
@@ -32,6 +36,8 @@ const initialState = {
     updateSocialStats: null,
     updateCompetitiveStats: null,
     fetchSelectedUser: null,
+    updateSingleSocialStat: null,
+    updateSingleCompetitiveStat: null,
   },
 };
 
@@ -137,6 +143,31 @@ export const refreshCompetitiveStats = createAsyncThunk(
     const token = thunkAPI.getState().auth.token;
     try {
       return await updateCompetitiveStats(token);
+    } catch (error) {
+      return thunkAPI.rejectWithValue(safeReject(error));
+    }
+  }
+);
+
+export const refreshSingleSocialStat = createAsyncThunk(
+  "user/refreshSingleSocialStat",
+  async (platform, thunkAPI) => {
+    const token = thunkAPI.getState().auth.token;
+    try {
+      return await updateSingleSocialStat(platform, token);
+    } catch (error) {
+      return thunkAPI.rejectWithValue(safeReject(error));
+    }
+  }
+);
+
+export const refreshSingleCompetitiveStat = createAsyncThunk(
+  "user/refreshSingleCompetitiveStat",
+  async (platform, thunkAPI) => {
+    const token = thunkAPI.getState().auth.token;
+    try {
+      const response = await updateSingleCompetitiveStat(platform, token);
+      return { platform, ...response };
     } catch (error) {
       return thunkAPI.rejectWithValue(safeReject(error));
     }
@@ -268,7 +299,57 @@ const userSlice = createSlice({
       .addCase(refreshCompetitiveStats.rejected, (state, action) => {
         state.status.updateCompetitiveStats = "failed";
         state.error.updateCompetitiveStats = action.payload;
-      });
+      })
+       // Single social stat update
+    .addCase(refreshSingleSocialStat.pending, (state) => {
+      state.status.updateSingleSocialStat = "loading";
+      state.error.updateSingleSocialStat = null;
+    })
+    .addCase(refreshSingleSocialStat.fulfilled, (state, action) => {
+      state.status.updateSingleSocialStat = "succeeded";
+      if (state.myProfile) {
+        state.myProfile.socialStats = {
+          ...state.myProfile.socialStats,
+          [action.payload.platform]: action.payload.stats
+        };
+      }
+    })
+    .addCase(refreshSingleSocialStat.rejected, (state, action) => {
+      state.status.updateSingleSocialStat = "failed";
+      state.error.updateSingleSocialStat = action.payload;
+    })
+
+    // Single competitive stat update
+    .addCase(refreshSingleCompetitiveStat.pending, (state) => {
+      state.status.updateSingleCompetitiveStat = "loading";
+      state.error.updateSingleCompetitiveStat = null;
+    })
+    .addCase(refreshSingleCompetitiveStat.fulfilled, (state, action) => {
+      state.status.updateSingleCompetitiveStat = "succeeded";
+      if (state.myProfile) {
+        // Update competitive stats
+        state.myProfile.competitiveStats = {
+          ...state.myProfile.competitiveStats,
+          [action.payload.platform]: action.payload.stats
+        };
+
+        // Update extra stats if available
+        if (action.payload.extraStats) {
+          state.myProfile.extraCompetitiveStats = {
+            ...state.myProfile.extraCompetitiveStats,
+            [action.payload.platform]: {
+              profileUrl: action.payload.extraStats[action.payload.platform]?.profileUrl || "",
+              moreInfo: action.payload.extraStats[action.payload.platform]?.moreInfo || {},
+              summary: action.payload.extraStats[action.payload.platform]?.summary || {},
+            }
+          };
+        }
+      }
+    })
+    .addCase(refreshSingleCompetitiveStat.rejected, (state, action) => {
+      state.status.updateSingleCompetitiveStat = "failed";
+      state.error.updateSingleCompetitiveStat = action.payload;
+    });
   },
 });
 

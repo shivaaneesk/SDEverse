@@ -9,6 +9,8 @@ const {
   updateMyProfile,
   updateAllCompetitiveStats,
   updateSocialProfiles,
+  updateSingleCompetitiveStat,
+  updateSingleSocialStat,
 } = require("../controllers/user.controller");
 const { protect, admin } = require("../middleware/auth.middleware");
 
@@ -21,5 +23,7 @@ router.get("/", protect, admin, getAllUsers);
 router.get("/:id", protect, admin, getUserById);
 router.delete("/:id", protect, admin, deleteUser);
 router.put("/:id/role", protect, admin, updateUserRole);
+router.get("/update-competitive-stats/:platform", protect, updateSingleCompetitiveStat);
+router.get("/update-social-stats/:platform", protect, updateSingleSocialStat);
 
 module.exports = router;

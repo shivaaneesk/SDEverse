@@ -177,7 +177,7 @@ async function fetchCodeforcesStats(username) {
       throw new Error("Failed to fetch rating history");
     const contests = ratingRes.data.result;
 
-    // Fetch submissions to extract solved problems by tags
+    // Fetch submissions
     const submissionsRes = await axios.get(
       `https://codeforces.com/api/user.status?handle=${username}&from=1&count=10000`
     );
@@ -185,35 +185,48 @@ async function fetchCodeforcesStats(username) {
       throw new Error("Failed to fetch submissions");
     const submissions = submissionsRes.data.result;
 
-    // Process contests info
+    // Process contest info
     const totalContests = contests.length;
     const lastContest = contests[totalContests - 1];
     const lastContestDate = lastContest
       ? new Date(lastContest.ratingUpdateTimeSeconds * 1000)
       : null;
 
-    // Average rating change
     const avgRatingChange =
       totalContests > 0
         ? contests.reduce((acc, c) => acc + (c.newRating - c.oldRating), 0) /
           totalContests
         : 0;
 
-    // Process submissions to find unique solved problems and count tags
+    // Process submissions for solved problems
     const solvedProblems = new Map();
+    const tagCounts = {};
+    const ratingCounts = {};
+    const heatmap = {};
+
     for (const sub of submissions) {
       if (sub.verdict === "OK") {
         const problemId = `${sub.problem.contestId}-${sub.problem.index}`;
         if (!solvedProblems.has(problemId)) {
           solvedProblems.set(problemId, sub.problem);
-        }
-      }
-    }
 
-    const tagCounts = {};
-    for (const problem of solvedProblems.values()) {
-      for (const tag of problem.tags) {
-        tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+          // Tags
+          for (const tag of sub.problem.tags || []) {
+            tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+          }
+
+          // Rating
+          if (sub.problem.rating) {
+            const rating = sub.problem.rating;
+            ratingCounts[rating] = (ratingCounts[rating] || 0) + 1;
+          }
+
+          // Heatmap
+          const date = new Date(sub.creationTimeSeconds * 1000)
+            .toISOString()
+            .split("T")[0];
+          heatmap[date] = (heatmap[date] || 0) + 1;
+        }
       }
     }
 
@@ -233,7 +246,9 @@ async function fetchCodeforcesStats(username) {
       friendOfCount: user.friendOfCount || 0,
       lastOnlineTimeSeconds: user.lastOnlineTimeSeconds || 0,
       contests, // full contest rating history
-      solvedByTags: tagCounts, // solved problems count by tag
+      solvedByTags: tagCounts, // solved problems by tag
+      solvedByRating: ratingCounts, // solved problems by rating
+      heatmap, // solved problems by date
     };
 
     const profileUrl = `https://codeforces.com/profile/${username}`;
@@ -249,96 +264,142 @@ async function fetchCodechefStats(username) {
   if (!username) return null;
 
   const profileUrl = `https://www.codechef.com/users/${username}`;
+  const defaultResponse = {
+    summary: defaultSummary(),
+    moreInfo: {},
+    profileUrl
+  };
 
   try {
-    const res = await axios.get(profileUrl, {
-      headers: { "User-Agent": "Mozilla/5.0" },
-    });
-    if (res.status !== 200) {
-      return {
-        summary: defaultSummary(),
-        moreInfo: {},
-        profileUrl: "",
-      };
-    }
+    let res;
+    let retryCount = 0;
+    const maxRetries = 3;
+    
+    do {
+      try {
+        res = await axios.get(profileUrl, {
+          headers: { 
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"
+          },
+          timeout: 10000
+        });
+      } catch (error) {
+        if (error.response && error.response.status === 429 && retryCount < maxRetries) {
+          const delay = Math.pow(2, retryCount) * 1000;
+          await new Promise(r => setTimeout(r, delay));
+          retryCount++;
+          continue;
+        }
+        console.error("Request failed:", error.message);
+        return defaultResponse;
+      }
+      break;
+    } while (retryCount < maxRetries);
 
+    if (res.status !== 200) return defaultResponse;
+    
     const html = res.data;
-    const dom = new JSDOM(html);
-    const document = dom.window.document;
+    const parsedData = parseCodechefPage(html);
+    if (!parsedData) return defaultResponse;
 
-    // Extract heatmap JSON data from embedded JS
-    const heatMapStart =
-      html.indexOf("var userDailySubmissionsStats =") +
-      "var userDailySubmissionsStats =".length;
-    const heatMapEnd = html.indexOf("'#js-heatmap") - 34;
-    const heatMapStr = html.substring(heatMapStart, heatMapEnd);
-    const heatMap = JSON.parse(heatMapStr);
-
-    // Extract all_rating JSON data from embedded JS
-    const ratingStart =
-      html.indexOf("var all_rating = ") + "var all_rating = ".length;
-    const ratingEnd = html.indexOf("var current_user_rating =") - 6;
-    const ratingData = JSON.parse(html.substring(ratingStart, ratingEnd));
-
-    // Institution & Country (some profiles may lack these)
-    let institution = null;
-    let country = null;
-    const detailsLis = document.querySelectorAll(".user-details ul li");
-    detailsLis.forEach((li) => {
-      const label = li.querySelector("strong")?.textContent.trim();
-      const value = li.querySelector("span")?.textContent.trim();
-      if (label === "Institution:") institution = value;
-      if (label === "Country:") country = value;
-    });
-
-    // Build final response
+    const stars = parsedData.stars === "unrated" 
+      ? 0 
+      : parseInt(parsedData.stars.match(/\d+/)?.[0] || 0);
 
     return {
       summary: {
-        currentRating:
-          parseInt(document.querySelector(".rating-number")?.textContent) || 0,
-        maxRating:
-          parseInt(
-            document
-              .querySelector(".rating-number")
-              ?.parentNode?.children[4]?.textContent.split("Rating")[1]
-          ) || 0,
-        stars:
-          document.querySelector(".rating-star")?.textContent.trim().length ||
-          0,
-        globalRank:
-          parseInt(
-            document
-              .querySelector(".rating-ranks ul li:nth-child(1) strong")
-              ?.textContent.replace("#", "")
-              .trim()
-          ) || 0,
-        countryRank:
-          parseInt(
-            document
-              .querySelector(".rating-ranks ul li:nth-child(2) strong")
-              ?.textContent.replace("#", "")
-              .trim()
-          ) || 0,
+        currentRating: parsedData.currentRating || 0,
+        maxRating: parsedData.highestRating || 0,
+        stars,
+        globalRank: parsedData.globalRank || 0,
+        countryRank: parsedData.countryRank || 0,
         updatedAt: new Date(),
       },
       moreInfo: {
-        institution,
-        country,
-        totalContests: ratingData.length,
-        recentContests: ratingData.slice(-5).reverse(),
-        ratingHistory: ratingData,
-        heatMap,
+        institution: parsedData.institution || null,
+        country: parsedData.countryName || null,
+        countryFlag: parsedData.countryFlag || null, // Added country flag
+        totalContests: parsedData.ratingData?.length || 0,
+        recentContests: parsedData.ratingData?.slice(-5).reverse() || [],
+        ratingHistory: parsedData.ratingData || [],
+        heatMap: parsedData.heatMap || {},
       },
       profileUrl,
+      avatarUrl: parsedData.profile,
+      name: parsedData.name,
     };
   } catch (error) {
     console.error("CodeChef fetch error:", error.message);
+    return defaultResponse;
+  }
+}
+
+function parseCodechefPage(html) {
+  try {
+    // Extract heatmap data
+    const heatMapStart = html.indexOf("var userDailySubmissionsStats =");
+    if (heatMapStart === -1) return null;
+    const heatMapEnd = html.indexOf("'#js-heatmap", heatMapStart);
+    if (heatMapEnd === -1) return null;
+    
+    const heatMapStr = html.substring(
+      heatMapStart + "var userDailySubmissionsStats =".length,
+      heatMapEnd - 34
+    );
+    const heatMap = JSON.parse(heatMapStr);
+
+    // Extract rating data
+    const ratingStart = html.indexOf("var all_rating =");
+    if (ratingStart === -1) return null;
+    const ratingEnd = html.indexOf("var current_user_rating =", ratingStart);
+    if (ratingEnd === -1) return null;
+    
+    const ratingStr = html.substring(
+      ratingStart + "var all_rating =".length,
+      ratingEnd - 6
+    );
+    const ratingData = JSON.parse(ratingStr);
+
+    const dom = new JSDOM(html);
+    const document = dom.window.document;
+
+    // Extract institution
+    let institution = null;
+    document.querySelectorAll(".user-details ul li").forEach(li => {
+      const label = li.querySelector("strong")?.textContent?.trim();
+      const value = li.querySelector("span")?.textContent?.trim();
+      if (label === "Institution:") institution = value;
+    });
+
+    // Extract country details
+    const countryFlag = document.querySelector(".user-country-flag")?.src;
+    const countryName = document.querySelector(".user-country-name")?.textContent;
+
     return {
-      summary: defaultSummary(),
-      moreInfo: {},
-      profileUrl: "",
+      profile: document.querySelector(".user-details-container img")?.src,
+      name: document.querySelector(".user-details-container h1")?.textContent,
+      currentRating: parseInt(document.querySelector(".rating-number")?.textContent) || 0,
+      highestRating: parseInt(
+        document.querySelector(".rating-header small")?.textContent.match(/\d+/)?.[0] || "0"
+      ),
+      countryName,
+      countryFlag, // Added country flag
+      globalRank: parseInt(
+        document.querySelector('.rating-ranks li:nth-child(1) strong')?.textContent.replace("#", "") || "0"
+      ),
+      countryRank: parseInt(
+        document.querySelector('.rating-ranks li:nth-child(2) strong')?.textContent.replace("#", "") || "0"
+      ),
+      stars: document.querySelector(".rating")?.textContent?.trim() || "unrated",
+      heatMap,
+      ratingData,
+      institution
     };
+  } catch (e) {
+    console.error("Parsing failed:", e);
+    return null;
   }
 }
 

@@ -45,28 +45,189 @@ async function fetchSocialStats(platform, username) {
 // === GitHub: public API fetch ===
 async function fetchGitHubStats(username) {
   try {
-    const userRes = await axios.get(`https://api.github.com/users/${username}`);
-    const reposRes = await axios.get(
-      `https://api.github.com/users/${username}/repos?per_page=100`
-    );
+    const [userRes, reposRes, eventsRes, orgsRes, starredRes] = await Promise.all([
+      axios.get(`https://api.github.com/users/${username}`),
+      axios.get(`https://api.github.com/users/${username}/repos?per_page=100&sort=updated`),
+      axios.get(`https://api.github.com/users/${username}/events/public?per_page=300`),
+      axios.get(`https://api.github.com/users/${username}/orgs`),
+      axios.get(`https://api.github.com/users/${username}/starred?per_page=100`)
+    ]);
 
-    const totalStars = reposRes.data.reduce(
-      (acc, repo) => acc + (repo.stargazers_count || 0),
-      0
-    );
+    // Basic stats
+    const publicRepos = userRes.data.public_repos || 0;
+    const followers = userRes.data.followers || 0;
+    const following = userRes.data.following || 0;
+    
+    // Repository analysis
+    const now = new Date();
+    const sixMonthsAgo = new Date(now.setMonth(now.getMonth() - 6));
+    const oneYearAgo = new Date(now.setFullYear(now.getFullYear() - 1));
+    
+    const repoStats = reposRes.data.reduce((stats, repo) => {
+      // Basic counts
+      stats.totalStars += repo.stargazers_count || 0;
+      stats.totalForks += repo.forks_count || 0;
+      stats.totalWatchers += repo.watchers_count || 0;
+      stats.totalSize += repo.size || 0;
+      
+      // Activity analysis
+      const lastUpdated = new Date(repo.pushed_at);
+      const isActive = lastUpdated > sixMonthsAgo;
+      const isStale = lastUpdated < oneYearAgo;
+      
+      if (isActive) stats.activeRepos++;
+      if (isStale) stats.staleRepos++;
+      
+      // Most significant repos
+      if (repo.stargazers_count > (stats.mostStarred?.stars || 0)) {
+        stats.mostStarred = {
+          name: repo.name,
+          stars: repo.stargazers_count,
+          url: repo.html_url,
+          updatedAt: repo.pushed_at
+        };
+      }
+      
+      if (repo.forks_count > (stats.mostForked?.forks || 0)) {
+        stats.mostForked = {
+          name: repo.name,
+          forks: repo.forks_count,
+          url: repo.html_url
+        };
+      }
+      
+      // Language analysis
+      if (repo.language) {
+        stats.languages[repo.language] = (stats.languages[repo.language] || 0) + 1;
+        stats.languageBytes[repo.language] = (stats.languageBytes[repo.language] || 0) + (repo.size || 0);
+      }
+      
+      return stats;
+    }, {
+      totalStars: 0,
+      totalForks: 0,
+      totalWatchers: 0,
+      totalSize: 0,
+      activeRepos: 0,
+      staleRepos: 0,
+      mostStarred: null,
+      mostForked: null,
+      languages: {},
+      languageBytes: {}
+    });
+
+    // Contribution heatmap (last year)
+    const heatmap = {};
+    const contributionTypes = {};
+    let externalContributions = 0;
+    const userRepos = reposRes.data.map(r => r.id);
+    
+    eventsRes.data.forEach(event => {
+      const date = new Date(event.created_at).toISOString().split('T')[0];
+      
+      // Count contribution types
+      contributionTypes[event.type] = (contributionTypes[event.type] || 0) + 1;
+      
+      // Track external contributions
+      if (event.repo && !userRepos.includes(event.repo.id)) {
+        externalContributions++;
+      }
+      
+      // Build heatmap
+      heatmap[date] = (heatmap[date] || 0) + 1;
+    });
+
+    // Top languages by usage
+    const topLanguages = Object.entries(repoStats.languages)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([lang, count]) => ({
+        language: lang,
+        repos: count,
+        bytes: repoStats.languageBytes[lang] || 0
+      }));
+
+    // Account metadata
+    const accountCreated = new Date(userRes.data.created_at);
+    const accountAgeYears = ((new Date() - accountCreated) / (1000 * 60 * 60 * 24 * 365)).toFixed(1);
+    
+    // Organization involvement
+    const organizations = orgsRes.data.map(org => ({
+      name: org.login,
+      avatar: org.avatar_url,
+      url: org.url
+    }));
+
+    // Starred repositories analysis
+    const starredLanguages = {};
+    starredRes.data.forEach(repo => {
+      if (repo.language) {
+        starredLanguages[repo.language] = (starredLanguages[repo.language] || 0) + 1;
+      }
+    });
+    
+    const topStarredLanguages = Object.entries(starredLanguages)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([lang]) => lang);
+
+    // Compose enhanced summary
+    const summary = `${followers} followers • ${publicRepos} repos • ⭐ ${repoStats.totalStars} • ${accountAgeYears} yrs`;
 
     const moreInfo = {
-      publicRepos: userRes.data.public_repos || 0,
-      followers: userRes.data.followers || 0,
-      following: userRes.data.following || 0,
-      totalStars,
-      updatedAt: new Date(),
+      // Basic profile info
+      publicRepos,
+      followers,
+      following,
+      accountCreated: userRes.data.created_at,
+      accountAgeYears,
+      profileUrl: `https://github.com/${username}`,
+      
+      // Repository insights
+      repoStats: {
+        totalStars: repoStats.totalStars,
+        totalForks: repoStats.totalForks,
+        totalWatchers: repoStats.totalWatchers,
+        activeRepos: repoStats.activeRepos,
+        staleRepos: repoStats.staleRepos,
+        activeRatio: publicRepos ? (repoStats.activeRepos / publicRepos).toFixed(2) : 0,
+        mostStarredRepo: repoStats.mostStarred,
+        mostForkedRepo: repoStats.mostForked,
+        avgRepoSize: publicRepos ? (repoStats.totalSize / publicRepos).toFixed(0) : 0
+      },
+      
+      // Technical insights
+      technicalProfile: {
+        topLanguages,
+        languageCount: Object.keys(repoStats.languages).length,
+        topStarredLanguages
+      },
+      
+      // Activity analysis
+      activityAnalysis: {
+        heatmap,  // Daily contributions
+        contributionTypes,
+        lastActive: eventsRes.data[0]?.created_at || null,
+        externalContributions,
+        externalContributionRatio: eventsRes.data.length 
+          ? (externalContributions / eventsRes.data.length).toFixed(2) 
+          : 0
+      },
+      
+      // Community involvement
+      community: {
+        organizations,
+        starredRepos: starredRes.data.length,
+        topStarredLanguages
+      },
+      
+      updatedAt: new Date()
     };
 
     return {
-      summary: `${moreInfo.followers} followers • ${moreInfo.publicRepos} repos • ⭐ ${totalStars}`,
+      summary,
       moreInfo,
-      profileUrl: `https://github.com/${username}`,
+      profileUrl: `https://github.com/${username}`
     };
   } catch (err) {
     console.error("GitHub fetch error:", err.message);

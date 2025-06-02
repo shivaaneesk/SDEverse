@@ -1,6 +1,11 @@
 import { ExternalLink, Loader2, RefreshCcw } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import {
+  refreshSingleSocialStat,
+  refreshSingleCompetitiveStat,
+} from "../features/user/userSlice";
 
 export default function LinksSection({
   title,
@@ -15,6 +20,8 @@ export default function LinksSection({
 }) {
   const platforms = Object.keys(links);
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -78,7 +85,17 @@ export default function LinksSection({
                 {link && !isEditing && !readonly && (
                   <button
                     className="text-green-600 text-sm font-medium hover:underline"
-                    onClick={() => navigate(`/moreinfo/${platform}`)}
+                    onClick={() => {
+                      // ✅ Dispatch the correct thunk
+                      if (title === "Competitive Links") {
+                        dispatch(refreshSingleCompetitiveStat(platform));
+                      } else {
+                        dispatch(refreshSingleSocialStat(platform));
+                      }
+
+                      // Navigate to More Info page
+                      navigate(`/moreinfo/${platform}`);
+                    }}
                   >
                     Get More Info
                   </button>

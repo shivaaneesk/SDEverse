@@ -61,3 +61,17 @@ export const updateCompetitiveStats = async (token) => {
   });
   return response.data;
 };
+
+export const updateSingleSocialStat = async (platform, token) => {
+  const response = await api.get(`/users/update-social-stats/${platform}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return response.data;
+};
+
+export const updateSingleCompetitiveStat = async (platform, token) => {
+  const response = await api.get(`/users/update-competitive-stats/${platform}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return response.data;
+};
