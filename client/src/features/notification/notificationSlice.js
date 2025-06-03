@@ -1,10 +1,15 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import { getNotifications, markNotificationAsRead } from "./notificationAPI";
+import {
+  getNotifications,
+  markNotificationAsRead,
+  sendBroadcastNotification,
+} from "./notificationAPI";
 
 const initialState = {
   notifications: [],
   loading: false,
   error: null,
+  broadcastStatus: null,
 };
 
 export const fetchNotifications = createAsyncThunk(
@@ -25,6 +30,17 @@ export const markAsRead = createAsyncThunk(
       return await markNotificationAsRead(id);
     } catch (err) {
       return rejectWithValue(err.response.data);
+    }
+  }
+);
+
+export const broadcastNotification = createAsyncThunk(
+  "notifications/broadcastNotification",
+  async (payload, { rejectWithValue }) => {
+    try {
+      return await sendBroadcastNotification(payload);
+    } catch (err) {
+      return rejectWithValue(err.response?.data || err.message);
     }
   }
 );
@@ -63,8 +79,18 @@ const notificationSlice = createSlice({
         if (index !== -1) {
           state.notifications[index] = action.payload;
         }
+      })
+      .addCase(broadcastNotification.pending, (state) => {
+        state.broadcastStatus = "loading";
+      })
+      .addCase(broadcastNotification.fulfilled, (state, action) => {
+        state.broadcastStatus = "success";
+      })
+      .addCase(broadcastNotification.rejected, (state, action) => {
+        state.broadcastStatus = "error";
+        state.error = action.payload;
       });
   },
 });
-export const {markReadLocally} = notificationSlice.actions;
+export const { markReadLocally } = notificationSlice.actions;
 export default notificationSlice.reducer;

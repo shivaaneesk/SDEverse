@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   getMyProfile,
-  refreshCompetitiveStats,
+  refreshSingleCompetitiveStat,
 } from "../features/user/userSlice";
 import {
   LineChart,
@@ -39,7 +39,7 @@ const LeetCode = () => {
 
   useEffect(() => {
     dispatch(getMyProfile());
-    dispatch(refreshCompetitiveStats());
+    dispatch(refreshSingleCompetitiveStat('leetcode'));
   }, [dispatch]);
 
   useEffect(() => {
@@ -63,40 +63,39 @@ const LeetCode = () => {
     leetcodeStats?.profileUrl || `https://leetcode.com/${userHandle}/`;
 
   // Prepare difficulty data
-  const difficultyData = useMemo(() => {
-    return [
-      {
-        name: "Easy",
-        solved: summary.easy || 0,
-        total: totalQuestions.easy || 0,
-        color: "#00B8A3",
-      },
-      {
-        name: "Medium",
-        solved: summary.medium || 0,
-        total: totalQuestions.medium || 0,
-        color: "#FFC01E",
-      },
-      {
-        name: "Hard",
-        solved: summary.hard || 0,
-        total: totalQuestions.hard || 0,
-        color: "#FF375F",
-      },
-    ].map((item) => ({
-      ...item,
-      percent:
-        item.total > 0 ? Math.round((item.solved / item.total) * 100) : 0,
-    }));
-  }, [summary, totalQuestions]);
+  const difficultyData = [
+    {
+      name: "Easy",
+      solved: summary.easy || 0,
+      total: totalQuestions.easy || 0,
+      color: "#00B8A3",
+    },
+    {
+      name: "Medium",
+      solved: summary.medium || 0,
+      total: totalQuestions.medium || 0,
+      color: "#FFC01E",
+    },
+    {
+      name: "Hard",
+      solved: summary.hard || 0,
+      total: totalQuestions.hard || 0,
+      color: "#FF375F",
+    },
+  ].map((item) => ({
+    ...item,
+    percent:
+      item.total > 0 ? Math.round((item.solved / item.total) * 100) : 0,
+  }));
 
   // Prepare contest data
-  const contestData = useMemo(() => {
-    if (!Array.isArray(moreInfo.contestHistory)) return [];
-
-    // Step 1: Normalize and sort chronologically (oldest first)
-    const sortedHistory = moreInfo.contestHistory
-      .filter((item) => item.rating && item.contest?.startTime)
+  let contestData = [];
+  if (Array.isArray(moreInfo.contestHistory)) {
+    const filteredHistory = moreInfo.contestHistory.filter(
+      (item) => item.rating && item.contest?.startTime
+    );
+    
+    const sortedHistory = filteredHistory
       .map((item) => {
         const date = new Date(item.contest.startTime * 1000);
         return {
@@ -112,7 +111,7 @@ const LeetCode = () => {
       })
       .sort((a, b) => a.date - b.date); // Oldest first
 
-    // Step 2: Calculate rating change from the previous entry
+    // Calculate rating changes
     const withChange = sortedHistory.map((entry, idx) => {
       const prevRating = idx > 0 ? sortedHistory[idx - 1].rating : null;
       return {
@@ -121,14 +120,12 @@ const LeetCode = () => {
       };
     });
 
-    // Step 3: Reverse to make most recent first (for display)
-    return withChange.reverse();
-  }, [moreInfo]);
+    contestData = withChange.reverse(); // Reverse to make most recent first
+  }
 
   // Sort contest data
-  const sortedContestData = useMemo(() => {
-    if (!contestData.length) return [];
-
+  let sortedContestData = [];
+  if (contestData.length) {
     const sortableItems = [...contestData];
     if (sortConfig.key) {
       sortableItems.sort((a, b) => {
@@ -141,19 +138,16 @@ const LeetCode = () => {
         return 0;
       });
     }
-    return sortableItems;
-  }, [contestData, sortConfig]);
+    sortedContestData = sortableItems;
+  }
 
   // Paginated contest data
-  const paginatedContestData = useMemo(() => {
-    const startIndex = (currentContestPage - 1) * CONTESTS_PER_PAGE;
-    return sortedContestData.slice(startIndex, startIndex + CONTESTS_PER_PAGE);
-  }, [sortedContestData, currentContestPage]);
+  const startIndex = (currentContestPage - 1) * CONTESTS_PER_PAGE;
+  const paginatedContestData = sortedContestData.slice(startIndex, startIndex + CONTESTS_PER_PAGE);
 
   // Contest statistics
-  const contestStats = useMemo(() => {
-    if (!contestData.length) return null;
-
+  let contestStats = null;
+  if (contestData.length) {
     const ratings = contestData.map((c) => c.rating);
     const minRating = Math.min(...ratings);
     const maxRating = Math.max(...ratings);
@@ -175,7 +169,7 @@ const LeetCode = () => {
       (a, b) => a.change - b.change
     )[0];
 
-    return {
+    contestStats = {
       totalContests: contestData.length,
       currentRating: Math.round(
         contestData[contestData.length - 1]?.rating || 0
@@ -186,41 +180,28 @@ const LeetCode = () => {
       bestContest,
       worstContest,
     };
-  }, [contestData]);
+  }
 
   // Prepare rating history for chart
-  const ratingHistory = useMemo(() => {
-    return contestData
-      .sort((a, b) => a.date - b.date)
-      .map((item, index) => ({
-        date: item.date.toISOString(),
-        rating: Math.round(item.rating),
-        contestName: item.contestName,
-        contestUrl: item.contestUrl,
-        // Calculate change from previous contest
-        change:
-          index > 0
-            ? Math.round(item.rating - contestData[index - 1].rating)
-            : 0,
-      }));
-  }, [contestData]);
+  const ratingHistory = contestData
+    .sort((a, b) => a.date - b.date)
+    .map((item, index) => ({
+      date: item.date.toISOString(),
+      rating: Math.round(item.rating),
+      contestName: item.contestName,
+      contestUrl: item.contestUrl,
+      change:
+        index > 0
+          ? Math.round(item.rating - contestData[index - 1].rating)
+          : 0,
+    }));
 
   // Calculate totals
-  const totalSolved = useMemo(
-    () => difficultyData.reduce((sum, item) => sum + item.solved, 0),
-    [difficultyData]
-  );
-
-  const totalAvailable = useMemo(
-    () => difficultyData.reduce((sum, item) => sum + item.total, 0),
-    [difficultyData]
-  );
-
-  const totalPercentSolved = useMemo(
-    () =>
-      totalAvailable > 0 ? Math.round((totalSolved / totalAvailable) * 100) : 0,
-    [totalSolved, totalAvailable]
-  );
+  const totalSolved = difficultyData.reduce((sum, item) => sum + item.solved, 0);
+  const totalAvailable = difficultyData.reduce((sum, item) => sum + item.total, 0);
+  const totalPercentSolved = totalAvailable > 0 
+    ? Math.round((totalSolved / totalAvailable) * 100) 
+    : 0;
 
   const colors = isDarkMode ? DARK_COLORS : LIGHT_COLORS;
 
@@ -239,7 +220,7 @@ const LeetCode = () => {
 
   if (
     status?.fetchProfile === "loading" ||
-    status?.updateCompetitiveStats === "loading"
+    status?.updateSingleCompetitiveStat === "loading"
   ) {
     return (
       <section className="max-w-5xl mx-auto p-8 text-center">
@@ -253,7 +234,7 @@ const LeetCode = () => {
     );
   }
 
-  if (error?.fetchProfile || error?.updateCompetitiveStats) {
+  if (error?.fetchProfile || error?.updateSingleCompetitiveStat) {
     return (
       <section className="max-w-5xl mx-auto p-8 text-center">
         <h1 className="text-4xl font-extrabold text-red-600 mb-6">
@@ -261,7 +242,7 @@ const LeetCode = () => {
         </h1>
         <p className="text-red-600 text-lg">
           Failed to load your stats:{" "}
-          {error.fetchProfile || error.updateCompetitiveStats}
+          {error.fetchProfile || error.updateSingleCompetitiveStat}
         </p>
       </section>
     );
@@ -634,6 +615,8 @@ const LeetCode = () => {
                     fontSize: 11,
                   }}
                   allowDecimals={false}
+                  domain={["dataMin - 50", "dataMax + 50"]}
+                  tickCount={10}
                 />
                 <Tooltip
                   content={({ payload }) => {

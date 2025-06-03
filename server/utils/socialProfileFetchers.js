@@ -43,67 +43,107 @@ async function fetchSocialStats(platform, username) {
 }
 
 // === GitHub: public API fetch ===
+
+async function fetchFullContributionHeatmap(username, token) {
+  const query = `
+    query {
+      user(login: "${username}") {
+        contributionsCollection {
+          contributionCalendar {
+            weeks {
+              contributionDays {
+                date
+                contributionCount
+              }
+            }
+          }
+        }
+      }
+    }
+  `;
+
+  const response = await axios.post(
+    "https://api.github.com/graphql",
+    { query },
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  const days =
+    response.data.data.user.contributionsCollection.contributionCalendar.weeks
+      .flatMap((week) => week.contributionDays)
+      .reduce((map, day) => {
+        map[day.date] = day.contributionCount;
+        return map;
+      }, {});
+
+  return days;
+}
+
 async function fetchGitHubStats(username) {
+  if (!username) return null;
   try {
-    const [userRes, reposRes, eventsRes, orgsRes, starredRes] = await Promise.all([
-      axios.get(`https://api.github.com/users/${username}`),
-      axios.get(`https://api.github.com/users/${username}/repos?per_page=100&sort=updated`),
-      axios.get(`https://api.github.com/users/${username}/events/public?per_page=300`),
-      axios.get(`https://api.github.com/users/${username}/orgs`),
-      axios.get(`https://api.github.com/users/${username}/starred?per_page=100`)
+    const token = process.env.GITHUB_TOKEN;
+    const headers = token ? { Authorization: `token ${token}` } : {};
+
+    const now = new Date();
+    const sixMonthsAgo = new Date(now);
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    const oneYearAgo = new Date(now);
+    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+
+    const [
+      userRes,
+      reposRes,
+      eventsRes,
+      orgsRes,
+      starredRes,
+      followersRes,
+      followingRes,
+    ] = await Promise.all([
+      axios.get(`https://api.github.com/users/${username}`, { headers }),
+      axios.get(
+        `https://api.github.com/users/${username}/repos?per_page=100&sort=updated`,
+        { headers }
+      ),
+      axios.get(
+        `https://api.github.com/users/${username}/events/public?per_page=300`,
+        { headers }
+      ),
+      axios.get(`https://api.github.com/users/${username}/orgs`, { headers }),
+      axios.get(
+        `https://api.github.com/users/${username}/starred?per_page=100`,
+        { headers }
+      ),
+      axios.get(
+        `https://api.github.com/users/${username}/followers?per_page=100`,
+        { headers }
+      ),
+      axios.get(
+        `https://api.github.com/users/${username}/following?per_page=100`,
+        { headers }
+      ),
     ]);
 
-    // Basic stats
-    const publicRepos = userRes.data.public_repos || 0;
-    const followers = userRes.data.followers || 0;
-    const following = userRes.data.following || 0;
-    
-    // Repository analysis
-    const now = new Date();
-    const sixMonthsAgo = new Date(now.setMonth(now.getMonth() - 6));
-    const oneYearAgo = new Date(now.setFullYear(now.getFullYear() - 1));
-    
-    const repoStats = reposRes.data.reduce((stats, repo) => {
-      // Basic counts
-      stats.totalStars += repo.stargazers_count || 0;
-      stats.totalForks += repo.forks_count || 0;
-      stats.totalWatchers += repo.watchers_count || 0;
-      stats.totalSize += repo.size || 0;
-      
-      // Activity analysis
-      const lastUpdated = new Date(repo.pushed_at);
-      const isActive = lastUpdated > sixMonthsAgo;
-      const isStale = lastUpdated < oneYearAgo;
-      
-      if (isActive) stats.activeRepos++;
-      if (isStale) stats.staleRepos++;
-      
-      // Most significant repos
-      if (repo.stargazers_count > (stats.mostStarred?.stars || 0)) {
-        stats.mostStarred = {
-          name: repo.name,
-          stars: repo.stargazers_count,
-          url: repo.html_url,
-          updatedAt: repo.pushed_at
-        };
+    const profileData = userRes.data;
+    const accountCreated = new Date(profileData.created_at);
+    const accountAgeYears = Math.floor(
+      (now - accountCreated) / (1000 * 60 * 60 * 24 * 365)
+    );
+
+    const followerLocations = {};
+    followersRes.data.forEach((follower) => {
+      if (follower.location) {
+        const location = follower.location.trim();
+        followerLocations[location] = (followerLocations[location] || 0) + 1;
       }
-      
-      if (repo.forks_count > (stats.mostForked?.forks || 0)) {
-        stats.mostForked = {
-          name: repo.name,
-          forks: repo.forks_count,
-          url: repo.html_url
-        };
-      }
-      
-      // Language analysis
-      if (repo.language) {
-        stats.languages[repo.language] = (stats.languages[repo.language] || 0) + 1;
-        stats.languageBytes[repo.language] = (stats.languageBytes[repo.language] || 0) + (repo.size || 0);
-      }
-      
-      return stats;
-    }, {
+    });
+
+    const repoStats = {
       totalStars: 0,
       totalForks: 0,
       totalWatchers: 0,
@@ -113,121 +153,205 @@ async function fetchGitHubStats(username) {
       mostStarred: null,
       mostForked: null,
       languages: {},
-      languageBytes: {}
-    });
+      languageBytes: {},
+      topics: {},
+      licenseUsage: {},
+      repoSizeDistribution: { small: 0, medium: 0, large: 0 },
+    };
 
-    // Contribution heatmap (last year)
-    const heatmap = {};
-    const contributionTypes = {};
-    let externalContributions = 0;
-    const userRepos = reposRes.data.map(r => r.id);
-    
-    eventsRes.data.forEach(event => {
-      const date = new Date(event.created_at).toISOString().split('T')[0];
-      
-      // Count contribution types
-      contributionTypes[event.type] = (contributionTypes[event.type] || 0) + 1;
-      
-      // Track external contributions
-      if (event.repo && !userRepos.includes(event.repo.id)) {
-        externalContributions++;
+    reposRes.data.forEach((repo) => {
+      repoStats.totalStars += repo.stargazers_count || 0;
+      repoStats.totalForks += repo.forks_count || 0;
+      repoStats.totalWatchers += repo.watchers_count || 0;
+      repoStats.totalSize += repo.size || 0;
+
+      const lastUpdated = new Date(repo.pushed_at);
+      const isActive = lastUpdated > sixMonthsAgo;
+      const isStale = lastUpdated < oneYearAgo;
+      if (isActive) repoStats.activeRepos++;
+      if (isStale) repoStats.staleRepos++;
+
+      if (
+        !repoStats.mostStarred ||
+        repo.stargazers_count > repoStats.mostStarred.stars
+      ) {
+        repoStats.mostStarred = {
+          name: repo.name,
+          stars: repo.stargazers_count,
+          url: repo.html_url,
+          updatedAt: repo.pushed_at,
+        };
       }
-      
-      // Build heatmap
-      heatmap[date] = (heatmap[date] || 0) + 1;
-    });
 
-    // Top languages by usage
-    const topLanguages = Object.entries(repoStats.languages)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map(([lang, count]) => ({
-        language: lang,
-        repos: count,
-        bytes: repoStats.languageBytes[lang] || 0
-      }));
+      if (
+        !repoStats.mostForked ||
+        repo.forks_count > repoStats.mostForked.forks
+      ) {
+        repoStats.mostForked = {
+          name: repo.name,
+          forks: repo.forks_count,
+          url: repo.html_url,
+        };
+      }
 
-    // Account metadata
-    const accountCreated = new Date(userRes.data.created_at);
-    const accountAgeYears = ((new Date() - accountCreated) / (1000 * 60 * 60 * 24 * 365)).toFixed(1);
-    
-    // Organization involvement
-    const organizations = orgsRes.data.map(org => ({
-      name: org.login,
-      avatar: org.avatar_url,
-      url: org.url
-    }));
-
-    // Starred repositories analysis
-    const starredLanguages = {};
-    starredRes.data.forEach(repo => {
       if (repo.language) {
-        starredLanguages[repo.language] = (starredLanguages[repo.language] || 0) + 1;
+        repoStats.languages[repo.language] =
+          (repoStats.languages[repo.language] || 0) + 1;
+        repoStats.languageBytes[repo.language] =
+          (repoStats.languageBytes[repo.language] || 0) + (repo.size || 0);
+      }
+
+      if (repo.topics) {
+        repo.topics.forEach((topic) => {
+          repoStats.topics[topic] = (repoStats.topics[topic] || 0) + 1;
+        });
+      }
+
+      if (repo.license && repo.license.key) {
+        const license = repo.license.key.replace("-", " ").toUpperCase();
+        repoStats.licenseUsage[license] =
+          (repoStats.licenseUsage[license] || 0) + 1;
+      }
+
+      if (repo.size < 1000) repoStats.repoSizeDistribution.small++;
+      else if (repo.size < 10000) repoStats.repoSizeDistribution.medium++;
+      else repoStats.repoSizeDistribution.large++;
+    });
+
+    const contributionStats = {
+      heatmap: await fetchFullContributionHeatmap(username, token),
+      types: {},
+      firstContribution: null,
+      lastContribution: null,
+      externalRepos: new Set(),
+      dailyStreak: 0,
+      currentStreak: 0,
+    };
+
+    let currentStreak = 0;
+    let maxStreak = 0;
+    let lastDate = null;
+
+    eventsRes.data.forEach((event) => {
+      const date = new Date(event.created_at).toISOString().split("T")[0];
+      contributionStats.types[event.type] =
+        (contributionStats.types[event.type] || 0) + 1;
+
+      if (event.repo && !reposRes.data.some((r) => r.id === event.repo.id)) {
+        contributionStats.externalRepos.add(event.repo.id);
+      }
+
+      const eventDate = new Date(event.created_at);
+      if (!lastDate || (lastDate && eventDate - lastDate === 86400000)) {
+        currentStreak++;
+      } else if (lastDate && eventDate - lastDate > 86400000) {
+        maxStreak = Math.max(maxStreak, currentStreak);
+        currentStreak = 1;
+      }
+      lastDate = eventDate;
+    });
+
+    contributionStats.dailyStreak = Math.max(maxStreak, currentStreak);
+    contributionStats.currentStreak = currentStreak;
+
+    if (eventsRes.data.length > 0) {
+      contributionStats.firstContribution =
+        eventsRes.data[eventsRes.data.length - 1].created_at;
+      contributionStats.lastContribution = eventsRes.data[0].created_at;
+    }
+
+    const organizationStats = {
+      count: orgsRes.data.length,
+      details: orgsRes.data.map((org) => ({
+        name: org.login,
+        avatar: org.avatar_url,
+        url: org.html_url,
+        description: org.description,
+      })),
+      memberSince: {},
+    };
+
+    const starredStats = {
+      total: starredRes.data.length,
+      languages: {},
+      topics: {},
+      mostStarred: null,
+    };
+
+    let maxStars = 0;
+
+    starredRes.data.forEach((repo) => {
+      if (repo.language) {
+        starredStats.languages[repo.language] =
+          (starredStats.languages[repo.language] || 0) + 1;
+      }
+
+      if (repo.topics) {
+        repo.topics.forEach((topic) => {
+          starredStats.topics[topic] = (starredStats.topics[topic] || 0) + 1;
+        });
+      }
+
+      if (repo.stargazers_count > maxStars) {
+        maxStars = repo.stargazers_count;
+        starredStats.mostStarred = {
+          name: repo.full_name,
+          stars: repo.stargazers_count,
+          url: repo.html_url,
+          owner: repo.owner.login,
+        };
       }
     });
-    
-    const topStarredLanguages = Object.entries(starredLanguages)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 3)
-      .map(([lang]) => lang);
 
-    // Compose enhanced summary
-    const summary = `${followers} followers • ${publicRepos} repos • ⭐ ${repoStats.totalStars} • ${accountAgeYears} yrs`;
+    const socialGraph = {
+      followers: followersRes.data.length,
+      following: followingRes.data.length,
+      mutualConnections: 0,
+      followerDistribution: followerLocations,
+      topFollowers: followersRes.data
+        .filter((f) => f.followers_url)
+        .sort((a, b) => b.followers - a.followers)
+        .slice(0, 5)
+        .map((f) => ({
+          username: f.login,
+          avatar: f.avatar_url,
+          url: f.html_url,
+        })),
+    };
+
+    const followerSet = new Set(followersRes.data.map((f) => f.login));
+    socialGraph.mutualConnections = followingRes.data.filter((f) =>
+      followerSet.has(f.login)
+    ).length;
 
     const moreInfo = {
-      // Basic profile info
-      publicRepos,
-      followers,
-      following,
-      accountCreated: userRes.data.created_at,
-      accountAgeYears,
-      profileUrl: `https://github.com/${username}`,
-      
-      // Repository insights
-      repoStats: {
-        totalStars: repoStats.totalStars,
-        totalForks: repoStats.totalForks,
-        totalWatchers: repoStats.totalWatchers,
-        activeRepos: repoStats.activeRepos,
-        staleRepos: repoStats.staleRepos,
-        activeRatio: publicRepos ? (repoStats.activeRepos / publicRepos).toFixed(2) : 0,
-        mostStarredRepo: repoStats.mostStarred,
-        mostForkedRepo: repoStats.mostForked,
-        avgRepoSize: publicRepos ? (repoStats.totalSize / publicRepos).toFixed(0) : 0
+      profile: {
+        publicRepos: profileData.public_repos,
+        followers: profileData.followers,
+        following: profileData.following,
+        accountCreated: profileData.created_at,
+        accountAgeYears,
+        profileUrl: profileData.html_url,
+        avatarUrl: profileData.avatar_url,
+        bio: profileData.bio,
+        location: profileData.location,
+        company: profileData.company,
       },
-      
-      // Technical insights
-      technicalProfile: {
-        topLanguages,
-        languageCount: Object.keys(repoStats.languages).length,
-        topStarredLanguages
-      },
-      
-      // Activity analysis
-      activityAnalysis: {
-        heatmap,  // Daily contributions
-        contributionTypes,
-        lastActive: eventsRes.data[0]?.created_at || null,
-        externalContributions,
-        externalContributionRatio: eventsRes.data.length 
-          ? (externalContributions / eventsRes.data.length).toFixed(2) 
-          : 0
-      },
-      
-      // Community involvement
-      community: {
-        organizations,
-        starredRepos: starredRes.data.length,
-        topStarredLanguages
-      },
-      
-      updatedAt: new Date()
+      repositories: repoStats,
+      contributions: contributionStats,
+      organizations: organizationStats,
+      starredRepos: starredStats,
+      socialGraph,
+      updatedAt: new Date(),
     };
+
+    const summary = `GitHub: ${profileData.public_repos} repos ⭐ ${repoStats.totalStars} 
+    | ${profileData.followers} followers | ${accountAgeYears} years`;
 
     return {
       summary,
       moreInfo,
-      profileUrl: `https://github.com/${username}`
+      profileUrl: profileData.html_url,
     };
   } catch (err) {
     console.error("GitHub fetch error:", err.message);
@@ -312,12 +436,16 @@ async function fetchInstagramStats(username) {
         }
       }
       // Try JSON-LD script
-      const ldJson = document.querySelector('script[type="application/ld+json"]');
+      const ldJson = document.querySelector(
+        'script[type="application/ld+json"]'
+      );
       if (ldJson) {
         try {
           const json = JSON.parse(ldJson.textContent);
           return {
-            followers: json.mainEntityofPage?.interactionStatistic?.userInteractionCount || null,
+            followers:
+              json.mainEntityofPage?.interactionStatistic
+                ?.userInteractionCount || null,
             posts: json.mainEntityofPage?.numberOfPosts || null,
           };
         } catch {
@@ -330,8 +458,10 @@ async function fetchInstagramStats(username) {
     if (!userData) throw new Error("Instagram user data not found");
 
     // Normalize data fields
-    const followers = userData.edge_followed_by?.count || userData.followers || 0;
-    const posts = userData.edge_owner_to_timeline_media?.count || userData.posts || 0;
+    const followers =
+      userData.edge_followed_by?.count || userData.followers || 0;
+    const posts =
+      userData.edge_owner_to_timeline_media?.count || userData.posts || 0;
 
     return {
       summary: `${followers} followers • ${posts} posts`,
@@ -349,7 +479,6 @@ async function fetchInstagramStats(username) {
     if (browser) await browser.close();
   }
 }
-
 
 // === Utility: parse shorthand counts like 1.2K, 3.4M ===
 function parseCount(text) {

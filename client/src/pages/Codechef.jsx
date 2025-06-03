@@ -1,8 +1,8 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   getMyProfile,
-  refreshCompetitiveStats,
+  refreshSingleCompetitiveStat,
 } from "../features/user/userSlice";
 import {
   LineChart,
@@ -15,24 +15,38 @@ import {
 } from "recharts";
 import CalendarHeatmap from "react-calendar-heatmap";
 import "react-calendar-heatmap/dist/styles.css";
-import { format, subMonths, formatDistanceToNow, parseISO } from "date-fns";
+import { format, subMonths, formatDistanceToNow } from "date-fns";
 
 const CONTESTS_PER_PAGE = 10;
 
-const SummaryCard = ({ title, value, bgColor, textColor, customStyle, isDate }) => {
+const SummaryCard = ({
+  title,
+  value,
+  bgColor,
+  textColor,
+  customStyle,
+  isDate,
+}) => {
   return (
-    <div 
+    <div
       className={`rounded-xl p-3 sm:p-4 text-center shadow hover:scale-[1.03] transform transition-transform duration-300 ${bgColor}`}
       style={customStyle}
     >
-      <h3 className="text-xs sm:text-sm font-medium mb-1" style={customStyle?.color ? { color: customStyle.color } : {}}>
-        {title}
-      </h3>
-      <p 
-        className={`text-xl sm:text-2xl font-bold ${textColor}`} 
+      <h3
+        className="text-xs sm:text-sm font-medium mb-1"
         style={customStyle?.color ? { color: customStyle.color } : {}}
       >
-        {isDate ? value : typeof value === 'number' ? value.toLocaleString() : value}
+        {title}
+      </h3>
+      <p
+        className={`text-xl sm:text-2xl font-bold ${textColor}`}
+        style={customStyle?.color ? { color: customStyle.color } : {}}
+      >
+        {isDate
+          ? value
+          : typeof value === "number"
+          ? value.toLocaleString()
+          : value}
       </p>
     </div>
   );
@@ -41,25 +55,39 @@ const SummaryCard = ({ title, value, bgColor, textColor, customStyle, isDate }) 
 const StatCard = ({ title, value, trend, description }) => {
   return (
     <div className="bg-white dark:bg-gray-700 rounded-lg p-4 shadow">
-      <h3 className="text-sm sm:text-base font-medium text-gray-700 dark:text-gray-300">{title}</h3>
+      <h3 className="text-sm sm:text-base font-medium text-gray-700 dark:text-gray-300">
+        {title}
+      </h3>
       <div className="mt-1 flex items-baseline">
-        <p className="text-2xl sm:text-3xl font-semibold text-gray-900 dark:text-white">{value}</p>
+        <p className="text-2xl sm:text-3xl font-semibold text-gray-900 dark:text-white">
+          {value}
+        </p>
         {trend === "positive" && (
           <span className="ml-2 text-sm text-green-600 dark:text-green-400 flex items-center">
             <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
+              <path
+                fillRule="evenodd"
+                d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z"
+                clipRule="evenodd"
+              />
             </svg>
           </span>
         )}
         {trend === "negative" && (
           <span className="ml-2 text-sm text-red-600 dark:text-red-400 flex items-center">
             <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M14.707 10.293a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 12.586V5a1 1 0 012 0v7.586l2.293-2.293a1 1 0 011.414 0z" clipRule="evenodd" />
+              <path
+                fillRule="evenodd"
+                d="M14.707 10.293a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 12.586V5a1 1 0 012 0v7.586l2.293-2.293a1 1 0 011.414 0z"
+                clipRule="evenodd"
+              />
             </svg>
           </span>
         )}
       </div>
-      <p className="mt-1 text-xs sm:text-sm text-gray-500 dark:text-gray-400">{description}</p>
+      <p className="mt-1 text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+        {description}
+      </p>
     </div>
   );
 };
@@ -69,15 +97,16 @@ const Codechef = () => {
   const { myProfile, status, error } = useSelector((state) => state.user);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [heatmapRange, setHeatmapRange] = useState(6);
-  const [heatmapStartDate, setHeatmapStartDate] = useState(null);
-  const [heatmapEndDate, setHeatmapEndDate] = useState(null);
   const [showContestDetails, setShowContestDetails] = useState(false);
   const [currentContestPage, setCurrentContestPage] = useState(1);
-  const [sortConfig, setSortConfig] = useState({ key: "date", direction: "desc" });
+  const [sortConfig, setSortConfig] = useState({
+    key: "date",
+    direction: "desc",
+  });
 
   useEffect(() => {
     dispatch(getMyProfile());
-    dispatch(refreshCompetitiveStats());
+    dispatch(refreshSingleCompetitiveStat("codechef"));
   }, [dispatch]);
 
   useEffect(() => {
@@ -88,17 +117,11 @@ const Codechef = () => {
     return () => darkModeQuery.removeEventListener("change", handler);
   }, []);
 
-  useEffect(() => {
-    const today = new Date();
-    setHeatmapStartDate(subMonths(today, heatmapRange));
-    setHeatmapEndDate(today);
-  }, [heatmapRange]);
-
   const codechefStats = myProfile?.extraCompetitiveStats?.codechef;
   const summary = codechefStats?.summary || {};
   const moreInfo = codechefStats?.moreInfo || {};
   const profileUrl = codechefStats?.profileUrl;
-  const userHandle = profileUrl?.split('/').pop() || "Unknown";
+  const userHandle = profileUrl?.split("/").pop() || "Unknown";
 
   const {
     currentRating = 0,
@@ -106,64 +129,69 @@ const Codechef = () => {
     stars = 0,
     globalRank = "N/A",
     countryRank = "N/A",
-    country = "N/A"
+    country = "N/A",
   } = summary;
 
   const contestHistory = moreInfo?.ratingHistory || [];
   const heatMap = moreInfo?.heatMap || [];
-  
+
   // Prepare heatmap data
-  const heatmapData = useMemo(() => {
-    return heatMap.map(day => ({
-      date: new Date(day.date).toISOString().split('T')[0],
-      count: day.value
-    }));
-  }, [heatMap]);
+  const heatmapData = heatMap.map((day) => ({
+    date: new Date(day.date).toISOString().split("T")[0],
+    count: day.value,
+  }));
+
+  // Calculate dates for heatmap
+  const today = new Date();
+  const heatmapStartDate = subMonths(today, heatmapRange);
+  const heatmapEndDate = today;
 
   // Calculate heatmap total for current range
-  const heatmapTotal = useMemo(() => {
-    if (!heatmapStartDate || !heatmapEndDate || !heatmapData.length) return 0;
-    
-    return heatmapData
-      .filter(item => {
+  let heatmapTotal = 0;
+  if (heatmapData.length) {
+    heatmapTotal = heatmapData
+      .filter((item) => {
         const itemDate = new Date(item.date);
         return itemDate >= heatmapStartDate && itemDate <= heatmapEndDate;
       })
       .reduce((sum, item) => sum + item.count, 0);
-  }, [heatmapData, heatmapStartDate, heatmapEndDate]);
+  }
 
   // Prepare contest data with additional insights
-  const contestData = useMemo(() => {
-    if (!contestHistory.length) return [];
-    
+  let contestData = [];
+  if (contestHistory.length) {
     // Sort contests by date in ascending order (oldest first)
     const sortedContests = [...contestHistory]
-      .map(c => ({
+      .map((c) => ({
         ...c,
-        date: new Date(c.end_date)
+        date: new Date(c.end_date),
       }))
       .sort((a, b) => a.date - b.date);
-    
+
     // Calculate rating changes correctly
-    return sortedContests.map((contest, index, arr) => {
+    contestData = sortedContests.map((contest, index, arr) => {
       const prevRating = index > 0 ? arr[index - 1].rating : contest.rating;
       const ratingChange = contest.rating - prevRating;
-      
+
       return {
         ...contest,
         date: contest.date,
         dateString: format(contest.date, "dd MMM, yyyy"),
         ratingChange,
-        performance: ratingChange > 0 ? "positive" : ratingChange < 0 ? "negative" : "neutral",
-        isPeak: contest.rating === maxRating
+        performance:
+          ratingChange > 0
+            ? "positive"
+            : ratingChange < 0
+            ? "negative"
+            : "neutral",
+        isPeak: contest.rating === maxRating,
       };
     });
-  }, [contestHistory, maxRating]);
+  }
 
   // Sort contest data
-  const sortedContestData = useMemo(() => {
-    if (!contestData.length) return [];
-    
+  let sortedContestData = [];
+  if (contestData.length) {
     const sortableItems = [...contestData];
     if (sortConfig.key) {
       sortableItems.sort((a, b) => {
@@ -176,27 +204,36 @@ const Codechef = () => {
         return 0;
       });
     }
-    return sortableItems;
-  }, [contestData, sortConfig]);
+    sortedContestData = sortableItems;
+  }
 
   // Paginated contest data
-  const paginatedContestData = useMemo(() => {
-    const startIndex = (currentContestPage - 1) * CONTESTS_PER_PAGE;
-    return sortedContestData.slice(startIndex, startIndex + CONTESTS_PER_PAGE);
-  }, [sortedContestData, currentContestPage]);
+  const startIndex = (currentContestPage - 1) * CONTESTS_PER_PAGE;
+  const paginatedContestData = sortedContestData.slice(
+    startIndex,
+    startIndex + CONTESTS_PER_PAGE
+  );
 
   // Contest statistics
-  const contestStats = useMemo(() => {
-    if (!contestData.length) return null;
-    
+  let contestStats = null;
+  if (contestData.length) {
     const totalContests = contestData.length;
-    const positiveContests = contestData.filter(c => c.ratingChange > 0).length;
-    const negativeContests = contestData.filter(c => c.ratingChange < 0).length;
-    const bestContest = [...contestData].sort((a, b) => b.ratingChange - a.ratingChange)[0];
-    const worstContest = [...contestData].sort((a, b) => a.ratingChange - b.ratingChange)[0];
-    const avgRatingChange = contestData.reduce((sum, c) => sum + c.ratingChange, 0) / totalContests;
-    
-    return {
+    const positiveContests = contestData.filter(
+      (c) => c.ratingChange > 0
+    ).length;
+    const negativeContests = contestData.filter(
+      (c) => c.ratingChange < 0
+    ).length;
+    const bestContest = [...contestData].sort(
+      (a, b) => b.ratingChange - a.ratingChange
+    )[0];
+    const worstContest = [...contestData].sort(
+      (a, b) => a.ratingChange - b.ratingChange
+    )[0];
+    const avgRatingChange =
+      contestData.reduce((sum, c) => sum + c.ratingChange, 0) / totalContests;
+
+    contestStats = {
       totalContests,
       positiveContests,
       negativeContests,
@@ -205,20 +242,19 @@ const Codechef = () => {
       avgRatingChange,
       winRate: Math.round((positiveContests / totalContests) * 100),
     };
-  }, [contestData]);
+  }
 
-  const lastContestRelative = useMemo(() => {
-    if (!contestData.length) return "N/A";
-    try {
-      // Get the most recent contest (last in sorted chronological order)
+  let lastContestRelative = "N/A";
+  try {
+    if (contestData.length) {
       const lastContest = [...contestData].pop();
-      return formatDistanceToNow(lastContest.date, { 
-        addSuffix: true 
+      lastContestRelative = formatDistanceToNow(lastContest.date, {
+        addSuffix: true,
       });
-    } catch {
-      return "N/A";
     }
-  }, [contestData]);
+  } catch {
+    lastContestRelative = "N/A";
+  }
 
   const handleSort = (key) => {
     let direction = "asc";
@@ -241,14 +277,14 @@ const Codechef = () => {
       4: "#a000a0", // Purple
       5: "#ff8c00", // Orange
       6: "#ff0000", // Red
-      7: "#ff0000"  // Red
+      7: "#ff0000", // Red
     };
     return starColors[stars] || "#14B8A6";
   };
 
   if (
     status?.fetchProfile === "loading" ||
-    status?.updateCompetitiveStats === "loading"
+    status?.updateSingleCompetitiveStat === "loading"
   ) {
     return (
       <section className="max-w-5xl mx-auto p-8 text-center">
@@ -262,7 +298,7 @@ const Codechef = () => {
     );
   }
 
-  if (error?.fetchProfile || error?.updateCompetitiveStats) {
+  if (error?.fetchProfile || error?.updateSingleCompetitiveStat) {
     return (
       <section className="max-w-5xl mx-auto p-8 text-center">
         <h1 className="text-4xl font-extrabold text-red-600 mb-6">
@@ -270,7 +306,7 @@ const Codechef = () => {
         </h1>
         <p className="text-red-600 text-lg">
           Failed to load your stats:{" "}
-          {error.fetchProfile || error.updateCompetitiveStats}
+          {error.fetchProfile || error.updateSingleCompetitiveStat}
         </p>
       </section>
     );
@@ -334,41 +370,41 @@ const Codechef = () => {
 
       {/* Summary Cards */}
       <section className="mb-8 sm:mb-12 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
-        <SummaryCard 
-          title="Max Rating" 
-          value={maxRating} 
+        <SummaryCard
+          title="Max Rating"
+          value={maxRating}
           bgColor="bg-purple-50 dark:bg-purple-900"
           textColor="text-purple-900 dark:text-purple-200"
         />
-        <SummaryCard 
-          title="Current Rating" 
-          value={currentRating} 
+        <SummaryCard
+          title="Current Rating"
+          value={currentRating}
           bgColor="bg-green-50 dark:bg-green-900"
           textColor="text-green-900 dark:text-green-200"
         />
-        <SummaryCard 
-          title="Stars" 
-          value={`${stars}★`} 
-          customStyle={{ 
-            backgroundColor: isDarkMode ? "#2a2a2a" : "#ffe6e6", 
-            color: getStarColor(stars) 
+        <SummaryCard
+          title="Stars"
+          value={`${stars}★`}
+          customStyle={{
+            backgroundColor: isDarkMode ? "#2a2a2a" : "#ffe6e6",
+            color: getStarColor(stars),
           }}
         />
-        <SummaryCard 
-          title="Global Rank" 
-          value={globalRank} 
+        <SummaryCard
+          title="Global Rank"
+          value={globalRank}
           bgColor="bg-amber-50 dark:bg-amber-900"
           textColor="text-amber-900 dark:text-amber-200"
         />
-        <SummaryCard 
-          title="Country Rank" 
-          value={countryRank} 
+        <SummaryCard
+          title="Country Rank"
+          value={countryRank}
           bgColor="bg-sky-50 dark:bg-sky-900"
           textColor="text-sky-900 dark:text-sky-200"
         />
-        <SummaryCard 
-          title="Last Contest" 
-          value={lastContestRelative} 
+        <SummaryCard
+          title="Last Contest"
+          value={lastContestRelative}
           bgColor="bg-indigo-50 dark:bg-indigo-900"
           textColor="text-indigo-900 dark:text-indigo-200"
           isDate={true}
@@ -382,27 +418,27 @@ const Codechef = () => {
             Contest Performance Summary
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-            <StatCard 
-              title="Total Contests" 
-              value={contestStats.totalContests} 
+            <StatCard
+              title="Total Contests"
+              value={contestStats.totalContests}
               trend={null}
               description="All participated contests"
             />
-            <StatCard 
-              title="Win Rate" 
-              value={`${contestStats.winRate}%`} 
+            <StatCard
+              title="Win Rate"
+              value={`${contestStats.winRate}%`}
               trend={contestStats.winRate > 50 ? "positive" : "negative"}
               description={`${contestStats.positiveContests} gains / ${contestStats.negativeContests} losses`}
             />
-            <StatCard 
-              title="Avg. Rating Change" 
-              value={contestStats.avgRatingChange.toFixed(1)} 
+            <StatCard
+              title="Avg. Rating Change"
+              value={contestStats.avgRatingChange.toFixed(1)}
               trend={contestStats.avgRatingChange > 0 ? "positive" : "negative"}
               description="Per contest average"
             />
-            <StatCard 
-              title="Best Performance" 
-              value={`+${contestStats.bestContest.ratingChange}`} 
+            <StatCard
+              title="Best Performance"
+              value={`+${contestStats.bestContest.ratingChange}`}
               trend="positive"
               description={`Rank ${contestStats.bestContest.rank} in ${contestStats.bestContest.name}`}
             />
@@ -480,7 +516,9 @@ const Codechef = () => {
                 tooltipDataAttrs={(value) => {
                   if (!value || !value.date) return {};
                   return {
-                    'data-tooltip': `${value.date}: ${value.count} problem${value.count !== 1 ? 's' : ''} solved`,
+                    "data-tooltip": `${value.date}: ${value.count} problem${
+                      value.count !== 1 ? "s" : ""
+                    } solved`,
                   };
                 }}
               />
@@ -526,7 +564,9 @@ const Codechef = () => {
             onClick={() => setShowContestDetails(!showContestDetails)}
             className="px-4 py-2 bg-teal-600 hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-600 text-white rounded-lg font-semibold shadow-md transition text-sm sm:text-base"
           >
-            {showContestDetails ? "Hide Contest Details" : "Show Contest Details"}
+            {showContestDetails
+              ? "Hide Contest Details"
+              : "Show Contest Details"}
           </button>
         </div>
 
@@ -555,8 +595,13 @@ const Codechef = () => {
                   height={40}
                 />
                 <YAxis
-                  tick={{ fill: isDarkMode ? "#9CA3AF" : "#374151", fontSize: 11 }}
+                  tick={{
+                    fill: isDarkMode ? "#9CA3AF" : "#374151",
+                    fontSize: 11,
+                  }}
                   allowDecimals={false}
+                  domain={["dataMin - 50", "dataMax + 50"]}
+                  tickCount={10}
                 />
                 <Tooltip
                   content={({ payload }) => {
@@ -589,7 +634,9 @@ const Codechef = () => {
                           </span>
                         </p>
                         {d.isPeak && (
-                          <p className="text-sm text-amber-500">★ Peak Rating</p>
+                          <p className="text-sm text-amber-500">
+                            ★ Peak Rating
+                          </p>
                         )}
                       </div>
                     );
@@ -601,7 +648,9 @@ const Codechef = () => {
                   stroke={getStarColor(stars)}
                   strokeWidth={2}
                   dot={(props) => {
-                    const color = props.payload.isPeak ? "#F59E0B" : getStarColor(stars);
+                    const color = props.payload.isPeak
+                      ? "#F59E0B"
+                      : getStarColor(stars);
                     return (
                       <circle
                         {...props}
@@ -613,7 +662,9 @@ const Codechef = () => {
                     );
                   }}
                   activeDot={(props) => {
-                    const color = props.payload.isPeak ? "#F59E0B" : getStarColor(stars);
+                    const color = props.payload.isPeak
+                      ? "#F59E0B"
+                      : getStarColor(stars);
                     return (
                       <circle
                         {...props}
@@ -638,36 +689,40 @@ const Codechef = () => {
           <h2 className="text-2xl sm:text-3xl font-semibold text-teal-700 dark:text-teal-400 mb-6 text-center">
             Contest Performance Details
           </h2>
-          
+
           <div className="overflow-x-auto rounded-lg shadow-lg mb-6">
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-              <thead className={`bg-teal-100 dark:bg-teal-800 ${isDarkMode ? 'text-teal-200' : 'text-teal-800'}`}>
+              <thead
+                className={`bg-teal-100 dark:bg-teal-800 ${
+                  isDarkMode ? "text-teal-200" : "text-teal-800"
+                }`}
+              >
                 <tr>
-                  <th 
+                  <th
                     className="px-4 py-3 text-left text-xs sm:text-sm font-medium cursor-pointer"
                     onClick={() => handleSort("date")}
                   >
                     Date {renderSortIndicator("date")}
                   </th>
-                  <th 
+                  <th
                     className="px-4 py-3 text-left text-xs sm:text-sm font-medium cursor-pointer"
                     onClick={() => handleSort("name")}
                   >
                     Contest {renderSortIndicator("name")}
                   </th>
-                  <th 
+                  <th
                     className="px-4 py-3 text-center text-xs sm:text-sm font-medium cursor-pointer"
                     onClick={() => handleSort("rank")}
                   >
                     Rank {renderSortIndicator("rank")}
                   </th>
-                  <th 
+                  <th
                     className="px-4 py-3 text-center text-xs sm:text-sm font-medium cursor-pointer"
                     onClick={() => handleSort("rating")}
                   >
                     Rating {renderSortIndicator("rating")}
                   </th>
-                  <th 
+                  <th
                     className="px-4 py-3 text-center text-xs sm:text-sm font-medium cursor-pointer"
                     onClick={() => handleSort("ratingChange")}
                   >
@@ -677,8 +732,8 @@ const Codechef = () => {
               </thead>
               <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                 {paginatedContestData.map((contest) => (
-                  <tr 
-                    key={contest.contestId} 
+                  <tr
+                    key={contest.contestId}
                     className="hover:bg-gray-50 dark:hover:bg-gray-700"
                   >
                     <td className="px-4 py-3 whitespace-nowrap text-xs sm:text-sm text-gray-800 dark:text-gray-200">
@@ -692,49 +747,71 @@ const Codechef = () => {
                     <td className="px-4 py-3 text-center text-xs sm:text-sm text-gray-800 dark:text-gray-200">
                       {contest.rank}
                     </td>
-                    <td className="px-4 py-3 text-center text-xs sm:text-sm font-medium" style={{ color: getStarColor(stars) }}>
+                    <td
+                      className="px-4 py-3 text-center text-xs sm:text-sm font-medium"
+                      style={{ color: getStarColor(stars) }}
+                    >
                       {contest.rating}
                       {contest.isPeak && (
-                        <span className="ml-1 text-amber-500" title="Peak Rating">★</span>
+                        <span
+                          className="ml-1 text-amber-500"
+                          title="Peak Rating"
+                        >
+                          ★
+                        </span>
                       )}
                     </td>
-                    <td className={`px-4 py-3 text-center text-xs sm:text-sm font-medium ${
-                      contest.ratingChange > 0 
-                        ? "text-green-600 dark:text-green-400" 
-                        : contest.ratingChange < 0 
-                          ? "text-red-600 dark:text-red-400" 
+                    <td
+                      className={`px-4 py-3 text-center text-xs sm:text-sm font-medium ${
+                        contest.ratingChange > 0
+                          ? "text-green-600 dark:text-green-400"
+                          : contest.ratingChange < 0
+                          ? "text-red-600 dark:text-red-400"
                           : ""
-                    }`}>
-                      {contest.ratingChange > 0 ? "+" : ""}{contest.ratingChange}
+                      }`}
+                    >
+                      {contest.ratingChange > 0 ? "+" : ""}
+                      {contest.ratingChange}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          
+
           {/* Pagination */}
           <div className="flex items-center justify-between border-t border-gray-200 dark:border-gray-700 px-4 py-3 sm:px-6">
             <div className="flex flex-1 justify-between sm:hidden">
               <button
-                onClick={() => setCurrentContestPage(prev => Math.max(1, prev - 1))}
+                onClick={() =>
+                  setCurrentContestPage((prev) => Math.max(1, prev - 1))
+                }
                 disabled={currentContestPage === 1}
                 className={`relative inline-flex items-center rounded-md px-4 py-2 text-sm ${
-                  currentContestPage === 1 
-                    ? "bg-gray-100 text-gray-400 cursor-not-allowed" 
+                  currentContestPage === 1
+                    ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                     : "bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600"
                 }`}
               >
                 Previous
               </button>
               <button
-                onClick={() => setCurrentContestPage(prev => 
-                  Math.min(Math.ceil(contestData.length / CONTESTS_PER_PAGE), prev + 1)
-                )}
-                disabled={currentContestPage >= Math.ceil(contestData.length / CONTESTS_PER_PAGE)}
+                onClick={() =>
+                  setCurrentContestPage((prev) =>
+                    Math.min(
+                      Math.ceil(contestData.length / CONTESTS_PER_PAGE),
+                      prev + 1
+                    )
+                  )
+                }
+                disabled={
+                  currentContestPage >=
+                  Math.ceil(contestData.length / CONTESTS_PER_PAGE)
+                }
                 className={`relative ml-3 inline-flex items-center rounded-md px-4 py-2 text-sm ${
-                  currentContestPage >= Math.ceil(contestData.length / CONTESTS_PER_PAGE)
-                    ? "bg-gray-100 text-gray-400 cursor-not-allowed" 
+                  currentContestPage >=
+                  Math.ceil(contestData.length / CONTESTS_PER_PAGE)
+                    ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                     : "bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600"
                 }`}
               >
@@ -744,59 +821,97 @@ const Codechef = () => {
             <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm text-gray-700 dark:text-gray-300">
-                  Showing <span className="font-medium">{(currentContestPage - 1) * CONTESTS_PER_PAGE + 1}</span> to{' '}
+                  Showing{" "}
                   <span className="font-medium">
-                    {Math.min(currentContestPage * CONTESTS_PER_PAGE, contestData.length)}
-                  </span>{' '}
-                  of <span className="font-medium">{contestData.length}</span> contests
+                    {(currentContestPage - 1) * CONTESTS_PER_PAGE + 1}
+                  </span>{" "}
+                  to{" "}
+                  <span className="font-medium">
+                    {Math.min(
+                      currentContestPage * CONTESTS_PER_PAGE,
+                      contestData.length
+                    )}
+                  </span>{" "}
+                  of <span className="font-medium">{contestData.length}</span>{" "}
+                  contests
                 </p>
               </div>
               <div>
-                <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                <nav
+                  className="isolate inline-flex -space-x-px rounded-md shadow-sm"
+                  aria-label="Pagination"
+                >
                   <button
-                    onClick={() => setCurrentContestPage(prev => Math.max(1, prev - 1))}
+                    onClick={() =>
+                      setCurrentContestPage((prev) => Math.max(1, prev - 1))
+                    }
                     disabled={currentContestPage === 1}
                     className={`relative inline-flex items-center rounded-l-md px-2 py-2 ${
-                      currentContestPage === 1 
-                        ? "text-gray-300 dark:text-gray-600 cursor-not-allowed" 
+                      currentContestPage === 1
+                        ? "text-gray-300 dark:text-gray-600 cursor-not-allowed"
                         : "text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
                     }`}
                   >
                     <span className="sr-only">Previous</span>
                     &larr; Previous
                   </button>
-                  
-                  {Array.from({ length: Math.min(5, Math.ceil(contestData.length / CONTESTS_PER_PAGE)) }, (_, i) => {
-                    const page = Math.max(1, Math.min(
-                      Math.ceil(contestData.length / CONTESTS_PER_PAGE) - 4,
-                      currentContestPage - 2
-                    )) + i;
-                    
-                    if (page > Math.ceil(contestData.length / CONTESTS_PER_PAGE)) return null;
-                    
-                    return (
-                      <button
-                        key={page}
-                        onClick={() => setCurrentContestPage(page)}
-                        className={`relative inline-flex items-center px-4 py-2 text-sm font-medium ${
-                          currentContestPage === page
-                            ? "z-10 bg-teal-600 text-white"
-                            : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                        }`}
-                      >
-                        {page}
-                      </button>
-                    );
-                  })}
-                  
+
+                  {Array.from(
+                    {
+                      length: Math.min(
+                        5,
+                        Math.ceil(contestData.length / CONTESTS_PER_PAGE)
+                      ),
+                    },
+                    (_, i) => {
+                      const page =
+                        Math.max(
+                          1,
+                          Math.min(
+                            Math.ceil(contestData.length / CONTESTS_PER_PAGE) -
+                              4,
+                            currentContestPage - 2
+                          )
+                        ) + i;
+
+                      if (
+                        page > Math.ceil(contestData.length / CONTESTS_PER_PAGE)
+                      )
+                        return null;
+
+                      return (
+                        <button
+                          key={page}
+                          onClick={() => setCurrentContestPage(page)}
+                          className={`relative inline-flex items-center px-4 py-2 text-sm font-medium ${
+                            currentContestPage === page
+                              ? "z-10 bg-teal-600 text-white"
+                              : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      );
+                    }
+                  )}
+
                   <button
-                    onClick={() => setCurrentContestPage(prev => 
-                      Math.min(Math.ceil(contestData.length / CONTESTS_PER_PAGE), prev + 1)
-                    )}
-                    disabled={currentContestPage >= Math.ceil(contestData.length / CONTESTS_PER_PAGE)}
+                    onClick={() =>
+                      setCurrentContestPage((prev) =>
+                        Math.min(
+                          Math.ceil(contestData.length / CONTESTS_PER_PAGE),
+                          prev + 1
+                        )
+                      )
+                    }
+                    disabled={
+                      currentContestPage >=
+                      Math.ceil(contestData.length / CONTESTS_PER_PAGE)
+                    }
                     className={`relative inline-flex items-center rounded-r-md px-2 py-2 ${
-                      currentContestPage >= Math.ceil(contestData.length / CONTESTS_PER_PAGE)
-                        ? "text-gray-300 dark:text-gray-600 cursor-not-allowed" 
+                      currentContestPage >=
+                      Math.ceil(contestData.length / CONTESTS_PER_PAGE)
+                        ? "text-gray-300 dark:text-gray-600 cursor-not-allowed"
                         : "text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
                     }`}
                   >

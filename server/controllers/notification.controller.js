@@ -53,7 +53,32 @@ const markNotificationRead = asyncHandler(async (req, res) => {
   res.json({ message: "Notification marked as read" });
 });
 
+const broadcastNotification = asyncHandler(async (req, res) => {
+  const { type, message, link, preview } = req.body;
+
+  if (!type || !message) {
+    res.status(400);
+    throw new Error("Type and message are required");
+  }
+
+  const users = await User.find({}, "_id");
+
+  const notifications = users.map((user) => ({
+    recipient: user._id,
+    sender: req.user._id,
+    type,
+    message,
+    link: link || null,
+    preview: preview || null,
+  }));
+
+  await Notification.insertMany(notifications);
+
+  res.status(201).json({ message: `Broadcast sent to ${users.length} users.` });
+});
+
 module.exports = {
   getUserNotifications,
   markNotificationRead,
+  broadcastNotification,
 };

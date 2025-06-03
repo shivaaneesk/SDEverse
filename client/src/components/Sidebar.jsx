@@ -11,6 +11,7 @@ import {
   X,
   Settings,
   User,
+  PieChart,
 } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { toggleTheme } from "../features/theme/themeSlice";
@@ -114,6 +115,14 @@ const Sidebar = () => {
                 >
                   <ClipboardList size={20} /> Review Proposals
                 </Link>
+                {/* New Analytics Dashboard Link */}
+                <Link
+                  to="/admin/analytics"
+                  onClick={handleLinkClick}
+                  className="flex items-center gap-3 px-2 py-2 rounded hover:bg-cyan-100 dark:hover:bg-cyan-700 hover:text-cyan-700 dark:hover:text-white transition-colors"
+                >
+                  <PieChart size={20} /> Analytics Dashboard
+                </Link>
               </>
             )}
 
@@ -140,6 +149,13 @@ const Sidebar = () => {
                   className="flex items-center gap-3 px-2 py-2 rounded hover:bg-purple-100 dark:hover:bg-purple-700 hover:text-purple-700 dark:hover:text-white transition-colors"
                 >
                   <FilePlus size={20} /> Submit Proposal
+                </Link>
+                <Link
+                  to="/feedback"
+                  onClick={handleLinkClick}
+                  className="flex items-center gap-3 px-2 py-2 rounded hover:bg-indigo-100 dark:hover:bg-indigo-700 hover:text-indigo-700 dark:hover:text-white transition-colors"
+                >
+                  <Settings size={20} /> Feedback
                 </Link>
               </>
             )}

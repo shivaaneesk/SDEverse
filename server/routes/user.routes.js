@@ -11,9 +11,11 @@ const {
   updateSocialProfiles,
   updateSingleCompetitiveStat,
   updateSingleSocialStat,
+  getAdminAnalytics
 } = require("../controllers/user.controller");
 const { protect, admin } = require("../middleware/auth.middleware");
 
+router.get('/analytics', protect, admin, getAdminAnalytics);
 router.get("/me", protect, getMyProfile);
 router.patch("/me", protect, updateMyProfile);
 router.get("/update-competitive-stats", protect, updateAllCompetitiveStats);

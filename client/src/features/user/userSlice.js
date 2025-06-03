@@ -10,6 +10,7 @@ import {
   updateCompetitiveStats,
   updateSingleSocialStat,
   updateSingleCompetitiveStat,
+  fetchAdminAnalytics,
 } from "./userAPI";
 
 const initialState = {
@@ -20,6 +21,7 @@ const initialState = {
   selectedUser: null,
   myProfile: null,
   extraCompetitiveStats: null,
+  adminAnalytics: null,
   status: {
     fetchUsers: "idle",
     fetchProfile: "idle",
@@ -28,6 +30,7 @@ const initialState = {
     updateCompetitiveStats: "idle",
     updateSingleSocialStat: "idle",
     updateSingleCompetitiveStat: "idle",
+    fetchAdminAnalytics: "idle",
   },
   error: {
     fetchUsers: null,
@@ -38,11 +41,24 @@ const initialState = {
     fetchSelectedUser: null,
     updateSingleSocialStat: null,
     updateSingleCompetitiveStat: null,
+    fetchAdminAnalytics: null,
   },
 };
 
 const safeReject = (error) =>
   error.response?.data?.message || error.message || "Unknown error";
+
+export const getAdminAnalytics = createAsyncThunk(
+  "user/getAdminAnalytics",
+  async (_, thunkAPI) => {
+    const token = thunkAPI.getState().auth.token;
+    try {
+      return await fetchAdminAnalytics(token);
+    } catch (error) {
+      return thunkAPI.rejectWithValue(safeReject(error));
+    }
+  }
+);
 
 export const getAllUsers = createAsyncThunk(
   "user/getAll",
@@ -166,8 +182,7 @@ export const refreshSingleCompetitiveStat = createAsyncThunk(
   async (platform, thunkAPI) => {
     const token = thunkAPI.getState().auth.token;
     try {
-      const response = await updateSingleCompetitiveStat(platform, token);
-      return { platform, ...response };
+      return await updateSingleCompetitiveStat(platform, token);
     } catch (error) {
       return thunkAPI.rejectWithValue(safeReject(error));
     }
@@ -265,7 +280,11 @@ const userSlice = createSlice({
       .addCase(refreshSocialStats.fulfilled, (state, action) => {
         state.status.updateSocialStats = "succeeded";
         if (state.myProfile) {
-          state.myProfile.socialStats = action.payload;
+          // Update social stats
+          state.myProfile.socialStats = {
+            ...state.myProfile.socialStats,
+            ...action.payload.socialStats,
+          };
         }
       })
       .addCase(refreshSocialStats.rejected, (state, action) => {
@@ -280,76 +299,78 @@ const userSlice = createSlice({
       .addCase(refreshCompetitiveStats.fulfilled, (state, action) => {
         state.status.updateCompetitiveStats = "succeeded";
         if (state.myProfile) {
-          state.myProfile.competitiveStats = action.payload.competitiveStats;
+          // Update competitive stats
+          state.myProfile.competitiveStats = {
+            ...state.myProfile.competitiveStats,
+            ...action.payload.competitiveStats,
+          };
 
-          const extraStats = action.payload.extraStats || {};
-
-          state.myProfile.extraCompetitiveStats = {};
-
-          for (const platform in extraStats) {
-            state.myProfile.extraCompetitiveStats[platform] = {
-              profileUrl: extraStats[platform]?.profileUrl || "",
-              moreInfo: extraStats[platform]?.moreInfo || {},
-              summary: extraStats[platform]?.summary || {},
-            };
-          }
+          // Update extraCompetitiveStats
+          state.myProfile.extraCompetitiveStats = {
+            ...state.myProfile.extraCompetitiveStats,
+            ...action.payload.extraStats,
+          };
         }
       })
-
       .addCase(refreshCompetitiveStats.rejected, (state, action) => {
         state.status.updateCompetitiveStats = "failed";
         state.error.updateCompetitiveStats = action.payload;
       })
-       // Single social stat update
-    .addCase(refreshSingleSocialStat.pending, (state) => {
-      state.status.updateSingleSocialStat = "loading";
-      state.error.updateSingleSocialStat = null;
-    })
-    .addCase(refreshSingleSocialStat.fulfilled, (state, action) => {
-      state.status.updateSingleSocialStat = "succeeded";
-      if (state.myProfile) {
-        state.myProfile.socialStats = {
-          ...state.myProfile.socialStats,
-          [action.payload.platform]: action.payload.stats
-        };
-      }
-    })
-    .addCase(refreshSingleSocialStat.rejected, (state, action) => {
-      state.status.updateSingleSocialStat = "failed";
-      state.error.updateSingleSocialStat = action.payload;
-    })
+      // Single social stat update
+      .addCase(refreshSingleSocialStat.pending, (state) => {
+        state.status.updateSingleSocialStat = "loading";
+        state.error.updateSingleSocialStat = null;
+      })
+      .addCase(refreshSingleSocialStat.fulfilled, (state, action) => {
+        state.status.updateSingleSocialStat = "succeeded";
+        if (state.myProfile) {
+          // 1. Update entire socialStats object
+          state.myProfile.socialStats = action.payload.socialStats;
 
-    // Single competitive stat update
-    .addCase(refreshSingleCompetitiveStat.pending, (state) => {
-      state.status.updateSingleCompetitiveStat = "loading";
-      state.error.updateSingleCompetitiveStat = null;
-    })
-    .addCase(refreshSingleCompetitiveStat.fulfilled, (state, action) => {
-      state.status.updateSingleCompetitiveStat = "succeeded";
-      if (state.myProfile) {
-        // Update competitive stats
-        state.myProfile.competitiveStats = {
-          ...state.myProfile.competitiveStats,
-          [action.payload.platform]: action.payload.stats
-        };
-
-        // Update extra stats if available
-        if (action.payload.extraStats) {
-          state.myProfile.extraCompetitiveStats = {
-            ...state.myProfile.extraCompetitiveStats,
-            [action.payload.platform]: {
-              profileUrl: action.payload.extraStats[action.payload.platform]?.profileUrl || "",
-              moreInfo: action.payload.extraStats[action.payload.platform]?.moreInfo || {},
-              summary: action.payload.extraStats[action.payload.platform]?.summary || {},
-            }
+          // 2. Merge new extraSocialStats for this platform
+          state.myProfile.extraSocialStats = {
+            ...(state.myProfile.extraSocialStats || {}),
+            ...action.payload.extraSocialStats,
           };
         }
-      }
-    })
-    .addCase(refreshSingleCompetitiveStat.rejected, (state, action) => {
-      state.status.updateSingleCompetitiveStat = "failed";
-      state.error.updateSingleCompetitiveStat = action.payload;
-    });
+      })
+      .addCase(refreshSingleSocialStat.rejected, (state, action) => {
+        state.status.updateSingleSocialStat = "failed";
+        state.error.updateSingleSocialStat = action.payload;
+      })
+
+      // Single competitive stat update
+      .addCase(refreshSingleCompetitiveStat.pending, (state) => {
+        state.status.updateSingleCompetitiveStat = "loading";
+        state.error.updateSingleCompetitiveStat = null;
+      })
+      .addCase(refreshSingleCompetitiveStat.fulfilled, (state, action) => {
+        state.status.updateSingleCompetitiveStat = "succeeded";
+        if (state.myProfile) {
+          state.myProfile.competitiveStats = action.payload.competitiveStats;
+          state.myProfile.extraCompetitiveStats = {
+            ...(state.myProfile.extraCompetitiveStats || {}),
+            ...action.payload.extraStats,
+          };
+        }
+      })
+
+      .addCase(refreshSingleCompetitiveStat.rejected, (state, action) => {
+        state.status.updateSingleCompetitiveStat = "failed";
+        state.error.updateSingleCompetitiveStat = action.payload;
+      })
+      .addCase(getAdminAnalytics.pending, (state) => {
+        state.status.fetchAdminAnalytics = "loading";
+        state.error.fetchAdminAnalytics = null;
+      })
+      .addCase(getAdminAnalytics.fulfilled, (state, action) => {
+        state.status.fetchAdminAnalytics = "succeeded";
+        state.adminAnalytics = action.payload;
+      })
+      .addCase(getAdminAnalytics.rejected, (state, action) => {
+        state.status.fetchAdminAnalytics = "failed";
+        state.error.fetchAdminAnalytics = action.payload;
+      });
   },
 });
 

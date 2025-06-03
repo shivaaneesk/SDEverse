@@ -48,29 +48,49 @@ export const updateMyProfile = async (profileData, token) => {
   return response.data;
 };
 
-export const updateSocialProfiles = async (token) => {
-  const response = await api.get("/users/update-social-stats", {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  return response.data;
-};
-
 export const updateCompetitiveStats = async (token) => {
   const response = await api.get("/users/update-competitive-stats", {
     headers: { Authorization: `Bearer ${token}` },
   });
-  return response.data;
+  
+  return {
+    competitiveStats: response.data.competitiveStats,
+    extraStats: response.data.extraStats
+  };
+};
+
+export const updateSocialProfiles = async (token) => {
+  const response = await api.get("/users/update-social-stats", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  
+  return {
+    socialStats: response.data.socialStats
+  };
+};
+
+export const updateSingleCompetitiveStat = async (platform, token) => {
+  const response = await api.get(`/users/update-competitive-stats/${platform}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return {
+    ...response.data,
+    platform // Ensure platform is included
+  };
 };
 
 export const updateSingleSocialStat = async (platform, token) => {
   const response = await api.get(`/users/update-social-stats/${platform}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
-  return response.data;
+  return {
+    ...response.data,
+    platform // Ensure platform is included
+  };
 };
 
-export const updateSingleCompetitiveStat = async (platform, token) => {
-  const response = await api.get(`/users/update-competitive-stats/${platform}`, {
+export const fetchAdminAnalytics = async (token) => {
+  const response = await api.get("/users/analytics", {
     headers: { Authorization: `Bearer ${token}` },
   });
   return response.data;

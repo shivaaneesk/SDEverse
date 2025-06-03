@@ -19,3 +19,13 @@ export const markNotificationAsRead = async (id) => {
     throw error;
   }
 };
+
+export const sendBroadcastNotification = async (payload) => {
+  try {
+    const response = await api.post("/notifications/admin/broadcast", payload);
+    return response.data;
+  } catch (error) {
+    console.error("Error sending broadcast notification:", error);
+    throw error;
+  }
+};

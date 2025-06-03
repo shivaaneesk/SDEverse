@@ -19,6 +19,8 @@ import MyProposals from "./pages/MyProposals";
 import AdminProposalReview from "./pages/AdminProposalReview";
 import Profile from "./pages/Profile";
 import AdminUsersPage from "./pages/AdminUsersPage";
+import Feedback from "./pages/Feedback";
+import AdminAnalytics from "./pages/AdminAnalytics";
 import { getMe } from "./features/auth/authSlice";
 
 const router = createBrowserRouter([
@@ -37,6 +39,10 @@ const router = createBrowserRouter([
       {
         index: true,
         element: <Home />,
+      },
+      {
+        path: "feedback",
+        element: <Feedback />,
       },
       {
         path: "moreinfo/:platform",
@@ -100,6 +106,14 @@ const router = createBrowserRouter([
           </AdminRoute>
         ),
       },
+      {
+    path: "admin/analytics",
+    element: (
+      <AdminRoute>
+        <AdminAnalytics />
+      </AdminRoute>
+    ),
+  },
     ],
   },
 ]);

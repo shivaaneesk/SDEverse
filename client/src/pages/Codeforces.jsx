@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   getMyProfile,
-  refreshCompetitiveStats,
+  refreshSingleCompetitiveStat
 } from "../features/user/userSlice";
 import {
   LineChart,
@@ -59,7 +59,7 @@ const Codeforces = () => {
 
   useEffect(() => {
     dispatch(getMyProfile());
-    dispatch(refreshCompetitiveStats());
+    dispatch(refreshSingleCompetitiveStat('codeforces'));
   }, [dispatch]);
 
   useEffect(() => {
@@ -312,7 +312,7 @@ const Codeforces = () => {
 
   if (
     status?.fetchProfile === "loading" ||
-    status?.updateCompetitiveStats === "loading"
+    status?.updateSingleCompetitiveStat === "loading"
   ) {
     return (
       <section className="max-w-5xl mx-auto p-8 text-center">
@@ -326,7 +326,7 @@ const Codeforces = () => {
     );
   }
 
-  if (error?.fetchProfile || error?.updateCompetitiveStats) {
+  if (error?.fetchProfile || error?.updateSingleCompetitiveStat) {
     return (
       <section className="max-w-5xl mx-auto p-8 text-center">
         <h1 className="text-4xl font-extrabold text-red-600 mb-6">
@@ -334,7 +334,7 @@ const Codeforces = () => {
         </h1>
         <p className="text-red-600 text-lg">
           Failed to load your stats:{" "}
-          {error.fetchProfile || error.updateCompetitiveStats}
+          {error.fetchProfile || error.updateSingleCompetitiveStat}
         </p>
       </section>
     );
@@ -540,7 +540,7 @@ const Codeforces = () => {
                     <Bar
                       dataKey="solved"
                       name="Problems Solved"
-                      barSize={18}
+                      barSize={35}
                     >
                       {solvedByRatingData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />

@@ -8,6 +8,7 @@ const userRoutes = require("./routes/user.routes");
 const proposalRoutes = require("./routes/proposal.routes");
 const commentRoutes = require("./routes/comment.routes");
 const notificationRoutes = require("./routes/notification.routes");
+const feedbackRoutes = require("./routes/feedback.routes");
 const { notFound, errorHandler } = require("./middleware/error.middleware");
 
 dotenv.config();
@@ -23,6 +24,7 @@ app.use("/api/algorithms", algorithmRoutes);
 app.use("/api/proposal", proposalRoutes);
 app.use("/api/comments", commentRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/feedback", feedbackRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
