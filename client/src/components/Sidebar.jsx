@@ -18,6 +18,7 @@ import {
   BarChart,
   UserCog,
   Workflow,
+  UserCircle
 } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { toggleTheme } from "../features/theme/themeSlice";
@@ -94,6 +95,12 @@ const Sidebar = () => {
       active: "bg-gradient-to-r from-teal-500 to-green-600",
       border: "border-l-teal-500",
     },
+    profile: {
+      bg: "bg-amber-50/80 dark:bg-amber-900/30",
+      hover: "hover:bg-amber-100 dark:hover:bg-amber-900/40",
+      active: "bg-gradient-to-r from-amber-500 to-orange-600",
+      border: "border-l-amber-500",
+    },
   };
 
   const getNavItemClass = (section, isActive) => {
@@ -160,6 +167,7 @@ const Sidebar = () => {
 
           {/* Navigation */}
           <nav className="flex-1 py-6 space-y-2 overflow-y-auto mobile-scroll">
+            {/* Always visible links */}
             <NavLink
               to="/"
               end
@@ -170,15 +178,30 @@ const Sidebar = () => {
               <span className="truncate">Home</span>
               <ChevronRight className="ml-auto opacity-70" size={16} />
             </NavLink>
-             <NavLink
-                  to="/algorithms"
-                  className={({ isActive }) => getNavItemClass("algorithms", isActive)}
-                  onClick={handleLinkClick}
-                >
-                  <Workflow size={20} className="min-w-[20px]" />
-                  <span className="truncate">Algorithms</span>
-                  <ChevronRight className="ml-auto opacity-70" size={16} />
-                </NavLink>
+            
+            <NavLink
+              to="/algorithms"
+              className={({ isActive }) => getNavItemClass("algorithms", isActive)}
+              onClick={handleLinkClick}
+            >
+              <Workflow size={20} className="min-w-[20px]" />
+              <span className="truncate">Algorithms</span>
+              <ChevronRight className="ml-auto opacity-70" size={16} />
+            </NavLink>
+
+            {/* Profile Link - Always at the top */}
+            {token && (
+              <NavLink
+                to={`/profile/${user.username}`}
+                className={({ isActive }) => getNavItemClass("profile", isActive)}
+                onClick={handleLinkClick}
+              >
+                <UserCircle size={20} className="min-w-[20px]" />
+                <span className="truncate">My Profile</span>
+                <ChevronRight className="ml-auto opacity-70" size={16} />
+              </NavLink>
+            )}
+
             {/* Admin Section */}
             {token && user?.role === "admin" && (
               <>
