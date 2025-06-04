@@ -1,8 +1,9 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchProposals } from "../features/proposal/proposalSlice";
 import { useNavigate } from "react-router-dom";
 import { FileText, PenLine, Search } from "lucide-react";
+import Pagination from "./Pagination";
 
 function useDebounce(value, delay) {
   const [debounced, setDebounced] = useState(value);
@@ -21,26 +22,21 @@ const MyProposals = () => {
     (state) => state.proposal
   );
 
-  // Local state for filters
   const [searchText, setSearchText] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [page, setPage] = useState(1);
   const debouncedSearch = useDebounce(searchText, 500);
 
-  // Build query string for API
-  const buildQuery = useCallback(() => {
-    const params = new URLSearchParams();
-    params.append("page", page);
-    params.append("limit", 10);
-    if (statusFilter) params.append("status", statusFilter);
-    if (debouncedSearch) params.append("search", debouncedSearch);
-    return params.toString();
-  }, [page, statusFilter, debouncedSearch]);
-
   useEffect(() => {
-    const query = buildQuery();
+    const query = {
+      page,
+      limit: 10,
+      ...(statusFilter && { status: statusFilter }),
+      ...(debouncedSearch && { search: debouncedSearch }),
+    };
+
     dispatch(fetchProposals(query));
-  }, [dispatch, buildQuery]);
+  }, [dispatch, page, statusFilter, debouncedSearch]);
 
   const handleEdit = (slug) => {
     navigate(`/proposals/${slug}/edit`);
@@ -49,162 +45,174 @@ const MyProposals = () => {
   const getStatusStyle = (status) => {
     switch (status) {
       case "approved":
-        return "text-green-600 bg-green-100";
+        return "text-green-800 bg-green-100/80";
       case "rejected":
-        return "text-red-600 bg-red-100";
+        return "text-rose-700 bg-rose-100/80";
       case "pending":
       default:
-        return "text-yellow-700 bg-yellow-100";
+        return "text-amber-700 bg-amber-100/80";
     }
   };
 
   const handleStatusChange = (e) => {
     setStatusFilter(e.target.value);
-    setPage(1); // reset page on filter change
+    setPage(1);
   };
 
   const handleSearchChange = (e) => {
     setSearchText(e.target.value);
-    setPage(1); // reset page on search change
-  };
-
-  const prevPage = () => {
-    if (page > 1) setPage((p) => p - 1);
-  };
-  const nextPage = () => {
-    if (page < pages) setPage((p) => p + 1);
+    setPage(1);
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-10">
-      <h1 className="text-4xl font-extrabold text-center mb-10 text-gray-800 dark:text-white flex justify-center items-center gap-2">
-        <FileText size={32} />
-        My Proposals
-      </h1>
+    <div className="max-w-6xl mx-auto px-4 py-6 sm:py-8">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+        <h1 className="text-3xl font-bold text-gray-800 dark:text-white flex items-center gap-3">
+          <FileText className="text-indigo-600" size={28} />
+          My Proposals
+        </h1>
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-        <div className="flex items-center border border-gray-300 rounded-lg px-3 py-2 w-full sm:w-64 bg-white dark:bg-gray-800">
-          <Search className="text-gray-400 mr-2" size={18} />
-          <input
-            type="text"
-            value={searchText}
-            onChange={handleSearchChange}
-            placeholder="Search by title or tags..."
-            className="w-full bg-transparent focus:outline-none text-gray-900 dark:text-gray-100"
-          />
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1 max-w-md">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Search className="text-gray-400" size={18} />
+            </div>
+            <input
+              type="text"
+              value={searchText}
+              onChange={handleSearchChange}
+              placeholder="Search proposals..."
+              className="pl-10 w-full rounded-lg border border-gray-300 bg-white dark:bg-gray-800 py-2 px-4 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 dark:text-gray-100"
+            />
+          </div>
+
+          <select
+            value={statusFilter}
+            onChange={handleStatusChange}
+            className="rounded-lg border border-gray-300 bg-white dark:bg-gray-800 py-2 px-4 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 dark:text-gray-100"
+          >
+            <option value="">All Statuses</option>
+            <option value="pending">Pending</option>
+            <option value="approved">Approved</option>
+            <option value="rejected">Rejected</option>
+          </select>
         </div>
-
-        <select
-          value={statusFilter}
-          onChange={handleStatusChange}
-          className="border border-gray-300 rounded-lg px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 w-full sm:w-48"
-        >
-          <option value="">All Statuses</option>
-          <option value="pending">Pending</option>
-          <option value="approved">Approved</option>
-          <option value="rejected">Rejected</option>
-        </select>
       </div>
 
       {loading && (
-        <p className="text-center text-gray-500 text-lg">Loading proposals...</p>
+        <div className="flex justify-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+        </div>
       )}
 
       {error && (
-        <p className="text-center text-red-500 font-semibold">Error: {error}</p>
+        <div className="rounded-xl bg-rose-50 dark:bg-rose-900/30 p-4 mb-6">
+          <p className="text-center text-rose-700 dark:text-rose-300 font-medium">
+            Error: {error}
+          </p>
+        </div>
       )}
 
-      {!loading && proposals.length === 0 && (
-        <p className="text-center text-gray-400 text-lg">
-          No proposals found with current filters.
-        </p>
+      {!loading && !error && proposals.length === 0 && (
+        <div className="rounded-2xl bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 p-8 text-center">
+          <div className="mx-auto bg-gray-200 dark:bg-gray-700 rounded-full p-3 w-16 h-16 flex items-center justify-center mb-4">
+            <FileText className="text-gray-500 dark:text-gray-400" size={28} />
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-1">
+            No proposals found
+          </h3>
+          <p className="text-gray-500 dark:text-gray-400">
+            Try adjusting your search or filter criteria
+          </p>
+        </div>
       )}
 
-      {!loading && proposals.length > 0 && (
+      {!loading && !error && proposals.length > 0 && (
         <>
-          <div className="overflow-x-auto border border-gray-200 dark:border-gray-700 rounded-xl shadow-md">
-            <table className="min-w-full text-sm text-left text-gray-700 dark:text-gray-200">
-              <thead className="bg-gray-100 dark:bg-gray-800 text-xs uppercase font-semibold">
-                <tr>
-                  <th className="px-6 py-4">Title</th>
-                  <th className="px-4 py-4">Category</th>
-                  <th className="px-4 py-4">Difficulty</th>
-                  <th className="px-4 py-4">Status</th>
-                  <th className="px-4 py-4">Created</th>
-                  <th className="px-4 py-4 text-center">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {proposals.map((proposal) => (
-                  <tr
-                    key={proposal._id}
-                    className="border-t border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
-                  >
-                    <td className="px-6 py-4 font-medium max-w-xs truncate">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="hidden md:grid grid-cols-[3fr_1.5fr_1.5fr_1.5fr_1.5fr_auto] gap-4 px-6 py-4 bg-gray-50 dark:bg-gray-800/50 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              <div>Title</div>
+              <div>Category</div>
+              <div>Difficulty</div>
+              <div>Status</div>
+              <div>Created</div>
+              <div className="text-center">Actions</div>
+            </div>
+
+            <div className="divide-y divide-gray-200 dark:divide-gray-700">
+              {proposals.map((proposal) => (
+                <div
+                  key={proposal._id}
+                  className="block md:grid md:grid-cols-[3fr_1.5fr_1.5fr_1.5fr_1.5fr_auto] gap-4 px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors"
+                >
+                  <div className="mb-3 md:mb-0">
+                    <div className="md:hidden text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                      Title
+                    </div>
+                    <div className="font-medium text-gray-900 dark:text-white truncate">
                       {proposal.title}
-                    </td>
-                    <td className="px-4 py-4">{proposal.category}</td>
-                    <td className="px-4 py-4">{proposal.difficulty}</td>
-                    <td className="px-4 py-4">
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusStyle(
-                          proposal.status
-                        )}`}
-                      >
-                        {proposal.status || "pending"}
-                      </span>
-                    </td>
-                    <td className="px-4 py-4">
+                    </div>
+                  </div>
+
+                  <div className="mb-3 md:mb-0">
+                    <div className="md:hidden text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                      Category
+                    </div>
+                    <div className="text-gray-700 dark:text-gray-300">
+                      {proposal.category.join(", ")}
+                    </div>
+                  </div>
+
+                  <div className="mb-3 md:mb-0">
+                    <div className="md:hidden text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                      Difficulty
+                    </div>
+                    <div className="text-gray-700 dark:text-gray-300">
+                      {proposal.difficulty}
+                    </div>
+                  </div>
+
+                  <div className="mb-3 md:mb-0">
+                    <div className="md:hidden text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                      Status
+                    </div>
+                    <span
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusStyle(
+                        proposal.status
+                      )}`}
+                    >
+                      {proposal.status || "pending"}
+                    </span>
+                  </div>
+
+                  <div className="mb-4 md:mb-0">
+                    <div className="md:hidden text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                      Created
+                    </div>
+                    <div className="text-gray-700 dark:text-gray-300">
                       {new Date(proposal.createdAt).toLocaleDateString()}
-                    </td>
-                    <td className="px-4 py-4 text-center">
-                      <button
-                        onClick={() => handleEdit(proposal.slug)}
-                        className="inline-flex items-center gap-1 px-3 py-1 text-sm font-medium text-blue-600 hover:underline"
-                      >
-                        <PenLine size={14} />
-                        Edit
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </div>
+                  </div>
+
+                  <div className="flex md:justify-center">
+                    <button
+                      onClick={() => handleEdit(proposal.slug)}
+                      className="inline-flex items-center gap-1.5 text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium text-sm"
+                    >
+                      <PenLine size={16} />
+                      <span>Edit</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
 
-          {/* Pagination */}
-          <div className="flex justify-between items-center mt-6 text-gray-700 dark:text-gray-300">
-            <button
-              onClick={prevPage}
-              disabled={page === 1}
-              className={`px-4 py-2 rounded-md border border-gray-300 dark:border-gray-600 ${
-                page === 1
-                  ? "cursor-not-allowed opacity-50"
-                  : "hover:bg-gray-100 dark:hover:bg-gray-700"
-              }`}
-            >
-              Previous
-            </button>
-
-            <p className="text-sm">
-              Page <span className="font-semibold">{page}</span> of{" "}
-              <span className="font-semibold">{pages}</span> — Total{" "}
-              <span className="font-semibold">{total}</span> proposals
-            </p>
-
-            <button
-              onClick={nextPage}
-              disabled={page === pages}
-              className={`px-4 py-2 rounded-md border border-gray-300 dark:border-gray-600 ${
-                page === pages
-                  ? "cursor-not-allowed opacity-50"
-                  : "hover:bg-gray-100 dark:hover:bg-gray-700"
-              }`}
-            >
-              Next
-            </button>
-          </div>
+          <Pagination
+            currentPage={page}
+            totalPages={pages}
+            onPageChange={(newPage) => setPage(newPage)}
+          />
         </>
       )}
     </div>

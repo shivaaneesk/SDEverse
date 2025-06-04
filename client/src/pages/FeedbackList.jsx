@@ -7,8 +7,6 @@ import {
   ChevronUp, 
   Search, 
   Filter, 
-  ChevronLeft, 
-  ChevronRight,
   Bug, 
   Lightbulb, 
   Gauge, 
@@ -16,8 +14,9 @@ import {
   Star,
   Circle,
   CheckCircle,
-  Loader
+  Loader,
 } from 'lucide-react';
+import Pagination from './Pagination';
 
 const FeedbackList = () => {
   const dispatch = useDispatch();
@@ -32,6 +31,7 @@ const FeedbackList = () => {
   });
   const [sortConfig, setSortConfig] = useState({ key: 'createdAt', direction: 'desc' });
   const [currentPage, setCurrentPage] = useState(1);
+  const [expandedItems, setExpandedItems] = useState({});
   const itemsPerPage = 10;
 
   // Fetch feedback when filters or page change
@@ -43,6 +43,14 @@ const FeedbackList = () => {
     };
     dispatch(getFeedbackList(params));
   }, [filters, currentPage, dispatch]);
+
+  // Toggle description expansion
+  const toggleExpand = (id) => {
+    setExpandedItems(prev => ({
+      ...prev,
+      [id]: !prev[id]
+    }));
+  };
 
   // Handle sorting
   const handleSort = (key) => {
@@ -76,25 +84,6 @@ const FeedbackList = () => {
     setFilters(prev => ({ ...prev, search: e.target.value }));
     setCurrentPage(1);
   };
-
-  // Pagination controls
-  const totalPages = feedbackList.pagination?.totalPages || 1;
-  const paginationItems = [];
-  for (let i = 1; i <= totalPages; i++) {
-    paginationItems.push(
-      <button
-        key={i}
-        onClick={() => setCurrentPage(i)}
-        className={`px-3 py-1 rounded-md ${
-          currentPage === i
-            ? 'bg-indigo-600 text-white'
-            : 'hover:bg-gray-200 dark:hover:bg-gray-700'
-        }`}
-      >
-        {i}
-      </button>
-    );
-  }
 
   // Render type icon
   const renderTypeIcon = (type) => {
@@ -218,12 +207,19 @@ const FeedbackList = () => {
       {!loading && sortedFeedback.length > 0 && (
         <>
           <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
-            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 table-fixed">
+              <colgroup>
+                <col className="w-[40%] md:w-[35%]" />
+                <col className="hidden md:table-column w-[15%]" />
+                <col className="hidden sm:table-column w-[15%]" />
+                <col className="w-[20%]" />
+                <col className="w-[25%] md:w-[15%]" />
+              </colgroup>
               <thead className="bg-gray-50 dark:bg-gray-800">
                 <tr>
                   <th 
                     scope="col" 
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer"
+                    className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer"
                     onClick={() => handleSort('title')}
                   >
                     <div className="flex items-center">
@@ -237,13 +233,13 @@ const FeedbackList = () => {
                   </th>
                   <th 
                     scope="col" 
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                    className="hidden md:table-cell px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
                   >
                     Type
                   </th>
                   <th 
                     scope="col" 
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer"
+                    className="hidden sm:table-cell px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer"
                     onClick={() => handleSort('severity')}
                   >
                     <div className="flex items-center">
@@ -257,7 +253,7 @@ const FeedbackList = () => {
                   </th>
                   <th 
                     scope="col" 
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer"
+                    className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer"
                     onClick={() => handleSort('status')}
                   >
                     <div className="flex items-center">
@@ -271,7 +267,7 @@ const FeedbackList = () => {
                   </th>
                   <th 
                     scope="col" 
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer"
+                    className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer"
                     onClick={() => handleSort('createdAt')}
                   >
                     <div className="flex items-center">
@@ -289,36 +285,54 @@ const FeedbackList = () => {
                 {sortedFeedback.map((feedback) => (
                   <tr 
                     key={feedback._id} 
-                    className="hover:bg-gray-50 dark:hover:bg-gray-850 transition-colors"
+                    className="hover:bg-indigo-50/30 dark:hover:bg-gray-750 transition-colors duration-150"
                   >
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
+                    <td className="px-3 py-3">
+                      <div className="flex items-start">
                         <div className="flex-shrink-0 h-10 w-10 flex items-center justify-center bg-indigo-100 dark:bg-indigo-900 rounded-lg mr-3">
                           {renderTypeIcon(feedback.type)}
                         </div>
-                        <div>
-                          <div className="text-sm font-medium text-gray-900 dark:text-white">
-                            {feedback.title}
+                        <div className="min-w-0 flex-1">
+                          <div className="text-sm font-medium text-gray-900 dark:text-white truncate flex items-center">
+                            <span className="truncate">{feedback.title}</span>
                           </div>
-                          <div className="text-sm text-gray-500 dark:text-gray-400 line-clamp-1">
-                            {feedback.description}
+                          <div className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                            <div className={`${expandedItems[feedback._id] ? '' : 'line-clamp-2'}`}>
+                              {feedback.description}
+                            </div>
+                            {feedback.description.length > 100 && (
+                              <button
+                                onClick={() => toggleExpand(feedback._id)}
+                                className="mt-1 text-indigo-600 dark:text-indigo-400 hover:underline flex items-center text-xs"
+                              >
+                                {expandedItems[feedback._id] ? (
+                                  <>
+                                    <ChevronUp size={12} className="mr-1" /> Show less
+                                  </>
+                                ) : (
+                                  <>
+                                    <ChevronDown size={12} className="mr-1" /> Read more
+                                  </>
+                                )}
+                              </button>
+                            )}
                           </div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200 capitalize">
+                    <td className="hidden md:table-cell px-3 py-3">
+                      <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200 capitalize truncate">
                         {feedback.type.replace('_', ' ')}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="hidden sm:table-cell px-3 py-3">
                       {renderSeverityBadge(feedback.severity)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-3 py-3">
                       {renderStatusBadge(feedback.status)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                      {format(new Date(feedback.createdAt), 'MMM dd, yyyy HH:mm')}
+                    <td className="px-3 py-3 text-sm text-gray-500 dark:text-gray-400">
+                      {format(new Date(feedback.createdAt), 'MMM dd, yyyy')}
                     </td>
                   </tr>
                 ))}
@@ -327,41 +341,12 @@ const FeedbackList = () => {
           </div>
 
           {/* Pagination */}
-          <div className="flex items-center justify-between mt-6">
-            <div className="text-sm text-gray-700 dark:text-gray-300">
-              Showing <span className="font-medium">{(currentPage - 1) * itemsPerPage + 1}</span> to{' '}
-              <span className="font-medium">
-                {Math.min(currentPage * itemsPerPage, feedbackList.pagination?.totalItems || 0)}
-              </span>{' '}
-              of <span className="font-medium">{feedbackList.pagination?.totalItems || 0}</span> results
-            </div>
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                disabled={currentPage === 1}
-                className={`p-2 rounded-md ${
-                  currentPage === 1
-                    ? 'text-gray-400 cursor-not-allowed'
-                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-                }`}
-              >
-                <ChevronLeft size={20} />
-              </button>
-              
-              <div className="flex space-x-1">{paginationItems}</div>
-              
-              <button
-                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                disabled={currentPage === totalPages}
-                className={`p-2 rounded-md ${
-                  currentPage === totalPages
-                    ? 'text-gray-400 cursor-not-allowed'
-                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-                }`}
-              >
-                <ChevronRight size={20} />
-              </button>
-            </div>
+          <div className="mt-6">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={feedbackList.pagination?.totalPages || 1}
+              onPageChange={setCurrentPage}
+            />
           </div>
         </>
       )}

@@ -35,6 +35,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { getAdminAnalytics } from "../features/user/userSlice";
 import Loader from "../components/Loader";
 import FeedbackList from './FeedbackList';
+import BroadcastNotification from "./BroadcastNotification";
 // Optimized color palette for dark theme
 const COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f97316', '#10b981', '#0ea5e9'];
 const DARK_COLORS = ['#818cf8', '#a78bfa', '#f472b6', '#fb923c', '#34d399', '#38bdf8'];
@@ -672,6 +673,9 @@ const AdminAnalytics = () => {
     </div>
     <div className="container mx-auto px-4 py-8">
       <FeedbackList />
+    </div>
+    <div className="container mx-auto px-4 py-8">
+      <BroadcastNotification />
     </div>
     </>
   );

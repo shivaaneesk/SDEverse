@@ -7,6 +7,7 @@ import themeReducer from "../features/theme/themeSlice";
 import proposalReducer from "../features/proposal/proposalSlice";
 import notificationReducer from "../features/notification/notificationSlice";
 import feedbackReducer from "../features/feedback/feedbackSlice";
+import communityReducer from "../features/community/communitySlice";
 
 const store = configureStore({
   reducer: {
@@ -18,6 +19,7 @@ const store = configureStore({
     proposal: proposalReducer,
     notification: notificationReducer,
     feedback: feedbackReducer,
+    community: communityReducer,
   },
   devTools: import.meta.env.MODE !== "production",
 });

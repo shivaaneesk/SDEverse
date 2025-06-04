@@ -1,22 +1,16 @@
 import api from "../../utils/api";
 
-// Set auth header if needed
-const config = (token) => ({
-  headers: {
-    Authorization: `Bearer ${token}`,
-  },
-});
-
 // Create proposal
-export const createProposal = async ( proposalData, token) => {
-  const response = await api.post(`proposal/newproposal`, proposalData, config(token));
+export const createProposal = async (proposalData) => {
+  const response = await api.post(`proposal/newproposal`, proposalData);
   return response.data;
 };
 
 // Get all proposals (admin or user)
-export const getAllProposals = async (query, token) => {
-  const queryString = new URLSearchParams(query).toString();
-  const response = await api.get(`proposal?${queryString}`, config(token));
+export const getAllProposals = async (query) => {
+  const response = await api.get(`proposal`, {
+    params: query,
+  });
   return response.data;
 };
 
@@ -27,19 +21,19 @@ export const getProposalBySlug = async (slug) => {
 };
 
 // Update proposal
-export const updateProposal = async (slug, proposalData, token) => {
-  const response = await api.patch(`proposal/${slug}`, proposalData, config(token));
+export const updateProposal = async (slug, proposalData) => {
+  const response = await api.patch(`proposal/${slug}`, proposalData);
   return response.data;
 };
 
 // Review proposal (admin)
-export const reviewProposal = async (slug, reviewData, token) => {
-  const response = await api.put(`proposal/review/${slug}`, reviewData, config(token));
+export const reviewProposal = async (slug, reviewData) => {
+  const response = await api.put(`proposal/review/${slug}`, reviewData);
   return response.data;
 };
 
 // Delete proposal (admin)
-export const deleteProposal = async (slug, token) => {
-  const response = await api.delete(`proposal/${slug}`, config(token));
+export const deleteProposal = async (slug) => {
+  const response = await api.delete(`proposal/${slug}`);
   return response.data;
 };

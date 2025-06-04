@@ -21,6 +21,7 @@ import Profile from "./pages/Profile";
 import AdminUsersPage from "./pages/AdminUsersPage";
 import Feedback from "./pages/Feedback";
 import AdminAnalytics from "./pages/AdminAnalytics";
+import CommunityGuidelines from "./pages/CommunityGuidelines"; // ADDED IMPORT
 import { getMe } from "./features/auth/authSlice";
 
 const router = createBrowserRouter([
@@ -48,7 +49,6 @@ const router = createBrowserRouter([
         path: "moreinfo/:platform",
         element: <MoreInfoPage />,
       },
-
       {
         path: "profile/:username",
         element: <Profile />,
@@ -66,13 +66,11 @@ const router = createBrowserRouter([
         path: "proposals/:slug/edit",
         element: <EditProposal />,
       },
-
       // Create a new proposal for an algorithm (contribute)
       {
         path: "algorithms/:slug/contribute",
         element: <EditProposal />,
       },
-
       // Create a new proposal from scratch (no slug)
       {
         path: "proposals/new",
@@ -81,6 +79,11 @@ const router = createBrowserRouter([
       {
         path: "proposals",
         element: <MyProposals />,
+      },
+      // ADDED COMMUNITY GUIDELINES ROUTE
+      {
+        path: "community-guidelines",
+        element: <CommunityGuidelines />,
       },
       {
         path: "admin/manage-algorithms",
@@ -107,13 +110,13 @@ const router = createBrowserRouter([
         ),
       },
       {
-    path: "admin/analytics",
-    element: (
-      <AdminRoute>
-        <AdminAnalytics />
-      </AdminRoute>
-    ),
-  },
+        path: "admin/analytics",
+        element: (
+          <AdminRoute>
+            <AdminAnalytics />
+          </AdminRoute>
+        ),
+      },
     ],
   },
 ]);

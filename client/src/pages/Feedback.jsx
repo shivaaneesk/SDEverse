@@ -20,7 +20,7 @@ const Feedback = () => {
   // Automatically collect device info on component mount
   useEffect(() => {
     const getDeviceInfo = () => {
-      const { userAgent, platform, vendor } = navigator;
+      const { userAgent } = navigator;
       const screen = `${window.screen.width}x${window.screen.height}`;
       
       // Parse browser info
@@ -342,7 +342,7 @@ const Feedback = () => {
         </motion.div>
         
         <div className="mt-8 text-center text-gray-500 text-sm">
-          <p>© 2025 Product Feedback System. All rights reserved.</p>
+          <p>© 2025 SDEverse Feedback System. All rights reserved.</p>
         </div>
       </div>
     </div>

@@ -57,6 +57,10 @@ const notificationSlice = createSlice({
         state.notifications[index].read = true;
       }
     },
+    resetBroadcastStatus: (state) => {
+      state.broadcastStatus = null;
+      state.error = null;
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -92,5 +96,5 @@ const notificationSlice = createSlice({
       });
   },
 });
-export const { markReadLocally } = notificationSlice.actions;
+export const { markReadLocally,resetBroadcastStatus } = notificationSlice.actions;
 export default notificationSlice.reducer;

@@ -35,14 +35,13 @@ export const submitNewProposal = createAsyncThunk(
 
 export const fetchProposals = createAsyncThunk(
   "proposal/fetchProposals",
-  async ({ page = 1, limit = 10, search = "", status = "" }, { getState, rejectWithValue }) => {
+  async (query, { getState, rejectWithValue }) => {
     try {
       const token = getState().auth.token;
-      const query = { page, limit, search, status };
       const data = await getAllProposals(query, token);
       return data;
     } catch (error) {
-      return rejectWithValue(error.response?.data || "Failed to fetch proposals");
+      return rejectWithValue(error.response?.data?.message || "Failed to fetch proposals");
     }
   }
 );

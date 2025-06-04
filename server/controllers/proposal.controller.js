@@ -64,11 +64,17 @@ const getAllProposals = asyncHandler(async (req, res) => {
   const limit = parseInt(req.query.limit) || 10;
   const { status = "", search = "" } = req.query;
 
-  const filters = {};
+  const filters = { isDeleted: false };
 
   if (status) filters.status = status;
-  if (search) filters.$text = { $search: search };
+  if (search) {
+    filters.$or = [
+      { title: { $regex: search, $options: "i" } },
+      { tags: { $regex: search, $options: "i" } }
+    ];
+  }
 
+  // For non-admins, only show their own proposals
   if (req.user.role !== "admin") {
     filters.contributor = req.user._id;
   }
@@ -88,7 +94,6 @@ const getAllProposals = asyncHandler(async (req, res) => {
     currentPage: page,
   });
 });
-
 // --- Get Proposal by Slug ---
 const getProposalBySlug = asyncHandler(async (req, res) => {
   const proposal = await Proposal.findOne({ slug: req.params.slug });
