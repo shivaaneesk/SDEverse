@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "description": "A modern, scalable backend for SDEverse, a collaborative algorithm-sharing platform.",
   "main": "server.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Harshdev625/SDEverse"
+  },
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js"
