@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-const categories = require("../utils/categories");
+const { ALGORITHM } = require("../utils/categoryTypes");
 
 const codeSchema = new mongoose.Schema(
   {
@@ -23,7 +23,7 @@ const proposalSchema = new mongoose.Schema(
     problemStatement: { type: String, required: true, trim: true },
     category: {
       type: [String],
-      enum: categories,
+      enum: ALGORITHM,
       required: true,
     },
     difficulty: {

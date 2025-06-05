@@ -8,6 +8,8 @@ import proposalReducer from "../features/proposal/proposalSlice";
 import notificationReducer from "../features/notification/notificationSlice";
 import feedbackReducer from "../features/feedback/feedbackSlice";
 import communityReducer from "../features/community/communitySlice";
+import dataStructureReducer from "../features/dataStructure/dataStructureSlice";
+import dataStructureProposalReducer from "../features/dataStructureProposal/dataStructureProposalSlice";
 
 const store = configureStore({
   reducer: {
@@ -20,6 +22,8 @@ const store = configureStore({
     notification: notificationReducer,
     feedback: feedbackReducer,
     community: communityReducer,
+    dataStructure: dataStructureReducer,
+    dataStructureProposal: dataStructureProposalReducer,
   },
   devTools: import.meta.env.MODE !== "production",
 });

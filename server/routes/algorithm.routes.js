@@ -10,6 +10,8 @@ const {
   voteAlgorithm,
   getAllCategories,
   searchAlgorithms,
+  addAlgorithmCode,
+  getContributors,
 } = require("../controllers/algorithm.controller");
 
 const { protect, admin } = require("../middleware/auth.middleware");
@@ -25,6 +27,8 @@ router.get("/:slug", getAlgorithmBySlug); // Single algorithm by slug
 router.post("/", protect, validateAlgorithm, createAlgorithm); // Create
 router.put("/:slug", protect, validateAlgorithm, updateAlgorithm); // Update
 router.delete("/:slug", protect, admin, deleteAlgorithm); // Delete
+router.post('/:slug/code', protect, addAlgorithmCode); // or addOperationImplementation
+router.get('/:slug/contributors', getContributors);
 
 // --- Voting ---
 router.post("/:slug/vote", protect, voteAlgorithm);

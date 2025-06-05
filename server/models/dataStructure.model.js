@@ -1,43 +1,79 @@
 const mongoose = require("mongoose");
-const { ALGORITHM } = require("../utils/categoryTypes");
+const { DATA_STRUCTURE } = require("../utils/categoryTypes");
 
-const codeSchema = new mongoose.Schema(
+const implementationSchema = new mongoose.Schema(
   {
     language: { type: String, required: true, trim: true },
     code: { type: String, required: true },
-  },
-  { _id: false }
-);
-
-const algorithmSchema = new mongoose.Schema(
-  {
-    title: { type: String, required: true, unique: true, trim: true },
-    slug: { type: String, required: true, unique: true },
-
-    problemStatement: { type: String, required: true, trim: true },
-    category: {
-      type: [String],
-      enum: ALGORITHM,
-      required: true,
-    },
-    difficulty: {
-      type: String,
-      enum: ["Easy", "Medium", "Hard"],
-      default: "Medium",
-      index: true,
-    },
-    intuition: { type: String, required: true },
     explanation: { type: String, required: true },
-
     complexity: {
       time: { type: String, required: true },
       space: { type: String, required: true },
     },
+  },
+  { _id: false }
+);
 
+const operationSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true },
+    description: { type: String, required: true },
+    complexity: {
+      time: { type: String, required: true },
+      space: { type: String, required: true },
+    },
+    implementations: [implementationSchema],
+  },
+  { _id: false }
+);
+
+const dataStructureSchema = new mongoose.Schema(
+  {
+    title: { type: String, required: true, unique: true, trim: true },
+    slug: { type: String, required: true, unique: true },
+
+    // Core information
+    definition: { type: String, required: true, trim: true },
+    category: {
+      type: [String],
+      enum: DATA_STRUCTURE,
+      required: true,
+    },
+    type: {
+      type: String,
+      enum: ["Linear", "Non-Linear", "Hierarchical", "Graph", "Other"],
+      required: true,
+    },
+    characteristics: { type: String, required: true },
+    visualization: { type: String }, // URL to visualization
+
+    // Operations
+    operations: [operationSchema],
+
+    // Real-world applications
+    applications: [
+      {
+        domain: { type: String, required: true },
+        examples: [{ type: String }],
+      },
+    ],
+
+    // Comparisons with other data structures
+    comparisons: [
+      {
+        with: { type: String, required: true },
+        advantages: [{ type: String }],
+        disadvantages: [{ type: String }],
+        whenToUse: { type: String },
+      },
+    ],
+
+    // Additional resources
     tags: [{ type: String, trim: true, index: true }],
-    links: [{ type: String }],
-    codes: [codeSchema],
+    references: [{ type: String }],
+    videoLinks: [{ type: String }],
 
+    // Community engagement
     contributors: [
       {
         user: {
@@ -60,12 +96,10 @@ const algorithmSchema = new mongoose.Schema(
         },
       },
     ],
-
     upvotes: { type: Number, default: 0 },
     downvotes: { type: Number, default: 0 },
     upvotedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     downvotedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
-
     views: { type: Number, default: 0 },
     viewedBy: [
       {
@@ -107,13 +141,12 @@ const algorithmSchema = new mongoose.Schema(
 );
 
 // Indexes
-algorithmSchema.index({
+dataStructureSchema.index({
   title: "text",
-  problemStatement: "text",
-  intuition: "text",
-  explanation: "text",
+  definition: "text",
+  characteristics: "text",
   tags: "text",
 });
-algorithmSchema.index({ category: 1, difficulty: 1 });
+dataStructureSchema.index({ category: 1, type: 1 });
 
-module.exports = mongoose.model("Algorithm", algorithmSchema);
+module.exports = mongoose.model("DataStructure", dataStructureSchema);

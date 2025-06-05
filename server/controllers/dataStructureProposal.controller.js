@@ -1,39 +1,40 @@
 const asyncHandler = require("express-async-handler");
-const Proposal = require("../models/proposal.model");
-const Algorithm = require("../models/algorithm.model");
+const DataStructureProposal = require("../models/dataStructureProposal.model");
+const DataStructure = require("../models/dataStructure.model");
 const User = require("../models/user.model");
 const Notification = require("../models/notification.model");
 const generateUniqueSlug = require("../utils/generateUniqueSlug");
 
-// --- Create Proposal ---
 const createProposal = asyncHandler(async (req, res) => {
   const {
     title,
-    problemStatement,
+    definition,
     category,
-    difficulty,
-    intuition,
-    explanation,
-    complexity,
+    type,
+    characteristics,
+    operations,
+    applications,
+    comparisons,
     tags,
-    links,
-    codes,
+    references,
+    videoLinks,
   } = req.body;
 
   const slug = await generateUniqueSlug(title);
 
-  const proposal = new Proposal({
+  const proposal = new DataStructureProposal({
     title,
     slug,
-    problemStatement,
+    definition,
     category,
-    difficulty,
-    intuition,
-    explanation,
-    complexity,
+    type,
+    characteristics,
+    operations,
+    applications,
+    comparisons,
     tags,
-    links,
-    codes,
+    references,
+    videoLinks,
     contributor: req.user._id,
   });
 
@@ -46,8 +47,8 @@ const createProposal = asyncHandler(async (req, res) => {
   const notifications = admins.map((admin) => ({
     recipient: admin._id,
     sender: req.user._id,
-    type: "new_proposal", // dynamic type for proposal notifications
-    message: `User "${req.user.username}" has submitted a new proposal "${title}".`,
+    type: "new_data_structure_proposal",
+    message: `User "${req.user.username}" has submitted a new data structure proposal "${title}".`,
     link: `/admin/proposals/review`,
     read: false,
   }));
@@ -58,7 +59,6 @@ const createProposal = asyncHandler(async (req, res) => {
   res.status(201).json(createdProposal);
 });
 
-// --- Get All Proposals ---
 const getAllProposals = asyncHandler(async (req, res) => {
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 10;
@@ -79,13 +79,13 @@ const getAllProposals = asyncHandler(async (req, res) => {
     filters.contributor = req.user._id;
   }
 
-  const proposals = await Proposal.find(filters)
+  const proposals = await DataStructureProposal.find(filters)
     .populate("contributor", "username")
     .skip((page - 1) * limit)
     .limit(limit)
     .sort({ createdAt: -1 });
 
-  const total = await Proposal.countDocuments(filters);
+  const total = await DataStructureProposal.countDocuments(filters);
 
   res.json({
     proposals,
@@ -94,9 +94,9 @@ const getAllProposals = asyncHandler(async (req, res) => {
     currentPage: page,
   });
 });
-// --- Get Proposal by Slug ---
+
 const getProposalBySlug = asyncHandler(async (req, res) => {
-  const proposal = await Proposal.findOne({ slug: req.params.slug });
+  const proposal = await DataStructureProposal.findOne({ slug: req.params.slug });
 
   if (!proposal) {
     res.status(404);
@@ -106,9 +106,8 @@ const getProposalBySlug = asyncHandler(async (req, res) => {
   res.json(proposal);
 });
 
-// --- Update Proposal ---
 const updateProposal = asyncHandler(async (req, res) => {
-  const proposal = await Proposal.findOne({ slug: req.params.slug });
+  const proposal = await DataStructureProposal.findOne({ slug: req.params.slug });
 
   if (!proposal) {
     res.status(404);
@@ -125,15 +124,16 @@ const updateProposal = asyncHandler(async (req, res) => {
 
   const fieldsToUpdate = [
     "title",
-    "problemStatement",
+    "definition",
     "category",
-    "difficulty",
-    "intuition",
-    "explanation",
-    "complexity",
+    "type",
+    "characteristics",
+    "operations",
+    "applications",
+    "comparisons",
     "tags",
-    "links",
-    "codes",
+    "references",
+    "videoLinks",
   ];
 
   for (const field of fieldsToUpdate) {
@@ -150,9 +150,8 @@ const updateProposal = asyncHandler(async (req, res) => {
   res.json(updated);
 });
 
-// --- Review (Approve / Reject) ---
 const reviewProposal = asyncHandler(async (req, res) => {
-  const proposal = await Proposal.findOne({ slug: req.params.slug });
+  const proposal = await DataStructureProposal.findOne({ slug: req.params.slug });
 
   if (!proposal || proposal.isDeleted) {
     res.status(404);
@@ -173,63 +172,46 @@ const reviewProposal = asyncHandler(async (req, res) => {
 
   if (status === "approved" && !proposal.mergedWith) {
     try {
-      const algorithm = new Algorithm({
+      const dataStructure = new DataStructure({
         title: proposal.title,
         slug: proposal.slug,
-        problemStatement: proposal.problemStatement,
+        definition: proposal.definition,
         category: proposal.category,
-        difficulty: proposal.difficulty,
-        intuition: proposal.intuition,
-        explanation: proposal.explanation,
-        complexity: proposal.complexity,
+        type: proposal.type,
+        characteristics: proposal.characteristics,
+        operations: proposal.operations,
+        applications: proposal.applications,
+        comparisons: proposal.comparisons,
         tags: proposal.tags,
-        links: proposal.links,
-        codes: proposal.codes,
+        references: proposal.references,
+        videoLinks: proposal.videoLinks,
         createdBy: proposal.contributor,
         isPublished: true,
-        createdBy: proposal.contributor,
-        isPublished: true,
-        // Add contributor record
-        contributors: [{
-          user: proposal.contributor,
-          contributionType: "create",
-          description: "Initial creation from proposal"
-        }]
       });
 
-      const createdAlgorithm = await algorithm.save();
+      const createdDataStructure = await dataStructure.save();
 
-      proposal.mergedWith = createdAlgorithm._id;
+      proposal.mergedWith = createdDataStructure._id;
       proposal.mergedBy = req.user._id;
       proposal.mergedAt = new Date();
 
-      await TargetModel.findByIdAndUpdate(createdItem._id, {
-        $push: {
-          contributors: {
-            user: req.user._id,
-            contributionType: "review",
-            description: "Approved and merged proposal"
-          }
-        }
-      });
-      
       // Notify all users/admins
       const users = await User.find({}, "_id").lean();
 
       const notifications = users.map((user) => ({
         recipient: user._id,
         sender: req.user._id,
-        type: "new_algorithm",
-        message: `A new algorithm "${createdAlgorithm.title}" has been added.`,
-        link: `/algorithms/${createdAlgorithm.slug}`,
+        type: "new_data_structure",
+        message: `A new data structure "${createdDataStructure.title}" has been added.`,
+        link: `/data-structures/${createdDataStructure.slug}`,
         read: false,
       }));
 
       await Notification.insertMany(notifications);
     } catch (error) {
-      console.error("Error merging proposal to algorithm:", error);
+      console.error("Error merging proposal to data structure:", error);
       res.status(500);
-      throw new Error("Failed to merge proposal to algorithm.");
+      throw new Error("Failed to merge proposal to data structure.");
     }
   }
 
@@ -237,9 +219,8 @@ const reviewProposal = asyncHandler(async (req, res) => {
   res.json(updatedProposal);
 });
 
-// --- Soft Delete Proposal ---
 const deleteProposal = asyncHandler(async (req, res) => {
-  const proposal = await Proposal.findOne({ slug: req.params.slug });
+  const proposal = await DataStructureProposal.findOne({ slug: req.params.slug });
 
   if (!proposal) {
     res.status(404);

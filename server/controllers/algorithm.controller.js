@@ -4,7 +4,7 @@ const Notification = require("../models/notification.model");
 const User = require("../models/user.model");
 const generateUniqueSlug = require("../utils/generateUniqueSlug");
 
-const categoriesList = require("../utils/categories");
+const { ALGORITHM } = require("../utils/categoryTypes");
 
 const createAlgorithm = asyncHandler(async (req, res) => {
   const {
@@ -30,7 +30,7 @@ const createAlgorithm = asyncHandler(async (req, res) => {
       .json({ message: "Category must be a non-empty array." });
   }
 
-  const invalid = category.filter((cat) => !categoriesList.includes(cat));
+  const invalid = category.filter((cat) => !ALGORITHM.includes(cat));
   if (invalid.length > 0) {
     return res
       .status(400)
@@ -53,6 +53,12 @@ const createAlgorithm = asyncHandler(async (req, res) => {
     codes,
     createdBy: req.user._id,
     isPublished: true,
+    // Add initial contributor
+    contributors: [{
+      user: req.user._id,
+      contributionType: "create",
+      description: "Initial creation"
+    }]
   });
 
   const createdAlgorithm = await algorithm.save();
@@ -103,6 +109,14 @@ const updateAlgorithm = asyncHandler(async (req, res) => {
     codes,
   } = req.body;
 
+  // Track changes for contribution record
+  const changes = [];
+  if (title && title !== algorithm.title) changes.push("title");
+  if (problemStatement && problemStatement !== algorithm.problemStatement) changes.push("problem statement");
+  if (intuition && intuition !== algorithm.intuition) changes.push("intuition");
+  if (explanation && explanation !== algorithm.explanation) changes.push("explanation");
+  // Add other fields as needed
+
   algorithm.title = title || algorithm.title;
   algorithm.problemStatement = problemStatement || algorithm.problemStatement;
   algorithm.category = category || algorithm.category;
@@ -114,8 +128,49 @@ const updateAlgorithm = asyncHandler(async (req, res) => {
   algorithm.links = links || algorithm.links;
   algorithm.codes = codes || algorithm.codes;
 
+  // Add contribution record if there were changes
+  if (changes.length > 0) {
+    algorithm.contributors.push({
+      user: req.user._id,
+      contributionType: "edit",
+      description: `Updated ${changes.join(", ")}`
+    });
+  }
+
   const updatedAlgorithm = await algorithm.save();
 
+  res.json(updatedAlgorithm);
+});
+
+// Add this new controller for adding code implementations
+const addAlgorithmCode = asyncHandler(async (req, res) => {
+  const { language, code } = req.body;
+  
+  const algorithm = await Algorithm.findOne({ slug: req.params.slug });
+  if (!algorithm) {
+    res.status(404);
+    throw new Error("Algorithm not found");
+  }
+
+  // Check if code for this language already exists
+  const existingCodeIndex = algorithm.codes.findIndex(c => c.language === language);
+  
+  if (existingCodeIndex >= 0) {
+    // Update existing code
+    algorithm.codes[existingCodeIndex].code = code;
+  } else {
+    // Add new code
+    algorithm.codes.push({ language, code });
+  }
+
+  // Add contribution record
+  algorithm.contributors.push({
+    user: req.user._id,
+    contributionType: "code",
+    description: `${existingCodeIndex >= 0 ? 'Updated' : 'Added'} ${language} implementation`
+  });
+
+  const updatedAlgorithm = await algorithm.save();
   res.json(updatedAlgorithm);
 });
 
@@ -171,7 +226,8 @@ const getAllAlgorithms = asyncHandler(async (req, res) => {
 });
 
 const getAlgorithmBySlug = asyncHandler(async (req, res) => {
-  const algorithm = await Algorithm.findOne({ slug: req.params.slug });
+  const algorithm = await Algorithm.findOne({ slug: req.params.slug })
+    .populate('contributors.user', 'username avatarUrl');
 
   if (!algorithm) {
     res.status(404);
@@ -294,7 +350,7 @@ const voteAlgorithm = asyncHandler(async (req, res) => {
 
 const getAllCategories = (req, res) => {
   try {
-    const sortedCategories = [...categoriesList].sort();
+    const sortedCategories = [...ALGORITHM].sort();
     res.status(200).json({
       success: true,
       categories: sortedCategories,
@@ -357,6 +413,19 @@ const searchAlgorithms = asyncHandler(async (req, res) => {
   });
 });
 
+const getContributors = asyncHandler(async (req, res) => {
+  const item = await TargetModel.findOne({ slug: req.params.slug })
+    .populate('contributors.user', 'username avatarUrl')
+    .select('contributors');
+    
+  if (!item) {
+    res.status(404);
+    throw new Error("Item not found");
+  }
+
+  res.json(item.contributors);
+});
+
 module.exports = {
   createAlgorithm,
   getAllAlgorithms,
@@ -366,4 +435,6 @@ module.exports = {
   voteAlgorithm,
   getAllCategories,
   searchAlgorithms,
+  addAlgorithmCode,
+  getContributors,
 };

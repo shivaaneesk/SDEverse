@@ -21,7 +21,7 @@ import Profile from "./pages/Profile";
 import AdminUsersPage from "./pages/AdminUsersPage";
 import Feedback from "./pages/Feedback";
 import AdminAnalytics from "./pages/AdminAnalytics";
-import CommunityGuidelines from "./pages/CommunityGuidelines"; // ADDED IMPORT
+import CommunityGuidelines from "./pages/CommunityGuidelines";
 import { getMe } from "./features/auth/authSlice";
 
 const router = createBrowserRouter([
