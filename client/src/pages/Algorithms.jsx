@@ -6,16 +6,16 @@ import {
   searchAllAlgorithms,
 } from "../features/algorithm/algorithmSlice";
 import { Link } from "react-router-dom";
-import { ChevronDown, Search } from "lucide-react";
+import { ChevronDown, Search, ArrowLeft, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 const Algorithm = () => {
   const dispatch = useDispatch();
   const {
-    categories = [],      // default empty array
-    algorithms = [],      // default empty array
-    searchResults = [],   // default empty array
+    categories = [],
+    algorithms = [],
+    searchResults = [],
     loading,
     error,
     total,
@@ -24,13 +24,13 @@ const Algorithm = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const [expandedCategories, setExpandedCategories] = useState({});
 
   useEffect(() => {
     dispatch(fetchCategories());
     dispatch(fetchAlgorithms({ page: 1, limit: 10 }));
   }, [dispatch]);
 
-  // Handle search input
   const handleSearchChange = (e) => {
     const query = e.target.value;
     setSearchQuery(query);
@@ -43,155 +43,222 @@ const Algorithm = () => {
 
   const toggleCategory = (category) => {
     setSelectedCategory(selectedCategory === category ? null : category);
+    setExpandedCategories((prev) => ({
+      ...prev,
+      [category]: !prev[category],
+    }));
   };
 
-  // Decide which algorithms to display depending on search
   const isSearching = searchQuery.trim().length > 0;
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      <div className="flex justify-between items-center mb-4">
-        <button
-          onClick={() => navigate(-1)}
-          className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition"
-          title="Back"
-        >
-          <ArrowLeft size={20} />
-        </button>
-        <button
-          onClick={() => navigate(1)}
-          className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition"
-          title="Forward"
-        >
-          <ArrowRight size={20} />
-        </button>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.3 }}
+      className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 max-w-7xl"
+    >
+      {/* Navigation Controls */}
+      <div className="flex justify-between items-center mb-8">
+        <div className="flex justify-between items-center w-full">
+          <button
+            onClick={() => navigate(-1)}
+            className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all shadow-sm"
+            aria-label="Go back"
+          >
+            <ArrowLeft size={20} className="text-gray-700 dark:text-gray-300" />
+          </button>
+          <button
+            onClick={() => navigate(1)}
+            className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all shadow-sm"
+            aria-label="Go forward"
+          >
+            <ArrowRight
+              size={20}
+              className="text-gray-700 dark:text-gray-300"
+            />
+          </button>
+        </div>
       </div>
 
-      <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-        What is an Algorithm?
-      </h1>
-      <p className="mt-4 text-gray-600 dark:text-gray-300 text-lg">
-        Algorithms are step-by-step procedures or formulas for solving a problem.
-        They form the backbone of computer programming and data science, enabling
-        us to solve complex problems efficiently.
-      </p>
+      {/* Hero Section */}
+      <div className="mb-10 px-4 sm:px-6 lg:px-8 w-full max-w-7xl mx-auto">
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4">
+          Algorithm Explorer
+        </h1>
+        <p className="text-base sm:text-lg md:text-xl text-gray-600 dark:text-gray-300 leading-relaxed">
+          Discover and learn about various algorithms. Algorithms are
+          step-by-step procedures for solving problems, forming the backbone of
+          computer programming and data science.
+        </p>
+      </div>
 
       {/* Search Bar */}
-      <div className="mt-6 flex items-center space-x-4">
-        <div className="relative flex-1">
+      <div className="mb-10">
+        <div className="relative max-w-2xl mx-auto">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <Search size={20} className="text-gray-500 dark:text-gray-400" />
+          </div>
           <input
             type="text"
             value={searchQuery}
             onChange={handleSearchChange}
-            placeholder="Search Algorithms..."
-            className="w-full py-2 pl-10 pr-4 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <Search
-            size={20}
-            className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600 dark:text-gray-300"
+            placeholder="Search algorithms by name, category, or description..."
+            className="w-full py-3 pl-10 pr-4 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm transition-all"
           />
         </div>
       </div>
 
-      {/* If searching, show search results as a flat list */}
-      {isSearching ? (
-        <div className="mt-8">
-          <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
-            Search Results
+      {/* Content Area */}
+      {loading ? (
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        </div>
+      ) : error ? (
+        <div className="bg-red-100 dark:bg-red-900/20 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg">
+          {error}
+        </div>
+      ) : isSearching ? (
+        <div className="space-y-6">
+          <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
+            Search Results{" "}
+            {searchResults.length > 0 && `(${searchResults.length})`}
           </h2>
 
-          {loading && (
-            <p className="text-gray-500 dark:text-gray-300">Loading search results...</p>
+          {searchResults.length === 0 ? (
+            <div className="text-center py-10">
+              <p className="text-gray-500 dark:text-gray-400 text-lg">
+                No algorithms found matching "{searchQuery}"
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {searchResults.map((algorithm) => (
+                <motion.div
+                  key={algorithm.slug}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <Link
+                    to={`/algorithms/${algorithm.slug}`}
+                    className="block h-full p-6 rounded-xl bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 transition-all shadow-sm hover:shadow-md"
+                  >
+                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                      {algorithm.title}
+                    </h3>
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {algorithm.category?.map((cat) => (
+                        <span
+                          key={cat}
+                          className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200"
+                        >
+                          {cat}
+                        </span>
+                      ))}
+                    </div>
+                    <p className="text-gray-600 dark:text-gray-400 line-clamp-2">
+                      {algorithm.description || algorithm.intuition}
+                    </p>
+                  </Link>
+                </motion.div>
+              ))}
+            </div>
           )}
-
-          {!loading && searchResults.length === 0 && (
-            <p className="text-gray-500 dark:text-gray-300">
-              No algorithms match your search.
-            </p>
-          )}
-
-          {!loading &&
-            searchResults.map((algorithm) => (
-              <Link
-                to={`/algorithms/${algorithm.slug}`}
-                key={algorithm.slug}
-                className="block p-4 mb-4 rounded-lg bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700 transition-all"
-              >
-                <h3 className="text-xl font-medium text-gray-900 dark:text-white">
-                  {algorithm.title}
-                </h3>
-                <p className="text-gray-600 dark:text-gray-400">
-                  {algorithm.description || algorithm.intuition}
-                </p>
-              </Link>
-            ))}
         </div>
       ) : (
-        /* If NOT searching, show categories with algorithms grouped */
-        <div className="mt-8">
-          {categories.length > 0 ? (
-            categories.map((category) => (
-              <div key={category} className="mb-6">
-                <div
-                  className="flex items-center justify-between cursor-pointer text-lg font-semibold text-gray-900 dark:text-white"
-                  onClick={() => toggleCategory(category)}
-                >
-                  <span className="text-white">{category}</span>
-                  <ChevronDown
-                    size={24}
-                    className={`transition-transform ${
-                      selectedCategory === category ? "rotate-180" : ""
-                    }`}
-                  />
-                </div>
+        <div className="space-y-8">
+          <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
+            Browse by Category
+          </h2>
 
-                {selectedCategory === category && (
-                  <div className="mt-4 space-y-4">
-                    {algorithms
-                      .filter((algo) => algo.category?.includes(category))
-                      .map((algorithm) => (
-                        <Link
-                          to={`/algorithms/${algorithm.slug}`}
-                          key={algorithm.slug}
-                          className="block p-4 rounded-lg bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700 transition-all"
-                        >
-                          <h3 className="text-xl font-medium text-gray-900 dark:text-white">
-                            {algorithm.title}
-                          </h3>
-                          <p className="text-gray-600 dark:text-gray-400">
-                            {algorithm.description || algorithm.intuition}
-                          </p>
-                        </Link>
-                      ))}
-                  </div>
-                )}
-              </div>
-            ))
+          {categories.length === 0 ? (
+            <div className="text-center py-10">
+              <p className="text-gray-500 dark:text-gray-400">
+                No categories available.
+              </p>
+            </div>
           ) : (
-            <p className="text-gray-500 dark:text-gray-300">No categories available.</p>
+            <div className="space-y-4">
+              {categories.map((category) => {
+                const categoryAlgorithms = algorithms.filter((algo) =>
+                  algo.category?.includes(category)
+                );
+
+                return (
+                  <div
+                    key={category}
+                    className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden shadow-sm"
+                  >
+                    <button
+                      onClick={() => toggleCategory(category)}
+                      className="w-full flex justify-between items-center p-4 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                          {category}
+                        </h3>
+                        <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
+                          {categoryAlgorithms.length}
+                        </span>
+                      </div>
+                      <ChevronDown
+                        size={20}
+                        className={`transition-transform ${
+                          expandedCategories[category] ? "rotate-180" : ""
+                        } text-gray-500 dark:text-gray-400`}
+                      />
+                    </button>
+
+                    <AnimatePresence>
+                      {expandedCategories[category] && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {categoryAlgorithms.length > 0 ? (
+                              categoryAlgorithms.map((algorithm) => (
+                                <motion.div
+                                  key={algorithm.slug}
+                                  initial={{ opacity: 0 }}
+                                  animate={{ opacity: 1 }}
+                                  transition={{ duration: 0.2 }}
+                                >
+                                  <Link
+                                    to={`/algorithms/${algorithm.slug}`}
+                                    className="block p-4 rounded-lg bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 transition-all"
+                                  >
+                                    <h4 className="font-medium text-gray-900 dark:text-white mb-1">
+                                      {algorithm.title}
+                                    </h4>
+                                    <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
+                                      {algorithm.description ||
+                                        algorithm.intuition}
+                                    </p>
+                                  </Link>
+                                </motion.div>
+                              ))
+                            ) : (
+                              <p className="text-gray-500 dark:text-gray-400 col-span-full py-2">
+                                No algorithms in this category.
+                              </p>
+                            )}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                );
+              })}
+            </div>
           )}
         </div>
       )}
-
-      {/* Loading Spinner */}
-      {loading && (
-        <div className="flex justify-center mt-6">
-          <div className="spinner-border text-blue-500" role="status">
-            <span className="sr-only">Loading...</span>
-          </div>
-        </div>
-      )}
-
-      {/* Error Message */}
-      {error && <p className="mt-4 text-red-500">{error}</p>}
-
-      {/* No Algorithms Found Message */}
-      {total === 0 && !loading && !error && (
-        <p className="mt-6 text-gray-500 dark:text-gray-300">
-          No algorithms found. Try a different search.
-        </p>
-      )}
-    </div>
+    </motion.div>
   );
 };
 
