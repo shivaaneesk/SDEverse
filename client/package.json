@@ -15,12 +15,12 @@
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
-    "@reduxjs/toolkit": "^2.8.0",
-    "@tailwindcss/vite": "^4.1.5",
+    "@reduxjs/toolkit": "^2.8.2",
+    "@tailwindcss/vite": "^4.1.8",
     "axios": "^1.9.0",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
-    "framer-motion": "^12.10.0",
+    "framer-motion": "^12.16.0",
     "katex": "^0.16.22",
     "lucide-react": "^0.513.0",
     "react": "^19.1.0",
@@ -38,12 +38,12 @@
     "rehype-katex": "^7.0.1",
     "remark-gfm": "^4.0.1",
     "remark-math": "^6.0.0",
-    "tailwindcss": "^4.1.5"
+    "tailwindcss": "^4.1.8"
   },
   "devDependencies": {
     "@eslint/js": "^9.25.0",
     "@types/react": "^19.1.6",
-    "@types/react-dom": "^19.1.2",
+    "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^4.5.1",
     "eslint": "^9.28.0",
     "eslint-plugin-react-hooks": "^5.2.0",
