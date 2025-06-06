@@ -67,7 +67,7 @@ export default function Profile() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     await dispatch(patchMyProfile(formData));
-    await dispatch(getMyProfile());
+    await dispatch(getMyProfile()); // Refresh profile to get updated data and timestamps
     setIsEditing(false);
     setHasChanges(false);
   };
@@ -95,11 +95,10 @@ export default function Profile() {
     try {
       if (type === "competitive") {
         await dispatch(refreshCompetitiveStats());
-        setLastRefreshed((prev) => ({ ...prev, competitive: new Date() }));
       } else {
         await dispatch(refreshSocialStats());
-        setLastRefreshed((prev) => ({ ...prev, social: new Date() }));
       }
+      // Re-fetch profile to get the latest stats and refresh timestamps
       await dispatch(getMyProfile());
     } finally {
       setRefreshing({ type: null });
@@ -108,24 +107,27 @@ export default function Profile() {
 
   if (status === "loading" || !formData) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="animate-spin text-blue-600" size={32} />
+      <div className="flex items-center justify-center min-h-screen bg-gray-950 text-gray-200">
+        <Loader2 className="animate-spin text-blue-500 mr-3" size={48} />
+        <p className="text-xl font-semibold">Loading Profile...</p>
       </div>
     );
   }
 
   return (
-    <ProfileForm
-      formData={formData}
-      isEditing={isEditing}
-      hasChanges={hasChanges}
-      refreshing={refreshing}
-      lastRefreshed={lastRefreshed}
-      onChange={handleChange}
-      onSubmit={handleSubmit}
-      onCancel={handleCancel}
-      onEditToggle={() => setIsEditing(!isEditing)}
-      onRefresh={handleRefresh}
-    />
+    <div className="min-h-screen bg-gray-950 text-gray-100 py-8 px-4 sm:px-6 lg:px-8">
+      <ProfileForm
+        formData={formData}
+        isEditing={isEditing}
+        hasChanges={hasChanges}
+        refreshing={refreshing}
+        lastRefreshed={lastRefreshed}
+        onChange={handleChange}
+        onSubmit={handleSubmit}
+        onCancel={handleCancel}
+        onEditToggle={() => setIsEditing(!isEditing)}
+        onRefresh={handleRefresh}
+      />
+    </div>
   );
 }

@@ -39,7 +39,7 @@ const LeetCode = () => {
 
   useEffect(() => {
     dispatch(getMyProfile());
-    dispatch(refreshSingleCompetitiveStat('leetcode'));
+    dispatch(refreshSingleCompetitiveStat("leetcode"));
   }, [dispatch]);
 
   useEffect(() => {
@@ -84,8 +84,7 @@ const LeetCode = () => {
     },
   ].map((item) => ({
     ...item,
-    percent:
-      item.total > 0 ? Math.round((item.solved / item.total) * 100) : 0,
+    percent: item.total > 0 ? Math.round((item.solved / item.total) * 100) : 0,
   }));
 
   // Prepare contest data
@@ -94,7 +93,7 @@ const LeetCode = () => {
     const filteredHistory = moreInfo.contestHistory.filter(
       (item) => item.rating && item.contest?.startTime
     );
-    
+
     const sortedHistory = filteredHistory
       .map((item) => {
         const date = new Date(item.contest.startTime * 1000);
@@ -122,6 +121,7 @@ const LeetCode = () => {
 
     contestData = withChange.reverse(); // Reverse to make most recent first
   }
+  const currentRanking = moreInfo?.contestStats?.globalRanking || null;
 
   // Sort contest data
   let sortedContestData = [];
@@ -143,7 +143,10 @@ const LeetCode = () => {
 
   // Paginated contest data
   const startIndex = (currentContestPage - 1) * CONTESTS_PER_PAGE;
-  const paginatedContestData = sortedContestData.slice(startIndex, startIndex + CONTESTS_PER_PAGE);
+  const paginatedContestData = sortedContestData.slice(
+    startIndex,
+    startIndex + CONTESTS_PER_PAGE
+  );
 
   // Contest statistics
   let contestStats = null;
@@ -171,14 +174,13 @@ const LeetCode = () => {
 
     contestStats = {
       totalContests: contestData.length,
-      currentRating: Math.round(
-        contestData[contestData.length - 1]?.rating || 0
-      ),
+      currentRating: Math.round(contestData[0]?.rating || 0),
       maxRating: Math.round(maxRating),
       minRating: Math.round(minRating),
       avgRating: Math.round(avgRating),
       bestContest,
       worstContest,
+      currentRanking,
     };
   }
 
@@ -191,20 +193,37 @@ const LeetCode = () => {
       contestName: item.contestName,
       contestUrl: item.contestUrl,
       change:
-        index > 0
-          ? Math.round(item.rating - contestData[index - 1].rating)
-          : 0,
+        index > 0 ? Math.round(item.rating - contestData[index - 1].rating) : 0,
     }));
 
   // Calculate totals
-  const totalSolved = difficultyData.reduce((sum, item) => sum + item.solved, 0);
-  const totalAvailable = difficultyData.reduce((sum, item) => sum + item.total, 0);
-  const totalPercentSolved = totalAvailable > 0 
-    ? Math.round((totalSolved / totalAvailable) * 100) 
-    : 0;
+  const totalSolved = difficultyData.reduce(
+    (sum, item) => sum + item.solved,
+    0
+  );
+  const totalAvailable = difficultyData.reduce(
+    (sum, item) => sum + item.total,
+    0
+  );
+  const totalPercentSolved =
+    totalAvailable > 0 ? Math.round((totalSolved / totalAvailable) * 100) : 0;
 
   const colors = isDarkMode ? DARK_COLORS : LIGHT_COLORS;
+  let bestGain = 0;
+  const contestHistory = moreInfo.contestHistory;
 
+  if (contestHistory && contestHistory.length > 1) {
+    for (let i = 1; i < contestHistory.length; i++) {
+      const previousRating = contestHistory[i - 1].rating;
+      const currentContestRating = contestHistory[i].rating;
+      const gain = currentContestRating - previousRating;
+
+      // We only care about positive gains
+      if (gain > bestGain) {
+        bestGain = gain;
+      }
+    }
+  }
   const handleSort = (key) => {
     let direction = "asc";
     if (sortConfig.key === key && sortConfig.direction === "asc") {
@@ -354,10 +373,10 @@ const LeetCode = () => {
               description="Average contest performance"
             />
             <StatCard
-              title="Best Gain"
-              value={`+${Math.round(contestStats.bestContest?.change || 0)}`}
-              trend="positive"
-              description={`In ${contestStats.bestContest?.contestName || ""}`}
+              title="Best Rating Gain"
+              value={bestGain.toFixed(2)} // To display with 2 decimal places
+              trend="positive" // Since it's a gain, it's always positive
+              description="Your largest rating increase in a single LeetCode contest."
             />
           </div>
         </section>

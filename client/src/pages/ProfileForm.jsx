@@ -16,40 +16,40 @@ export default function ProfileForm({
   readonly = false,
 }) {
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10 bg-gray-900 rounded-2xl shadow-xl p-6 sm:p-8 lg:p-12 border border-gray-800">
       {/* Header */}
       {!readonly && (
-        <div className="flex justify-between items-center flex-wrap gap-4">
-          <h1 className="text-4xl font-bold text-white text-center w-full sm:w-auto">
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-6 pb-8 border-b border-gray-700">
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-blue-500 drop-shadow-lg text-center sm:text-left">
             My Profile
           </h1>
 
           {!isEditing ? (
             <button
               onClick={onEditToggle}
-              className="flex items-center gap-2 text-green-600 font-medium bg-green-50 hover:bg-green-100 dark:bg-green-900/10 dark:hover:bg-green-900/20 px-4 py-2 rounded-xl transition shadow-sm hover:shadow-md hover:scale-[1.02]"
+              className="flex items-center gap-3 px-7 py-3 bg-gradient-to-r from-emerald-500 to-green-600 text-white font-semibold rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 ease-in-out text-lg"
             >
-              <Pencil size={18} className="text-green-600" />
-              Edit
+              <Pencil size={22} />
+              Edit Profile
             </button>
           ) : (
-            <div className="flex gap-3 flex-wrap justify-center sm:justify-end w-full sm:w-auto">
+            <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
               <button
                 onClick={onCancel}
-                className="px-5 py-2 font-medium rounded-full border border-slate-600 text-slate-700 dark:border-slate-400 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition shadow-sm hover:shadow-md hover:scale-[1.02]"
+                className="px-7 py-3 font-medium rounded-full border border-gray-600 text-gray-300 hover:bg-gray-700 hover:border-gray-500 transition-all duration-300 ease-in-out shadow-md text-lg"
               >
                 Cancel
               </button>
               <button
                 onClick={onSubmit}
                 disabled={!hasChanges}
-                className={`px-5 py-2 font-semibold rounded-full transition ${
+                className={`px-7 py-3 font-semibold rounded-full transition-all duration-300 ease-in-out shadow-md text-lg ${
                   hasChanges
-                    ? "bg-green-600 text-white hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 shadow hover:shadow-lg hover:scale-105"
-                    : "bg-gray-400 text-white cursor-not-allowed"
+                    ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 hover:shadow-lg transform hover:scale-105"
+                    : "bg-gray-700 text-gray-400 cursor-not-allowed opacity-70"
                 }`}
               >
-                Save
+                Save Changes
               </button>
             </div>
           )}
@@ -57,7 +57,7 @@ export default function ProfileForm({
       )}
 
       {/* Profile Details */}
-      <section className="space-y-6">
+      <section className="space-y-8">
         <ProfileSection
           isEditing={isEditing && !readonly}
           formData={formData}
@@ -66,7 +66,7 @@ export default function ProfileForm({
       </section>
 
       {/* Competitive Links */}
-      <section className="space-y-6">
+      <section className="space-y-8">
         <LinksSection
           title="Competitive Links"
           links={formData.competitiveProfiles}
@@ -81,7 +81,7 @@ export default function ProfileForm({
       </section>
 
       {/* Social Links */}
-      <section className="space-y-6">
+      <section className="space-y-8">
         <LinksSection
           title="Social Links"
           links={formData.socialLinks}
