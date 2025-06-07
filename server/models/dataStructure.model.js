@@ -1,10 +1,17 @@
 const mongoose = require("mongoose");
 const { DATA_STRUCTURE } = require("../utils/categoryTypes");
 
-const implementationSchema = new mongoose.Schema(
+const codeSchema = new mongoose.Schema(
   {
     language: { type: String, required: true, trim: true },
     code: { type: String, required: true },
+  },
+  { _id: false }
+);
+
+const implementationSchema = new mongoose.Schema(
+  {
+    codeDetails: { type: codeSchema, required: true },
     explanation: { type: String, required: true },
     complexity: {
       time: { type: String, required: true },
@@ -32,7 +39,6 @@ const dataStructureSchema = new mongoose.Schema(
     title: { type: String, required: true, unique: true, trim: true },
     slug: { type: String, required: true, unique: true },
 
-    // Core information
     definition: { type: String, required: true, trim: true },
     category: {
       type: [String],
@@ -45,12 +51,12 @@ const dataStructureSchema = new mongoose.Schema(
       required: true,
     },
     characteristics: { type: String, required: true },
-    visualization: { type: String }, // URL to visualization
+    visualization: { type: String },
 
-    // Operations
     operations: [operationSchema],
 
-    // Real-world applications
+    fullImplementations: [codeSchema],
+
     applications: [
       {
         domain: { type: String, required: true },
@@ -58,7 +64,6 @@ const dataStructureSchema = new mongoose.Schema(
       },
     ],
 
-    // Comparisons with other data structures
     comparisons: [
       {
         with: { type: String, required: true },
@@ -68,12 +73,10 @@ const dataStructureSchema = new mongoose.Schema(
       },
     ],
 
-    // Additional resources
     tags: [{ type: String, trim: true, index: true }],
     references: [{ type: String }],
     videoLinks: [{ type: String }],
 
-    // Community engagement
     contributors: [
       {
         user: {
@@ -108,7 +111,6 @@ const dataStructureSchema = new mongoose.Schema(
       },
     ],
 
-    // Admin review and workflow metadata
     status: {
       type: String,
       enum: ["pending", "approved", "rejected"],
@@ -118,7 +120,6 @@ const dataStructureSchema = new mongoose.Schema(
     reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     reviewedAt: { type: Date },
 
-    // Ownership + soft delete + audit
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -132,7 +133,6 @@ const dataStructureSchema = new mongoose.Schema(
     deletedAt: { type: Date },
     deletedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
 
-    // Publication state
     isPublished: { type: Boolean, default: false },
     publishedAt: { type: Date },
     publishedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
@@ -140,7 +140,6 @@ const dataStructureSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Indexes
 dataStructureSchema.index({
   title: "text",
   definition: "text",

@@ -2,11 +2,11 @@ import { useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import {
-  fetchAlgorithmBySlug,
-  voteOnAlgorithm,
-} from "../features/algorithm/algorithmSlice";
+  fetchDataStructureBySlug,
+  voteOnDataStructure,
+} from "../features/dataStructure/dataStructureSlice";
 import Loader from "../components/Loader";
-import AlgorithmPreview from "./AlgorithmPreview";
+import DataStructurePreview from "./DataStructurePreview";
 import CommentSection from "./CommentSection";
 import {
   ArrowLeft,
@@ -18,16 +18,19 @@ import {
 import { motion } from "framer-motion";
 import { toast } from "react-toastify";
 
-const AlgorithmDetail = () => {
+const DataStructureDetail = () => {
   const { slug } = useParams();
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
-  const { algorithm, loading, error } = useSelector((state) => state.algorithm);
+
+  const { dataStructure, loading, error } = useSelector(
+    (state) => state.dataStructure
+  );
 
   useEffect(() => {
     if (slug) {
-      dispatch(fetchAlgorithmBySlug(slug));
+      dispatch(fetchDataStructureBySlug(slug));
     }
   }, [slug, dispatch]);
 
@@ -36,20 +39,21 @@ const AlgorithmDetail = () => {
       toast.info("You must be logged in to vote.");
       return;
     }
-    if (!algorithm?.slug) return;
+
+    if (!dataStructure?.slug) return;
 
     dispatch(
-      voteOnAlgorithm({
-        slug: algorithm.slug,
+      voteOnDataStructure({
+        slug: dataStructure.slug,
         voteData: { type },
       })
     );
   };
 
   const currentUserVoteType = (() => {
-    if (!user || !algorithm) return null;
-    if (algorithm.upvotedBy?.includes(user._id)) return "upvote";
-    if (algorithm.downvotedBy?.includes(user._id)) return "downvote";
+    if (!user || !dataStructure) return null;
+    if (dataStructure.upvotedBy?.includes(user._id)) return "upvote";
+    if (dataStructure.downvotedBy?.includes(user._id)) return "downvote";
     return null;
   })();
 
@@ -58,7 +62,8 @@ const AlgorithmDetail = () => {
       toast.info("You must be logged in to contribute.");
       return;
     }
-    navigate(`/algorithms/${algorithm.slug}/contribute`);
+
+    navigate(`/data-structures/${dataStructure.slug}/contribute`);
   };
 
   if (loading)
@@ -74,7 +79,7 @@ const AlgorithmDetail = () => {
         <div className="bg-red-100 dark:bg-red-900/20 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-300 px-6 py-4 rounded-lg shadow-md text-center max-w-lg w-full">
           <p className="text-xl font-semibold mb-3">Oops! An error occurred.</p>
           <p className="text-base mb-4">
-            {error.message || "Failed to load algorithm details."}
+            {error.message || "Failed to load data structure details."}
           </p>
           <button
             onClick={() => navigate("/")}
@@ -86,19 +91,20 @@ const AlgorithmDetail = () => {
       </div>
     );
 
-  if (!algorithm)
+  if (!dataStructure)
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950 p-4">
         <div className="bg-blue-100 dark:bg-blue-900/20 border border-blue-400 dark:border-blue-700 text-blue-700 dark:text-blue-300 px-6 py-4 rounded-lg shadow-md text-center max-w-lg w-full">
-          <p className="text-xl font-semibold mb-3">No algorithm found.</p>
+          <p className="text-xl font-semibold mb-3">No data structure found.</p>
           <p className="text-base mb-4">
-            The requested algorithm could not be found or may have been removed.
+            The requested data structure could not be found or may have been
+            removed.
           </p>
           <button
-            onClick={() => navigate("/algorithms")}
+            onClick={() => navigate("/data-structures")}
             className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors shadow-md"
           >
-            Browse Algorithms
+            Browse Data Structures
           </button>
         </div>
       </div>
@@ -124,7 +130,7 @@ const AlgorithmDetail = () => {
             <span className="hidden sm:inline">Back</span>
           </button>
           <h1 className="text-lg sm:text-xl font-semibold truncate max-w-[calc(100%-160px)] text-center">
-            {algorithm.title}
+            {dataStructure.title}
           </h1>
           <button
             onClick={() => navigate(1)}
@@ -140,9 +146,10 @@ const AlgorithmDetail = () => {
 
       {/* Main Content Area - Single Column */}
       <main className="flex-1 overflow-y-auto custom-scrollbar container mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10">
-        {/* Algorithm Preview */}
+        {/* Data Structure Preview */}
         <section className="bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
-          <AlgorithmPreview algorithm={algorithm} />
+          {/* NEW: Pass dataStructure prop to the new DataStructurePreview */}
+          <DataStructurePreview dataStructure={dataStructure} />
         </section>
 
         {/* Voting and Contribute Buttons - Straight-through, compact */}
@@ -152,7 +159,7 @@ const AlgorithmDetail = () => {
             <button
               onClick={() => handleVote("upvote")}
               className="flex items-center gap-2 px-5 py-2 rounded-full bg-green-100 hover:bg-green-200 dark:bg-green-900/40 dark:hover:bg-green-900 text-green-700 dark:text-green-300 shadow-md transition-all duration-200 transform hover:scale-105"
-              aria-label="Upvote algorithm"
+              aria-label="Upvote data structure"
             >
               <ThumbsUp
                 size={20}
@@ -161,13 +168,13 @@ const AlgorithmDetail = () => {
                 }
               />
               <span className="font-semibold text-base">
-                {algorithm.upvotes || 0}
+                {dataStructure.upvotes || 0}
               </span>
             </button>
             <button
               onClick={() => handleVote("downvote")}
               className="flex items-center gap-2 px-5 py-2 rounded-full bg-red-100 hover:bg-red-200 dark:bg-red-900/40 dark:hover:bg-red-900 text-red-700 dark:text-red-300 shadow-md transition-all duration-200 transform hover:scale-105"
-              aria-label="Downvote algorithm"
+              aria-label="Downvote data structure"
             >
               <ThumbsDown
                 size={20}
@@ -176,7 +183,7 @@ const AlgorithmDetail = () => {
                 }
               />
               <span className="font-semibold text-base">
-                {algorithm.downvotes || 0}
+                {dataStructure.downvotes || 0}
               </span>
             </button>
           </div>
@@ -186,7 +193,7 @@ const AlgorithmDetail = () => {
             <button
               onClick={handleContribute}
               className="flex items-center gap-2 px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 dark:bg-blue-800 dark:hover:bg-blue-700 text-white font-medium shadow-lg transition-all duration-300 transform hover:scale-105"
-              aria-label="Contribute to this algorithm"
+              aria-label="Contribute to this data structure"
             >
               <Sparkles size={20} />
               <span>Contribute</span>
@@ -197,9 +204,9 @@ const AlgorithmDetail = () => {
         {/* Comment Section */}
         <section>
           <CommentSection
-            parentType="Algorithm"
-            parentId={algorithm._id}
-            parentSlug={algorithm.slug}
+            parentType="DataStructure"
+            parentId={dataStructure._id}
+            parentSlug={dataStructure.slug}
           />
         </section>
       </main>
@@ -207,4 +214,4 @@ const AlgorithmDetail = () => {
   );
 };
 
-export default AlgorithmDetail;
+export default DataStructureDetail;

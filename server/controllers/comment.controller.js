@@ -5,21 +5,62 @@ const Proposal = require("../models/proposal.model");
 const User = require("../models/user.model");
 const Notification = require("../models/notification.model");
 
+const DataStructure = require("../models/dataStructure.model");
+const DataStructureProposal = require("../models/dataStructureProposal.model");
+
 const extractMentions = (text) => {
   const matches = text.match(/@(\w+)/g) || [];
   return matches.map((m) => m.substring(1));
 };
 
+const getParentModel = (parentType) => {
+  switch (parentType) {
+    case "Algorithm":
+      return Algorithm;
+    case "Proposal":
+      return Proposal;
+    case "DataStructure":
+      return DataStructure;
+    case "DataStructureProposal":
+      return DataStructureProposal;
+    default:
+      throw new Error("Invalid parent type provided.");
+  }
+};
+
+const getParentAuthorId = (parentType, parentDoc) => {
+  if (!parentDoc) return null;
+
+  if (parentType === "Algorithm" || parentType === "DataStructure") {
+    return parentDoc.createdBy;
+  }
+  if (parentType === "Proposal" || parentType === "DataStructureProposal") {
+    return parentDoc.contributor;
+  }
+  return null;
+};
+
 const addComment = asyncHandler(async (req, res) => {
   const { parentType, parentId, text, codeRef } = req.body;
 
-  if (!["Algorithm", "Proposal"].includes(parentType)) {
+  const allowedParentTypes = [
+    "Algorithm",
+    "Proposal",
+    "DataStructure",
+    "DataStructureProposal",
+  ];
+  if (!allowedParentTypes.includes(parentType)) {
     res.status(400);
-    throw new Error("Invalid parent type");
+    throw new Error(
+      `Invalid parent type: ${parentType}. Must be one of ${allowedParentTypes.join(
+        ", "
+      )}.`
+    );
   }
 
-  const parentModel = parentType === "Algorithm" ? Algorithm : Proposal;
+  const parentModel = getParentModel(parentType);
   const parent = await parentModel.findById(parentId);
+
   if (!parent) {
     res.status(404);
     throw new Error(`${parentType} not found`);
@@ -62,14 +103,18 @@ const addComment = asyncHandler(async (req, res) => {
     }
   });
 
-  if (parent.user && parent.user.toString() !== req.user._id.toString()) {
+  const parentAuthorId = getParentAuthorId(parentType, parent);
+  if (parentAuthorId && parentAuthorId.toString() !== req.user._id.toString()) {
     notifications.push({
-      recipient: parent.user,
+      recipient: parentAuthorId,
       sender: req.user._id,
       type: "comment",
       commentId: createdComment._id,
       preview,
       link: baseLink,
+      message: `A new comment on your ${parentType.toLowerCase()} "${
+        parent.title || parent.slug
+      }"`,
     });
   }
 
@@ -81,7 +126,9 @@ const addComment = asyncHandler(async (req, res) => {
           recipient: admin._id,
           sender: req.user._id,
           type: "platform_request",
-          message: `Platform Request from @${req.user.username}`,
+          message: `Platform Request from @${
+            req.user.username
+          } on ${parentType} "${parent.title || parent.slug}"`,
           commentId: createdComment._id,
           link: baseLink,
           preview,
@@ -100,9 +147,19 @@ const addComment = asyncHandler(async (req, res) => {
 const getCommentsByParent = asyncHandler(async (req, res) => {
   const { parentType, parentId } = req.params;
 
-  if (!["Algorithm", "Proposal"].includes(parentType)) {
+  const allowedParentTypes = [
+    "Algorithm",
+    "Proposal",
+    "DataStructure",
+    "DataStructureProposal",
+  ];
+  if (!allowedParentTypes.includes(parentType)) {
     res.status(400);
-    throw new Error("Invalid parent type");
+    throw new Error(
+      `Invalid parent type: ${parentType}. Must be one of ${allowedParentTypes.join(
+        ", "
+      )}.`
+    );
   }
 
   const comments = await Comment.find({ parentType, parentId })
@@ -126,9 +183,10 @@ const addReplyToComment = asyncHandler(async (req, res) => {
   const parentType = comment.parentType;
   const parentId = comment.parentId;
 
-  const parentModel = parentType === "Algorithm" ? Algorithm : Proposal;
+  const parentModel = getParentModel(parentType);
   const parent = await parentModel.findById(parentId);
-  const slug = parent?.slug || "unknown";
+
+  const slug = parent?.slug || "unknown-parent";
 
   const mentionedUsernames = extractMentions(text);
   const mentionedUsers = await User.find({
@@ -171,6 +229,9 @@ const addReplyToComment = asyncHandler(async (req, res) => {
       commentId: comment._id,
       preview,
       link: baseLink,
+      message: `Someone replied to your comment on "${
+        parent.title || parent.slug
+      }"`,
     });
   }
 
@@ -182,7 +243,9 @@ const addReplyToComment = asyncHandler(async (req, res) => {
           recipient: admin._id,
           sender: req.user._id,
           type: "platform_request",
-          message: `Platform Request from @${req.user.username}`,
+          message: `Platform Request from @${
+            req.user.username
+          } in a reply on ${parentType} "${parent.title || parent.slug}"`,
           commentId: comment._id,
           link: baseLink,
           preview,

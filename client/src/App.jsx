@@ -5,23 +5,33 @@ import { ToastContainer } from "react-toastify";
 
 import Layout from "./components/Layout";
 import Loader from "./components/Loader";
+
 import Home from "./pages/Home";
 import Algorithms from "./pages/Algorithms";
 import AlgorithmDetail from "./pages/AlgorithmDetails";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import EditProposal from "./pages/EditProposal";
-import AdminAlgorithms from "./pages/AdminAlgorithms";
-import AdminRoute from "./components/AdminRoute";
-import CreateProposal from "./pages/CreateProposal";
 import MoreInfoPage from "./pages/MoreInfoPage";
-import MyProposals from "./pages/MyProposals";
-import AdminProposalReview from "./pages/AdminProposalReview";
 import Profile from "./pages/Profile";
-import AdminUsersPage from "./pages/AdminUsersPage";
 import Feedback from "./pages/Feedback";
-import AdminAnalytics from "./pages/AdminAnalytics";
 import CommunityGuidelines from "./pages/CommunityGuidelines";
+
+import DataStructures from "./pages/DataStructures";
+import DataStructureDetail from "./pages/DataStructureDetail";
+import CreateDataStructureProposal from "./pages/CreateDataStructureProposal";
+import EditDataStructureProposal from "./pages/EditDataStructureProposal";
+
+import EditProposal from "./pages/EditProposal";
+import CreateProposal from "./pages/CreateProposal";
+import MyProposals from "./pages/MyProposals";
+
+import AdminRoute from "./components/AdminRoute";
+import AdminAlgorithms from "./pages/AdminAlgorithms";
+import AdminProposalReview from "./pages/AdminProposalReview";
+import AdminUsersPage from "./pages/AdminUsersPage";
+import AdminAnalytics from "./pages/AdminAnalytics";
+import AdminDataStructures from "./pages/AdminDataStructures";
+import AdminDataStructureProposalReview from "./pages/AdminDataStructureProposalReview";
 import { getMe } from "./features/auth/authSlice";
 
 const router = createBrowserRouter([
@@ -61,17 +71,15 @@ const router = createBrowserRouter([
         path: "algorithms/:slug",
         element: <AlgorithmDetail />,
       },
-      // Edit proposal for existing proposals
+
       {
         path: "proposals/:slug/edit",
         element: <EditProposal />,
       },
-      // Create a new proposal for an algorithm (contribute)
       {
         path: "algorithms/:slug/contribute",
         element: <EditProposal />,
       },
-      // Create a new proposal from scratch (no slug)
       {
         path: "proposals/new",
         element: <CreateProposal />,
@@ -80,11 +88,28 @@ const router = createBrowserRouter([
         path: "proposals",
         element: <MyProposals />,
       },
-      // ADDED COMMUNITY GUIDELINES ROUTE
+      {
+        path: "data-structures",
+        element: <DataStructures />,
+      },
+      {
+        path: "data-structures/:slug",
+        element: <DataStructureDetail />,
+      },
+
+      {
+        path: "data-structures/proposals/new",
+        element: <CreateDataStructureProposal />,
+      },
+      {
+        path: "data-structures/proposals/:slug/edit",
+        element: <EditDataStructureProposal />,
+      },
       {
         path: "community-guidelines",
         element: <CommunityGuidelines />,
       },
+
       {
         path: "admin/manage-algorithms",
         element: (
@@ -94,10 +119,26 @@ const router = createBrowserRouter([
         ),
       },
       {
+        path: "admin/manage-data-structures",
+        element: (
+          <AdminRoute>
+            <AdminDataStructures />
+          </AdminRoute>
+        ),
+      },
+      {
         path: "admin/proposals/review",
         element: (
           <AdminRoute>
             <AdminProposalReview />
+          </AdminRoute>
+        ),
+      },
+      {
+        path: "admin/data-structures/proposals/review",
+        element: (
+          <AdminRoute>
+            <AdminDataStructureProposalReview />
           </AdminRoute>
         ),
       },

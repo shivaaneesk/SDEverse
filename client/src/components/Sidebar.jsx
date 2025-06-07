@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import {
   Home,
   Users,
@@ -9,8 +9,8 @@ import {
   Moon,
   Menu,
   X,
-  PieChart,
   ChevronRight,
+  ChevronDown,
   MessageSquare,
   UserPlus,
   Lock,
@@ -18,7 +18,8 @@ import {
   BarChart,
   UserCog,
   Workflow,
-  UserCircle
+  UserCircle,
+  Database,
 } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { toggleTheme } from "../features/theme/themeSlice";
@@ -32,6 +33,9 @@ const Sidebar = () => {
   const { token, user } = useSelector((state) => state.auth);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(window.innerWidth > 768);
+  const [showReviewProposalsOptions, setShowReviewProposalsOptions] =
+    useState(false);
+  const location = useLocation();
 
   useEffect(() => {
     const handleResize = () => {
@@ -44,9 +48,29 @@ const Sidebar = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  useEffect(() => {
+    if (
+      location.pathname.startsWith("/admin/proposals/review") ||
+      location.pathname.startsWith("/admin/data-structures/proposals/review")
+    ) {
+      setShowReviewProposalsOptions(true);
+    } else {
+      if (
+        !location.pathname.startsWith("/admin/proposals/review") &&
+        !location.pathname.startsWith("/admin/data-structures/proposals/review")
+      ) {
+        setShowReviewProposalsOptions(false);
+      }
+    }
+  }, [location.pathname]);
+
   const handleSidebarToggle = () => setIsSidebarOpen((prev) => !prev);
   const handleOverlayClick = () => setIsSidebarOpen(false);
-  const handleLinkClick = () => !isDesktop && setIsSidebarOpen(false);
+  const handleLinkClick = () => {
+    if (!isDesktop) {
+      setIsSidebarOpen(false);
+    }
+  };
   const handleLogout = () => {
     dispatch(logout());
     setIsSidebarOpen(false);
@@ -59,40 +83,16 @@ const Sidebar = () => {
       active: "bg-gradient-to-r from-blue-500 to-indigo-600",
       border: "border-l-blue-500",
     },
-    admin: {
-      bg: "bg-pink-50/80 dark:bg-pink-900/30",
-      hover: "hover:bg-pink-100 dark:hover:bg-pink-900/40",
-      active: "bg-gradient-to-r from-pink-500 to-rose-600",
-      border: "border-l-pink-500",
-    },
     algorithms: {
       bg: "bg-purple-50/80 dark:bg-purple-900/30",
       hover: "hover:bg-purple-100 dark:hover:bg-purple-900/40",
       active: "bg-gradient-to-r from-purple-500 to-violet-600",
       border: "border-l-purple-500",
     },
-    proposals: {
-      bg: "bg-green-50/80 dark:bg-green-900/30",
-      hover: "hover:bg-green-100 dark:hover:bg-green-900/40",
-      active: "bg-gradient-to-r from-green-500 to-emerald-600",
-      border: "border-l-green-500",
-    },
-    analytics: {
-      bg: "bg-cyan-50/80 dark:bg-cyan-900/30",
-      hover: "hover:bg-cyan-100 dark:hover:bg-cyan-900/40",
-      active: "bg-gradient-to-r from-cyan-500 to-sky-600",
-      border: "border-l-cyan-500",
-    },
-    feedback: {
-      bg: "bg-indigo-50/80 dark:bg-indigo-900/30",
-      hover: "hover:bg-indigo-100 dark:hover:bg-indigo-900/40",
-      active: "bg-gradient-to-r from-indigo-500 to-blue-600",
-      border: "border-l-indigo-500",
-    },
-    submit: {
+    dataStructures: {
       bg: "bg-teal-50/80 dark:bg-teal-900/30",
       hover: "hover:bg-teal-100 dark:hover:bg-teal-900/40",
-      active: "bg-gradient-to-r from-teal-500 to-green-600",
+      active: "bg-gradient-to-r from-teal-500 to-cyan-600",
       border: "border-l-teal-500",
     },
     profile: {
@@ -101,16 +101,100 @@ const Sidebar = () => {
       active: "bg-gradient-to-r from-amber-500 to-orange-600",
       border: "border-l-amber-500",
     },
+    manageUsers: {
+      bg: "bg-pink-50/80 dark:bg-pink-900/30",
+      hover: "hover:bg-pink-100 dark:hover:bg-pink-900/40",
+      active: "bg-gradient-to-r from-pink-500 to-rose-600",
+      border: "border-l-pink-500",
+    },
+    manageAlgorithms: {
+      bg: "bg-indigo-50/80 dark:bg-indigo-900/30",
+      hover: "hover:bg-indigo-100 dark:hover:bg-indigo-900/40",
+      active: "bg-gradient-to-r from-indigo-500 to-blue-600",
+      border: "border-l-indigo-500",
+    },
+    manageDataStructures: {
+      bg: "bg-lime-50/80 dark:bg-lime-900/30",
+      hover: "hover:bg-lime-100 dark:hover:bg-lime-900/40",
+      active: "bg-gradient-to-r from-lime-500 to-green-600",
+      border: "border-l-lime-500",
+    },
+    reviewProposalsParent: {
+      bg: "bg-orange-50/80 dark:bg-orange-900/30",
+      hover: "hover:bg-orange-100 dark:hover:bg-orange-900/40",
+      active: "bg-gradient-to-r from-orange-500 to-red-600",
+      border: "border-l-orange-500",
+    },
+    reviewAlgorithmProposals: {
+      bg: "bg-yellow-50/80 dark:bg-yellow-900/30",
+      hover: "hover:bg-yellow-100 dark:hover:bg-yellow-900/40",
+      active: "bg-gradient-to-r from-yellow-500 to-amber-600",
+      border: "border-l-yellow-500",
+    },
+    reviewDataStructureProposals: {
+      bg: "bg-fuchsia-50/80 dark:bg-fuchsia-900/30",
+      hover: "hover:bg-fuchsia-100 dark:hover:bg-fuchsia-900/40",
+      active: "bg-gradient-to-r from-fuchsia-500 to-pink-600",
+      border: "border-l-fuchsia-500",
+    },
+    analytics: {
+      bg: "bg-cyan-50/80 dark:bg-cyan-900/30",
+      hover: "hover:bg-cyan-100 dark:hover:bg-cyan-900/40",
+      active: "bg-gradient-to-r from-cyan-500 to-sky-600",
+      border: "border-l-cyan-500",
+    },
+    myProposals: {
+      bg: "bg-emerald-50/80 dark:bg-emerald-900/30",
+      hover: "hover:bg-emerald-100 dark:hover:bg-emerald-900/40",
+      active: "bg-gradient-to-r from-emerald-500 to-green-600",
+      border: "border-l-emerald-500",
+    },
+    submitAlgorithmProposal: {
+      bg: "bg-sky-50/80 dark:bg-sky-900/30",
+      hover: "hover:bg-sky-100 dark:hover:bg-sky-900/40",
+      active: "bg-gradient-to-r from-sky-500 to-blue-500",
+      border: "border-l-sky-500",
+    },
+    submitDataStructureProposal: {
+      bg: "bg-rose-50/80 dark:bg-rose-900/30",
+      hover: "hover:bg-rose-100 dark:hover:bg-rose-900/40",
+      active: "bg-gradient-to-r from-rose-500 to-red-500",
+      border: "border-l-rose-500",
+    },
+    feedback: {
+      bg: "bg-violet-50/80 dark:bg-violet-900/30",
+      hover: "hover:bg-violet-100 dark:hover:bg-violet-900/40",
+      active: "bg-gradient-to-r from-violet-500 to-indigo-500",
+      border: "border-l-violet-500",
+    },
+    login: {
+      bg: "bg-gray-200/80 dark:bg-gray-800/30",
+      hover: "hover:bg-gray-300 dark:hover:bg-gray-700/40",
+      active: "bg-gradient-to-r from-gray-400 to-gray-600",
+      border: "border-l-gray-400",
+    },
+    register: {
+      bg: "bg-slate-200/80 dark:bg-slate-800/30",
+      hover: "hover:bg-slate-300 dark:hover:bg-slate-700/40",
+      active: "bg-gradient-to-r from-slate-400 to-slate-600",
+      border: "border-l-slate-400",
+    },
   };
 
-  const getNavItemClass = (section, isActive) => {
+  const getNavItemClass = (section, isActive, isSubItem = false) => {
     const scheme = colorSchemes[section] || colorSchemes.home;
     return `flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-300 ${
+      isSubItem ? "ml-4" : ""
+    } ${
       isActive
         ? `${scheme.active} text-white shadow-lg`
         : `text-gray-700 dark:text-gray-300 ${scheme.bg} ${scheme.hover} ${scheme.border} border-l-4`
     }`;
   };
+
+  const isProposalsReviewParentActive =
+    location.pathname.startsWith("/admin/proposals/review") ||
+    location.pathname.startsWith("/admin/data-structures/proposals/review");
 
   return (
     <>
@@ -138,7 +222,7 @@ const Sidebar = () => {
       {/* Sidebar */}
       <aside
         className={`fixed top-0 left-0 h-full w-64 bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border-r border-gray-200 dark:border-gray-800 shadow-xl z-40 transform transition-all duration-300 ease-in-out
-        ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"} 
+        ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}
         md:translate-x-0 md:shadow-none`}
         aria-label="Sidebar Navigation"
       >
@@ -147,11 +231,7 @@ const Sidebar = () => {
           <div className="pb-6 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-2 rounded-xl">
-                <img
-                  src={SDEverse}
-                  alt="SDEverse Logo"
-                  className="w-8 h-8"
-                />
+                <img src={SDEverse} alt="SDEverse Logo" className="w-8 h-8" />
               </div>
               <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-700 bg-clip-text text-transparent">
                 SDEverse
@@ -178,10 +258,12 @@ const Sidebar = () => {
               <span className="truncate">Home</span>
               <ChevronRight className="ml-auto opacity-70" size={16} />
             </NavLink>
-            
+
             <NavLink
               to="/algorithms"
-              className={({ isActive }) => getNavItemClass("algorithms", isActive)}
+              className={({ isActive }) =>
+                getNavItemClass("algorithms", isActive)
+              }
               onClick={handleLinkClick}
             >
               <Workflow size={20} className="min-w-[20px]" />
@@ -189,11 +271,25 @@ const Sidebar = () => {
               <ChevronRight className="ml-auto opacity-70" size={16} />
             </NavLink>
 
+            <NavLink
+              to="/data-structures"
+              className={({ isActive }) =>
+                getNavItemClass("dataStructures", isActive)
+              }
+              onClick={handleLinkClick}
+            >
+              <Database size={20} className="min-w-[20px]" />
+              <span className="truncate">Data Structures</span>
+              <ChevronRight className="ml-auto opacity-70" size={16} />
+            </NavLink>
+
             {/* Profile Link - Always at the top */}
             {token && (
               <NavLink
                 to={`/profile/${user.username}`}
-                className={({ isActive }) => getNavItemClass("profile", isActive)}
+                className={({ isActive }) =>
+                  getNavItemClass("profile", isActive)
+                }
                 onClick={handleLinkClick}
               >
                 <UserCircle size={20} className="min-w-[20px]" />
@@ -210,7 +306,9 @@ const Sidebar = () => {
                 </div>
                 <NavLink
                   to="/admin/manage-users"
-                  className={({ isActive }) => getNavItemClass("admin", isActive)}
+                  className={({ isActive }) =>
+                    getNavItemClass("manageUsers", isActive)
+                  }
                   onClick={handleLinkClick}
                 >
                   <UserCog size={20} className="min-w-[20px]" />
@@ -219,7 +317,9 @@ const Sidebar = () => {
                 </NavLink>
                 <NavLink
                   to="/admin/manage-algorithms"
-                  className={({ isActive }) => getNavItemClass("algorithms", isActive)}
+                  className={({ isActive }) =>
+                    getNavItemClass("manageAlgorithms", isActive)
+                  }
                   onClick={handleLinkClick}
                 >
                   <ClipboardList size={20} className="min-w-[20px]" />
@@ -227,17 +327,93 @@ const Sidebar = () => {
                   <ChevronRight className="ml-auto opacity-70" size={16} />
                 </NavLink>
                 <NavLink
-                  to="/admin/proposals/review"
-                  className={({ isActive }) => getNavItemClass("proposals", isActive)}
+                  to="/admin/manage-data-structures"
+                  className={({ isActive }) =>
+                    getNavItemClass("manageDataStructures", isActive)
+                  }
                   onClick={handleLinkClick}
                 >
-                  <FileCheck size={20} className="min-w-[20px]" />
-                  <span className="truncate">Review Proposals</span>
+                  <Database size={20} className="min-w-[20px]" />
+                  <span className="truncate">Manage Data Structures</span>
                   <ChevronRight className="ml-auto opacity-70" size={16} />
                 </NavLink>
+
+                {/* Toggleable "Review Proposals" Section Header */}
+                <div
+                  className={`
+                    rounded-xl transition-all duration-300
+                    ${
+                      isProposalsReviewParentActive
+                        ? colorSchemes.reviewProposalsParent.active +
+                          " text-white shadow-lg"
+                        : `text-gray-700 dark:text-gray-300 ${colorSchemes.reviewProposalsParent.bg} ${colorSchemes.reviewProposalsParent.hover} border-l-4 ${colorSchemes.reviewProposalsParent.border}`
+                    }
+                  `}
+                >
+                  <button
+                    onClick={() =>
+                      setShowReviewProposalsOptions(!showReviewProposalsOptions)
+                    }
+                    className="flex items-center justify-between w-full px-4 py-3 cursor-pointer"
+                    aria-expanded={showReviewProposalsOptions}
+                  >
+                    <div className="flex items-center gap-4">
+                      <FileCheck size={20} className="min-w-[20px]" />
+                      <span className="truncate">Review Proposals</span>
+                    </div>
+                    {showReviewProposalsOptions ? (
+                      <ChevronDown size={16} className="opacity-70" />
+                    ) : (
+                      <ChevronRight size={16} className="opacity-70" />
+                    )}
+                  </button>
+                </div>
+
+                {/* Conditionally rendered inline links */}
+                {showReviewProposalsOptions && (
+                  <>
+                    <NavLink
+                      to="/admin/proposals/review"
+                      className={({ isActive }) =>
+                        getNavItemClass(
+                          "reviewAlgorithmProposals",
+                          isActive,
+                          true
+                        )
+                      }
+                      onClick={handleLinkClick}
+                    >
+                      <ChevronRight
+                        size={16}
+                        className="min-w-[16px] opacity-70"
+                      />
+                      <span className="truncate">Algorithm Proposals</span>
+                    </NavLink>
+                    <NavLink
+                      to="/admin/data-structures/proposals/review"
+                      className={({ isActive }) =>
+                        getNavItemClass(
+                          "reviewDataStructureProposals",
+                          isActive,
+                          true
+                        )
+                      }
+                      onClick={handleLinkClick}
+                    >
+                      <ChevronRight
+                        size={16}
+                        className="min-w-[16px] opacity-70"
+                      />
+                      <span className="truncate">Data Structure Proposals</span>
+                    </NavLink>
+                  </>
+                )}
+
                 <NavLink
                   to="/admin/analytics"
-                  className={({ isActive }) => getNavItemClass("analytics", isActive)}
+                  className={({ isActive }) =>
+                    getNavItemClass("analytics", isActive)
+                  }
                   onClick={handleLinkClick}
                 >
                   <BarChart size={20} className="min-w-[20px]" />
@@ -256,7 +432,9 @@ const Sidebar = () => {
                 <NavLink
                   to="/proposals"
                   end
-                  className={({ isActive }) => getNavItemClass("proposals", isActive)}
+                  className={({ isActive }) =>
+                    getNavItemClass("myProposals", isActive)
+                  }
                   onClick={handleLinkClick}
                 >
                   <ClipboardList size={20} className="min-w-[20px]" />
@@ -265,16 +443,33 @@ const Sidebar = () => {
                 </NavLink>
                 <NavLink
                   to="/proposals/new"
-                  className={({ isActive }) => getNavItemClass("submit", isActive)}
+                  className={({ isActive }) =>
+                    getNavItemClass("submitAlgorithmProposal", isActive)
+                  }
                   onClick={handleLinkClick}
                 >
                   <FilePlus size={20} className="min-w-[20px]" />
-                  <span className="truncate">Submit Proposal</span>
+                  <span className="truncate">Submit Algorithm Proposal</span>
+                  <ChevronRight className="ml-auto opacity-70" size={16} />
+                </NavLink>
+                <NavLink
+                  to="/data-structures/proposals/new"
+                  className={({ isActive }) =>
+                    getNavItemClass("submitDataStructureProposal", isActive)
+                  }
+                  onClick={handleLinkClick}
+                >
+                  <FilePlus size={20} className="min-w-[20px]" />
+                  <span className="truncate">
+                    Submit Data Structure Proposal
+                  </span>
                   <ChevronRight className="ml-auto opacity-70" size={16} />
                 </NavLink>
                 <NavLink
                   to="/feedback"
-                  className={({ isActive }) => getNavItemClass("feedback", isActive)}
+                  className={({ isActive }) =>
+                    getNavItemClass("feedback", isActive)
+                  }
                   onClick={handleLinkClick}
                 >
                   <MessageSquare size={20} className="min-w-[20px]" />
@@ -292,7 +487,9 @@ const Sidebar = () => {
                 </div>
                 <NavLink
                   to="/login"
-                  className={({ isActive }) => getNavItemClass("home", isActive)}
+                  className={({ isActive }) =>
+                    getNavItemClass("login", isActive)
+                  }
                   onClick={handleLinkClick}
                 >
                   <Lock size={20} className="min-w-[20px]" />
@@ -301,7 +498,9 @@ const Sidebar = () => {
                 </NavLink>
                 <NavLink
                   to="/register"
-                  className={({ isActive }) => getNavItemClass("home", isActive)}
+                  className={({ isActive }) =>
+                    getNavItemClass("register", isActive)
+                  }
                   onClick={handleLinkClick}
                 >
                   <UserPlus size={20} className="min-w-[20px]" />

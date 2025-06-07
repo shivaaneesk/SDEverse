@@ -19,7 +19,7 @@ import "katex/dist/katex.min.css";
 import { toast } from "react-toastify";
 import { formatDistanceToNow } from "date-fns";
 
-const MarkdownRenderer = ({ children }) => (
+export const MarkdownRenderer = ({ children }) => (
   <ReactMarkdown
     remarkPlugins={[remarkGfm, remarkMath]}
     rehypePlugins={[rehypeKatex]}
@@ -122,7 +122,7 @@ const CommentSection = ({ parentType, parentId, parentSlug }) => {
       if (commentId) {
         const element = document.getElementById(`comment-${commentId}`);
         if (element) {
-          const headerOffset = 80; // adjust based on your fixed header height
+          const headerOffset = 70; // Adjusted for the 14px header height + some buffer
           const elementPosition = element.getBoundingClientRect().top;
           const offsetPosition =
             elementPosition + window.pageYOffset - headerOffset;
@@ -181,12 +181,12 @@ const CommentSection = ({ parentType, parentId, parentSlug }) => {
   };
 
   return (
-    <div className="w-full max-w-full px-4 sm:px-6 md:px-10 lg:px-16 mx-auto mt-12">
+    <div className="bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
       <h2 className="text-3xl font-semibold text-gray-900 dark:text-white mb-8 select-none">
         Discussion
       </h2>
 
-      <div className="flex flex-col sm:flex-row gap-3 mb-10">
+      <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <input
           type="text"
           placeholder="Leave a comment..."
@@ -225,7 +225,7 @@ const CommentSection = ({ parentType, parentId, parentSlug }) => {
               <li
                 id={`comment-${comment._id}`}
                 key={comment._id}
-                className="bg-white dark:bg-gray-900 p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-700"
+                className="bg-gray-50 dark:bg-gray-900 p-6 rounded-lg shadow-inner border border-gray-200 dark:border-gray-800"
               >
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center space-x-3">
@@ -292,7 +292,7 @@ const CommentSection = ({ parentType, parentId, parentSlug }) => {
                         <li
                           id={`comment-${reply._id}`}
                           key={reply._id}
-                          className="relative space-y-2"
+                          className="relative space-y-2 bg-gray-100 dark:bg-gray-800 p-4 rounded-lg shadow-inner"
                         >
                           <div className="flex items-center space-x-3 mb-1">
                             <Link to={`/profile/${reply.user.username}`}>
@@ -337,7 +337,6 @@ const CommentSection = ({ parentType, parentId, parentSlug }) => {
                             <MarkdownRenderer>{reply.text}</MarkdownRenderer>
                           </div>
 
-                          {/* NEW: Reply button for replying to replies */}
                           <button
                             onClick={() =>
                               setReplyOpenFor(isReplyOpen ? null : reply._id)
@@ -348,7 +347,6 @@ const CommentSection = ({ parentType, parentId, parentSlug }) => {
                             {isReplyOpen ? "Cancel Reply" : "Reply"}
                           </button>
 
-                          {/* NEW: Reply input for replies */}
                           {isReplyOpen && (
                             <ReplyInput
                               initialText={`@${reply.user.username} `}

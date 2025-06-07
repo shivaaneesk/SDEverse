@@ -1,15 +1,22 @@
 const mongoose = require("mongoose");
 const { DATA_STRUCTURE } = require("../utils/categoryTypes");
 
-const proposalImplementationSchema = new mongoose.Schema(
+const codeSchema = new mongoose.Schema(
   {
     language: { type: String, required: true, trim: true },
     code: { type: String, required: true },
+  },
+  { _id: false }
+);
+
+const proposalImplementationSchema = new mongoose.Schema(
+  {
+    codeDetails: { type: codeSchema, required: true },
     explanation: { type: String, required: true },
     complexity: {
       time: { type: String, required: true },
       space: { type: String, required: true },
-    }
+    },
   },
   { _id: false }
 );
@@ -22,7 +29,7 @@ const proposalOperationSchema = new mongoose.Schema(
       time: { type: String, required: true },
       space: { type: String, required: true },
     },
-    implementations: [proposalImplementationSchema]
+    implementations: [proposalImplementationSchema],
   },
   { _id: false }
 );
@@ -35,9 +42,8 @@ const dataStructureProposalSchema = new mongoose.Schema(
       default: null,
     },
 
-    // Core proposal structure
-    title: { type: String, required: true, trim: true },
-    slug: { type: String, required: true, trim: true },
+    title: { type: String, required: true, unique: true, trim: true },
+    slug: { type: String, required: true, unique: true, trim: true },
     definition: { type: String, required: true, trim: true },
     category: {
       type: [String],
@@ -47,25 +53,34 @@ const dataStructureProposalSchema = new mongoose.Schema(
     type: {
       type: String,
       enum: ["Linear", "Non-Linear", "Hierarchical", "Graph", "Other"],
-      required: true
+      required: true,
     },
     characteristics: { type: String, required: true },
+    visualization: { type: String },
+
     operations: [proposalOperationSchema],
-    applications: [{ 
-      domain: { type: String, required: true },
-      examples: [{ type: String }]
-    }],
-    comparisons: [{
-      with: { type: String, required: true },
-      advantages: [{ type: String }],
-      disadvantages: [{ type: String }],
-      whenToUse: { type: String }
-    }],
+
+    fullImplementations: [codeSchema],
+
+    applications: [
+      {
+        domain: { type: String, required: true },
+        examples: [{ type: String }],
+      },
+    ],
+
+    comparisons: [
+      {
+        with: { type: String, required: true },
+        advantages: [{ type: String }],
+        disadvantages: [{ type: String }],
+        whenToUse: { type: String },
+      },
+    ],
     tags: [{ type: String, trim: true }],
     references: [{ type: String }],
     videoLinks: [{ type: String }],
 
-    // Proposal metadata
     contributor: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -85,7 +100,6 @@ const dataStructureProposalSchema = new mongoose.Schema(
     deletedAt: { type: Date },
     deletedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
 
-    // Merging and final approval metadata
     mergedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     mergedAt: { type: Date },
     mergedWith: { type: mongoose.Schema.Types.ObjectId, ref: "DataStructure" },
@@ -93,6 +107,13 @@ const dataStructureProposalSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-dataStructureProposalSchema.index({ title: "text", category: "text", tags: "text" });
+dataStructureProposalSchema.index({
+  title: "text",
+  category: "text",
+  tags: "text",
+});
 
-module.exports = mongoose.model("DataStructureProposal", dataStructureProposalSchema);
+module.exports = mongoose.model(
+  "DataStructureProposal",
+  dataStructureProposalSchema
+);

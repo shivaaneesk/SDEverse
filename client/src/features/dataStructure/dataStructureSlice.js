@@ -20,52 +20,56 @@ const initialState = {
   total: 0,
   pages: 0,
   currentPage: 1,
-  loading: false,
+
+  allDataStructuresLoading: false,
+  singleDataStructureLoading: false,
+  createLoading: false,
+  updateLoading: false,
+  deleteLoading: false,
   voteLoading: false,
+  categoriesLoading: false,
+  addOperationImplLoading: false,
+  contributorsLoading: false,
+
   error: null,
 };
 
-const getToken = (getState) => getState().auth?.token;
-const getUser = (getState) => getState().auth?.user;
+const getUserRole = (getState) => getState().auth?.user?.role;
 
 export const createNewDataStructure = createAsyncThunk(
   "dataStructure/createNewDataStructure",
   async (dataStructureData, { getState, rejectWithValue }) => {
-    const token = getToken(getState);
-    const user = getUser(getState);
-
-    if (user?.role !== "admin") {
-      return rejectWithValue("You are not authorized to create data structures.");
+    if (getUserRole(getState) !== "admin") {
+      return rejectWithValue(
+        "You are not authorized to create data structures."
+      );
     }
-
     try {
-      return await createDataStructure(dataStructureData, token);
+      return await createDataStructure(dataStructureData);
     } catch (error) {
-      return rejectWithValue(error);
+      return rejectWithValue(error.response?.data?.message || error.message);
     }
   }
 );
 
 export const fetchDataStructures = createAsyncThunk(
   "dataStructure/fetchDataStructures",
-  async (params, { getState, rejectWithValue }) => {
-    const token = getToken(getState);
+  async (params = {}, { rejectWithValue }) => {
     try {
-      return await getAllDataStructures(params, token);
+      return await getAllDataStructures(params);
     } catch (error) {
-      return rejectWithValue(error);
+      return rejectWithValue(error.response?.data?.message || error.message);
     }
   }
 );
 
 export const fetchDataStructureBySlug = createAsyncThunk(
   "dataStructure/fetchDataStructureBySlug",
-  async (slug, { getState, rejectWithValue }) => {
-    const token = getToken(getState);
+  async (slug, { rejectWithValue }) => {
     try {
-      return await getDataStructureBySlug(slug, token);
+      return await getDataStructureBySlug(slug);
     } catch (error) {
-      return rejectWithValue(error);
+      return rejectWithValue(error.response?.data?.message || error.message);
     }
   }
 );
@@ -73,17 +77,15 @@ export const fetchDataStructureBySlug = createAsyncThunk(
 export const updateExistingDataStructure = createAsyncThunk(
   "dataStructure/updateExistingDataStructure",
   async ({ slug, dataStructureData }, { getState, rejectWithValue }) => {
-    const token = getToken(getState);
-    const user = getUser(getState);
-
-    if (user?.role !== "admin") {
-      return rejectWithValue("You are not authorized to update data structures.");
+    if (getUserRole(getState) !== "admin") {
+      return rejectWithValue(
+        "You are not authorized to update data structures."
+      );
     }
-
     try {
-      return await updateDataStructure(slug, dataStructureData, token);
+      return await updateDataStructure(slug, dataStructureData);
     } catch (error) {
-      return rejectWithValue(error);
+      return rejectWithValue(error.response?.data?.message || error.message);
     }
   }
 );
@@ -91,30 +93,25 @@ export const updateExistingDataStructure = createAsyncThunk(
 export const deleteExistingDataStructure = createAsyncThunk(
   "dataStructure/deleteExistingDataStructure",
   async (slug, { getState, rejectWithValue }) => {
-    const token = getToken(getState);
-    const user = getUser(getState);
-
-    if (user?.role !== "admin") {
+    if (getUserRole(getState) !== "admin") {
       return rejectWithValue("Only admins can delete data structures.");
     }
-
     try {
-      await deleteDataStructure(slug, token);
+      await deleteDataStructure(slug);
       return slug;
     } catch (error) {
-      return rejectWithValue(error);
+      return rejectWithValue(error.response?.data?.message || error.message);
     }
   }
 );
 
 export const voteOnDataStructure = createAsyncThunk(
   "dataStructure/voteOnDataStructure",
-  async ({ slug, voteData }, { getState, rejectWithValue }) => {
-    const token = getToken(getState);
+  async ({ slug, voteData }, { rejectWithValue }) => {
     try {
-      return await voteDataStructure(slug, voteData, token);
+      return await voteDataStructure(slug, voteData);
     } catch (error) {
-      return rejectWithValue(error);
+      return rejectWithValue(error.response?.data?.message || error.message);
     }
   }
 );
@@ -126,43 +123,40 @@ export const fetchDataStructureCategories = createAsyncThunk(
       const response = await getDataStructureCategories();
       return response.categories;
     } catch (error) {
-      return rejectWithValue(error);
+      return rejectWithValue(error.response?.data?.message || error.message);
     }
   }
 );
 
 export const searchAllDataStructures = createAsyncThunk(
   "dataStructure/searchAllDataStructures",
-  async (params, { getState, rejectWithValue }) => {
-    const token = getToken(getState);
+  async (params = {}, { rejectWithValue }) => {
     try {
-      return await searchDataStructures(params, token);
+      return await searchDataStructures(params);
     } catch (error) {
-      return rejectWithValue(error);
+      return rejectWithValue(error.response?.data?.message || error.message);
     }
   }
 );
 
 export const addNewOperationImplementation = createAsyncThunk(
   "dataStructure/addOperationImplementation",
-  async ({ slug, implementationData }, { getState, rejectWithValue }) => {
-    const token = getToken(getState);
+  async ({ slug, implementationData }, { rejectWithValue }) => {
     try {
-      return await addOperationImplementation(slug, implementationData, token);
+      return await addOperationImplementation(slug, implementationData);
     } catch (error) {
-      return rejectWithValue(error);
+      return rejectWithValue(error.response?.data?.message || error.message);
     }
   }
 );
 
 export const fetchDataStructureContributors = createAsyncThunk(
   "dataStructure/fetchContributors",
-  async (slug, { getState, rejectWithValue }) => {
-    const token = getToken(getState);
+  async (slug, { rejectWithValue }) => {
     try {
-      return await getDataStructureContributors(slug, token);
+      return await getDataStructureContributors(slug);
     } catch (error) {
-      return rejectWithValue(error);
+      return rejectWithValue(error.response?.data?.message || error.message);
     }
   }
 );
@@ -172,89 +166,115 @@ const dataStructureSlice = createSlice({
   initialState,
   reducers: {
     resetDataStructureState: (state) => {
-      state.loading = false;
+      state.allDataStructuresLoading = false;
+      state.singleDataStructureLoading = false;
+      state.createLoading = false;
+      state.updateLoading = false;
+      state.deleteLoading = false;
       state.voteLoading = false;
+      state.categoriesLoading = false;
+      state.addOperationImplLoading = false;
+      state.contributorsLoading = false;
       state.error = null;
     },
     clearDataStructure: (state) => {
       state.dataStructure = null;
     },
+    updateDataStructureInState: (state, action) => {
+      const updatedDs = action.payload;
+      const index = state.dataStructures.findIndex(
+        (ds) => ds.slug === updatedDs.slug
+      );
+      if (index !== -1) {
+        state.dataStructures[index] = updatedDs;
+      }
+      if (state.dataStructure?.slug === updatedDs.slug) {
+        state.dataStructure = updatedDs;
+      }
+    },
   },
   extraReducers: (builder) => {
     builder
+
       .addCase(fetchDataStructures.pending, (state) => {
-        state.loading = true;
+        state.allDataStructuresLoading = true;
         state.error = null;
       })
       .addCase(fetchDataStructures.fulfilled, (state, action) => {
-        state.loading = false;
+        state.allDataStructuresLoading = false;
         state.dataStructures = action.payload.dataStructures;
         state.total = action.payload.total;
         state.pages = action.payload.pages;
         state.currentPage = action.payload.currentPage;
       })
       .addCase(fetchDataStructures.rejected, (state, action) => {
-        state.loading = false;
+        state.allDataStructuresLoading = false;
         state.error = action.payload;
       })
 
       .addCase(fetchDataStructureBySlug.pending, (state) => {
-        state.loading = true;
+        state.singleDataStructureLoading = true;
         state.error = null;
       })
       .addCase(fetchDataStructureBySlug.fulfilled, (state, action) => {
-        state.loading = false;
+        state.singleDataStructureLoading = false;
         state.dataStructure = action.payload;
       })
       .addCase(fetchDataStructureBySlug.rejected, (state, action) => {
-        state.loading = false;
+        state.singleDataStructureLoading = false;
         state.error = action.payload;
       })
 
       .addCase(createNewDataStructure.pending, (state) => {
-        state.loading = true;
+        state.createLoading = true;
         state.error = null;
       })
       .addCase(createNewDataStructure.fulfilled, (state, action) => {
-        state.loading = false;
+        state.createLoading = false;
         state.dataStructures.unshift(action.payload);
+        state.total++;
       })
       .addCase(createNewDataStructure.rejected, (state, action) => {
-        state.loading = false;
+        state.createLoading = false;
         state.error = action.payload;
       })
 
       .addCase(updateExistingDataStructure.pending, (state) => {
-        state.loading = true;
+        state.updateLoading = true;
         state.error = null;
       })
       .addCase(updateExistingDataStructure.fulfilled, (state, action) => {
-        state.loading = false;
+        state.updateLoading = false;
+        const updatedDs = action.payload;
         const index = state.dataStructures.findIndex(
-          (ds) => ds.slug === action.payload.slug
+          (ds) => ds.slug === updatedDs.slug
         );
-        if (index !== -1) state.dataStructures[index] = action.payload;
-        if (state.dataStructure?.slug === action.payload.slug) {
-          state.dataStructure = action.payload;
+        if (index !== -1) state.dataStructures[index] = updatedDs;
+        if (state.dataStructure?.slug === updatedDs.slug) {
+          state.dataStructure = updatedDs;
         }
       })
       .addCase(updateExistingDataStructure.rejected, (state, action) => {
-        state.loading = false;
+        state.updateLoading = false;
         state.error = action.payload;
       })
 
       .addCase(deleteExistingDataStructure.pending, (state) => {
-        state.loading = true;
+        state.deleteLoading = true;
         state.error = null;
       })
       .addCase(deleteExistingDataStructure.fulfilled, (state, action) => {
-        state.loading = false;
+        state.deleteLoading = false;
         state.dataStructures = state.dataStructures.filter(
           (ds) => ds.slug !== action.payload
         );
+        state.total--;
+        if (state.dataStructure?.slug === action.payload) {
+          state.dataStructure = null;
+        }
       })
       .addCase(deleteExistingDataStructure.rejected, (state, action) => {
-        state.loading = false;
+        state.deleteLoading = false;
         state.error = action.payload;
       })
 
@@ -279,63 +299,74 @@ const dataStructureSlice = createSlice({
       })
 
       .addCase(fetchDataStructureCategories.pending, (state) => {
-        state.loading = true;
+        state.categoriesLoading = true;
         state.error = null;
       })
       .addCase(fetchDataStructureCategories.fulfilled, (state, action) => {
-        state.loading = false;
+        state.categoriesLoading = false;
         state.categories = action.payload;
       })
       .addCase(fetchDataStructureCategories.rejected, (state, action) => {
-        state.loading = false;
+        state.categoriesLoading = false;
         state.error = action.payload;
       })
 
       .addCase(searchAllDataStructures.pending, (state) => {
-        state.loading = true;
+        state.allDataStructuresLoading = true;
         state.error = null;
       })
       .addCase(searchAllDataStructures.fulfilled, (state, action) => {
-        state.loading = false;
-        state.dataStructures = action.payload.dataStructures;
+        state.allDataStructuresLoading = false;
+        state.dataStructures = action.payload.results;
         state.total = action.payload.total;
         state.pages = action.payload.pages;
         state.currentPage = action.payload.currentPage;
       })
       .addCase(searchAllDataStructures.rejected, (state, action) => {
-        state.loading = false;
+        state.allDataStructuresLoading = false;
         state.error = action.payload;
       })
 
       .addCase(addNewOperationImplementation.pending, (state) => {
-        state.loading = true;
+        state.addOperationImplLoading = true;
         state.error = null;
       })
       .addCase(addNewOperationImplementation.fulfilled, (state, action) => {
-        state.loading = false;
-        if (state.dataStructure?.slug === action.payload.slug) {
-          state.dataStructure = action.payload;
+        state.addOperationImplLoading = false;
+        const updatedDs = action.payload;
+        if (state.dataStructure?.slug === updatedDs.slug) {
+          state.dataStructure = updatedDs;
+        }
+        const index = state.dataStructures.findIndex(
+          (ds) => ds.slug === updatedDs.slug
+        );
+        if (index !== -1) {
+          state.dataStructures[index] = updatedDs;
         }
       })
       .addCase(addNewOperationImplementation.rejected, (state, action) => {
-        state.loading = false;
+        state.addOperationImplLoading = false;
         state.error = action.payload;
       })
 
       .addCase(fetchDataStructureContributors.pending, (state) => {
-        state.loading = true;
+        state.contributorsLoading = true;
         state.error = null;
       })
       .addCase(fetchDataStructureContributors.fulfilled, (state, action) => {
-        state.loading = false;
+        state.contributorsLoading = false;
         state.contributors = action.payload;
       })
       .addCase(fetchDataStructureContributors.rejected, (state, action) => {
-        state.loading = false;
+        state.contributorsLoading = false;
         state.error = action.payload;
       });
   },
 });
 
-export const { resetDataStructureState, clearDataStructure } = dataStructureSlice.actions;
+export const {
+  resetDataStructureState,
+  clearDataStructure,
+  updateDataStructureInState,
+} = dataStructureSlice.actions;
 export default dataStructureSlice.reducer;
