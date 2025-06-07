@@ -5,27 +5,22 @@ import { Tooltip } from "react-tooltip";
 import { useMemo } from "react";
 import clsx from "clsx";
 
-// Component to display metadata and additional resources
 const DataStructureMetadata = ({ dataStructure, isAdmin = false }) => {
   if (!dataStructure) return null;
 
-  // Memoize formatted data to prevent unnecessary re-renders
-  const formattedData = useMemo(() => {
-    // Ensure all data arrays are initialized to empty arrays if undefined
-    return {
-      applications: dataStructure.applications || [],
-      comparisons: dataStructure.comparisons || [],
-      tags: dataStructure.tags || [],
-      references: dataStructure.references || [],
-      videoLinks: dataStructure.videoLinks || [],
-      contributors: dataStructure.contributors || [],
-    };
-  }, [dataStructure]);
+  // Memoize formatted data
+  const formattedData = useMemo(() => ({
+    applications: dataStructure.applications || [],
+    comparisons: dataStructure.comparisons || [],
+    tags: dataStructure.tags || [],
+    references: dataStructure.references || [],
+    videoLinks: dataStructure.videoLinks || [],
+    contributors: dataStructure.contributors || [],
+  }), [dataStructure]);
 
-  // Helper function to format dates
+  // Format dates
   const formatDate = (dateString) => {
     try {
-      // Ensure dateString is not null or undefined before creating a Date object
       if (!dateString) return "Unknown Date";
       return format(new Date(dateString), "PPp");
     } catch (error) {
@@ -34,80 +29,68 @@ const DataStructureMetadata = ({ dataStructure, isAdmin = false }) => {
     }
   };
 
-  // Animation variants for container
+  // Animation variants
   const containerVariants = {
     hidden: { opacity: 0, y: 20 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: {
-        duration: 0.3,
-        staggerChildren: 0.1, // Stagger children animations
-      },
-    },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.3, staggerChildren: 0.1 } },
   };
 
-  // Animation variants for child elements that appear sequentially
   const itemVariants = {
     hidden: { opacity: 0, y: 10 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.2 } },
   };
 
-  // Render a list section with animation
+  // Render a list section
   const renderListSection = (title, items, IconComponent, renderItem) => {
-    if (!items || items.length === 0) return null; // Don't render if no items
+    if (!items || items.length === 0) return null;
 
     return (
-      <motion.div variants={itemVariants} className="space-y-4">
+      <motion.div variants={itemVariants} className="space-y-3">
         <h3
           className="flex items-center gap-2 text-xl font-semibold text-gray-900 dark:text-gray-100"
-          data-tooltip-id={`tooltip-${title.toLowerCase().replace(/\s/g, '-')}`} // Unique ID for tooltip
+          data-tooltip-id={`tooltip-${title.toLowerCase().replace(/\s/g, '-')}`}
           data-tooltip-content={title}
         >
           <IconComponent size={20} className="text-blue-500" /> {title}
         </h3>
         <Tooltip
-          id={`tooltip-${title.toLowerCase().replace(/\s/g, '-')}`} // Matching ID
+          id={`tooltip-${title.toLowerCase().replace(/\s/g, '-')}`}
           place="top"
-          className="bg-gray-800 text-white text-sm rounded-md px-2 py-1 z-50" // Added z-50 for tooltip visibility
+          className="bg-gray-800 text-white text-sm rounded-md px-3 py-1.5 z-50"
         />
         {title === "Tags" ? (
           <div className="flex flex-wrap gap-2">{items.map(renderItem)}</div>
         ) : (
-          // Use 'div' instead of 'ul' here if 'renderItem' already returns 'motion.li'
-          // This prevents nested <ul> elements which is invalid HTML
-          <div className="space-y-4">{items.map(renderItem)}</div>
+          <div className="space-y-3">{items.map(renderItem)}</div>
         )}
       </motion.div>
     );
   };
 
-  // Render applications
+  // Render application
   const renderApplication = (app, index) => (
-    <motion.div // Changed from motion.li to motion.div to prevent nested <ul>
+    <motion.div
       key={index}
-      initial={{ opacity: 0, x: -10 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.2, delay: index * 0.05 }} // Slight delay for ripple effect
-      className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-600 shadow-sm"
+      variants={itemVariants}
+      className="p-4 sm:p-5 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm"
     >
       <div className="space-y-2">
-        <p className="font-medium text-gray-900 dark:text-gray-100">
+        <p className="text-base font-medium text-gray-900 dark:text-gray-100">
           {app.domain || "N/A"}
         </p>
         {app.examples && app.examples.length > 0 ? (
           <div>
-            <p className="text-base font-medium mb-1 text-gray-800 dark:text-gray-200">
+            <p className="text-base font-medium text-gray-800 dark:text-gray-200 mb-1">
               Examples:
             </p>
-            <ul className="list-disc list-inside ml-6 space-y-1 text-sm text-gray-700 dark:text-gray-300">
+            <ul className="list-disc list-inside ml-4 space-y-1 text-base text-gray-600 dark:text-gray-300">
               {app.examples.map((example, i) => (
                 <li key={i}>{example || "N/A"}</li>
               ))}
             </ul>
           </div>
         ) : (
-          <p className="text-sm ml-6 text-gray-700 dark:text-gray-400">
+          <p className="text-base text-gray-600 dark:text-gray-400 ml-4">
             No examples provided.
           </p>
         )}
@@ -115,25 +98,23 @@ const DataStructureMetadata = ({ dataStructure, isAdmin = false }) => {
     </motion.div>
   );
 
-  // Render comparisons
+  // Render comparison
   const renderComparison = (comp, index) => (
-    <motion.div // Changed from motion.li to motion.div
+    <motion.div
       key={index}
-      initial={{ opacity: 0, x: -10 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.2, delay: index * 0.05 }} // Slight delay for ripple effect
-      className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-600 shadow-sm"
+      variants={itemVariants}
+      className="p-4 sm:p-5 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm"
     >
       <div className="space-y-2">
-        <p className="font-medium text-gray-900 dark:text-gray-100">
+        <p className="text-base font-medium text-gray-900 dark:text-gray-100">
           Compared with: {comp.with || "N/A"}
         </p>
         {comp.advantages && comp.advantages.length > 0 && (
           <div>
-            <p className="text-base font-medium mb-1 text-gray-800 dark:text-gray-200">
+            <p className="text-base font-medium text-gray-800 dark:text-gray-200 mb-1">
               Advantages:
             </p>
-            <ul className="list-disc list-inside ml-6 space-y-1 text-sm text-gray-700 dark:text-gray-300">
+            <ul className="list-disc list-inside ml-4 space-y-1 text-base text-gray-600 dark:text-gray-300">
               {comp.advantages.map((adv, i) => (
                 <li key={i}>{adv || "N/A"}</li>
               ))}
@@ -142,10 +123,10 @@ const DataStructureMetadata = ({ dataStructure, isAdmin = false }) => {
         )}
         {comp.disadvantages && comp.disadvantages.length > 0 && (
           <div className="mt-2">
-            <p className="text-base font-medium mb-1 text-gray-800 dark:text-gray-200">
+            <p className="text-base font-medium text-gray-800 dark:text-gray-200 mb-1">
               Disadvantages:
             </p>
-            <ul className="list-disc list-inside ml-6 space-y-1 text-sm text-gray-700 dark:text-gray-300">
+            <ul className="list-disc list-inside ml-4 space-y-1 text-base text-gray-600 dark:text-gray-300">
               {comp.disadvantages.map((disadv, i) => (
                 <li key={i}>{disadv || "N/A"}</li>
               ))}
@@ -154,10 +135,10 @@ const DataStructureMetadata = ({ dataStructure, isAdmin = false }) => {
         )}
         {comp.whenToUse && (
           <div className="mt-2">
-            <p className="text-base font-medium mb-1 text-gray-800 dark:text-gray-200">
+            <p className="text-base font-medium text-gray-800 dark:text-gray-200 mb-1">
               When to Use:
             </p>
-            <p className="text-sm ml-6 text-gray-700 dark:text-gray-300">
+            <p className="text-base text-gray-600 dark:text-gray-300 ml-4">
               {comp.whenToUse}
             </p>
           </div>
@@ -166,28 +147,23 @@ const DataStructureMetadata = ({ dataStructure, isAdmin = false }) => {
     </motion.div>
   );
 
-  // Render tags
+  // Render tag
   const renderTag = (tag, index) => (
     <motion.span
       key={index}
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.2, delay: index * 0.05 }} // Slight delay for ripple effect
-      className="bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300 px-3 py-1 rounded-full text-sm font-medium hover:bg-blue-200 dark:hover:bg-blue-800/50 transition-colors cursor-pointer" // Added cursor-pointer
+      variants={itemVariants}
+      className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-base font-medium hover:bg-blue-200 dark:hover:bg-blue-800/50 transition-colors cursor-pointer"
     >
       {tag}
     </motion.span>
   );
 
-  // Render resources (references, video links)
+  // Render resource
   const renderResource = (item, index) => (
-    <motion.li // Added motion to resource list items for individual animation
+    <motion.li
       key={index}
-      variants={itemVariants} // Use itemVariants for consistent animation
-      initial={{ opacity: 0, x: -5 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.15, delay: index * 0.05 }}
-      className="text-sm text-blue-600 dark:text-blue-400"
+      variants={itemVariants}
+      className="text-base text-blue-600 dark:text-blue-400"
     >
       <a
         href={item}
@@ -206,12 +182,11 @@ const DataStructureMetadata = ({ dataStructure, isAdmin = false }) => {
       initial="hidden"
       animate="visible"
       className={clsx(
-        "p-4 sm:p-6 lg:p-8 bg-white dark:bg-gray-900 rounded-2xl shadow-lg",
-        "border border-gray-200 dark:border-gray-800",
-        "max-w-full sm:max-w-3xl lg:max-w-5xl mx-auto"
+        "p-4 sm:p-6 lg:p-8 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700",
+        "shadow-sm"
       )}
     >
-      <div className="space-y-8">
+      <div className="space-y-6">
         {/* Applications */}
         {renderListSection(
           "Applications",
@@ -232,9 +207,8 @@ const DataStructureMetadata = ({ dataStructure, isAdmin = false }) => {
         {renderListSection("Tags", formattedData.tags, Tag, renderTag)}
 
         {/* Additional Resources */}
-        {(formattedData.references.length > 0 ||
-          formattedData.videoLinks.length > 0) && (
-          <motion.div variants={itemVariants} className="space-y-4">
+        {(formattedData.references.length > 0 || formattedData.videoLinks.length > 0) && (
+          <motion.div variants={itemVariants} className="space-y-3">
             <h3
               className="flex items-center gap-2 text-xl font-semibold text-gray-900 dark:text-gray-100"
               data-tooltip-id="tooltip-additional-resources"
@@ -245,7 +219,7 @@ const DataStructureMetadata = ({ dataStructure, isAdmin = false }) => {
             <Tooltip
               id="tooltip-additional-resources"
               place="top"
-              className="bg-gray-800 text-white text-sm rounded-md px-2 py-1 z-50"
+              className="bg-gray-800 text-white text-sm rounded-md px-3 py-1.5 z-50"
             />
             <div className="space-y-4">
               {formattedData.references.length > 0 && (
@@ -254,9 +228,7 @@ const DataStructureMetadata = ({ dataStructure, isAdmin = false }) => {
                     References
                   </h4>
                   <ul className="list-disc list-inside ml-4 space-y-1">
-                    {formattedData.references.map((ref, index) =>
-                      renderResource(ref, index)
-                    )}
+                    {formattedData.references.map(renderResource)}
                   </ul>
                 </div>
               )}
@@ -266,9 +238,7 @@ const DataStructureMetadata = ({ dataStructure, isAdmin = false }) => {
                     Video Links
                   </h4>
                   <ul className="list-disc list-inside ml-4 space-y-1">
-                    {formattedData.videoLinks.map((video, index) =>
-                      renderResource(video, index)
-                    )}
+                    {formattedData.videoLinks.map(renderResource)}
                   </ul>
                 </div>
               )}
@@ -278,7 +248,7 @@ const DataStructureMetadata = ({ dataStructure, isAdmin = false }) => {
 
         {/* Admin-Only Fields */}
         {isAdmin && (
-          <motion.div variants={itemVariants} className="space-y-4">
+          <motion.div variants={itemVariants} className="space-y-4 pt-6 border-t border-gray-200 dark:border-gray-700">
             <h3
               className="flex items-center gap-2 text-xl font-semibold text-gray-900 dark:text-gray-100"
               data-tooltip-id="tooltip-admin-metadata"
@@ -289,7 +259,7 @@ const DataStructureMetadata = ({ dataStructure, isAdmin = false }) => {
             <Tooltip
               id="tooltip-admin-metadata"
               place="top"
-              className="bg-gray-800 text-white text-sm rounded-md px-2 py-1 z-50"
+              className="bg-gray-800 text-white text-sm rounded-md px-3 py-1.5 z-50"
             />
             <div className="space-y-4">
               {/* Contributors */}
@@ -298,33 +268,27 @@ const DataStructureMetadata = ({ dataStructure, isAdmin = false }) => {
                   Contributors
                 </h4>
                 {formattedData.contributors.length > 0 ? (
-                  <div className="space-y-4">
-                    {" "}
-                    {/* Changed from ul to div */}
+                  <div className="space-y-3">
                     {formattedData.contributors.map((contributor, index) => (
-                      <motion.div // Changed from motion.li to motion.div
+                      <motion.div
                         key={index}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.2, delay: index * 0.05 }} // Slight delay
-                        className="p-3 bg-gray-100 dark:bg-gray-800 rounded-lg text-sm text-gray-800 dark:text-gray-400 space-y-1"
+                        variants={itemVariants}
+                        className="p-4 sm:p-5 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm"
                       >
-                        <p>
+                        <p className="text-base text-gray-700 dark:text-gray-300">
                           <span className="font-medium">User ID:</span>{" "}
                           {contributor.userId || "Unknown"}
                         </p>
-                        <p>
+                        <p className="text-base text-gray-700 dark:text-gray-300">
                           <span className="font-medium">Contribution Type:</span>{" "}
                           {contributor.contributionType || "N/A"}
                         </p>
-                        <p>
+                        <p className="text-base text-gray-700 dark:text-gray-300">
                           <span className="font-medium">Contributed At:</span>{" "}
-                          {contributor.contributedAt
-                            ? formatDate(contributor.contributedAt)
-                            : "Unknown"}
+                          {contributor.contributedAt ? formatDate(contributor.contributedAt) : "Unknown"}
                         </p>
                         {contributor.description && (
-                          <p>
+                          <p className="text-base text-gray-700 dark:text-gray-300">
                             <span className="font-medium">Description:</span>{" "}
                             {contributor.description}
                           </p>
@@ -333,7 +297,7 @@ const DataStructureMetadata = ({ dataStructure, isAdmin = false }) => {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-600 dark:text-gray-300 ml-4">
+                  <p className="text-base text-gray-600 dark:text-gray-300 ml-4">
                     No contributors data available.
                   </p>
                 )}
@@ -344,23 +308,20 @@ const DataStructureMetadata = ({ dataStructure, isAdmin = false }) => {
                 <h4 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-2">
                   Voting Statistics
                 </h4>
-                <div className="flex flex-col sm:flex-row sm:gap-8 space-y-3 sm:space-y-0">
+                <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
                   <div
                     className="flex items-center gap-2"
                     data-tooltip-id="tooltip-upvotes"
                     data-tooltip-content="Number of upvotes"
                   >
-                    <ThumbsUp size={18} className="text-blue-500" />
-                    <p className="text-sm text-gray-600 dark:text-gray-300">
-                      Upvotes:{" "}
-                      <span className="font-medium">
-                        {dataStructure.upvotes || 0}
-                      </span>
+                    <ThumbsUp size={20} className="text-blue-500" />
+                    <p className="text-base text-gray-600 dark:text-gray-300">
+                      Upvotes: <span className="font-medium">{dataStructure.upvotes || 0}</span>
                     </p>
                     <Tooltip
                       id="tooltip-upvotes"
                       place="top"
-                      className="bg-gray-800 text-white text-sm rounded-md px-2 py-1 z-50"
+                      className="bg-gray-800 text-white text-sm rounded-md px-3 py-1.5 z-50"
                     />
                   </div>
                   <div
@@ -368,17 +329,14 @@ const DataStructureMetadata = ({ dataStructure, isAdmin = false }) => {
                     data-tooltip-id="tooltip-downvotes"
                     data-tooltip-content="Number of downvotes"
                   >
-                    <ThumbsDown size={18} className="text-blue-500" />
-                    <p className="text-sm text-gray-600 dark:text-gray-300">
-                      Downvotes:{" "}
-                      <span className="font-medium">
-                        {dataStructure.downvotes || 0}
-                      </span>
+                    <ThumbsDown size={20} className="text-blue-500" />
+                    <p className="text-base text-gray-600 dark:text-gray-300">
+                      Downvotes: <span className="font-medium">{dataStructure.downvotes || 0}</span>
                     </p>
                     <Tooltip
                       id="tooltip-downvotes"
                       place="top"
-                      className="bg-gray-800 text-white text-sm rounded-md px-2 py-1 z-50"
+                      className="bg-gray-800 text-white text-sm rounded-md px-3 py-1.5 z-50"
                     />
                   </div>
                   <div
@@ -386,17 +344,14 @@ const DataStructureMetadata = ({ dataStructure, isAdmin = false }) => {
                     data-tooltip-id="tooltip-views"
                     data-tooltip-content="Number of views"
                   >
-                    <Eye size={18} className="text-blue-500" />
-                    <p className="text-sm text-gray-600 dark:text-gray-300">
-                      Views:{" "}
-                      <span className="font-medium">
-                        {dataStructure.views || 0}
-                      </span>
+                    <Eye size={20} className="text-blue-500" />
+                    <p className="text-base text-gray-600 dark:text-gray-300">
+                      Views: <span className="font-medium">{dataStructure.views || 0}</span>
                     </p>
                     <Tooltip
                       id="tooltip-views"
                       place="top"
-                      className="bg-gray-800 text-white text-sm rounded-md px-2 py-1 z-50"
+                      className="bg-gray-800 text-white text-sm rounded-md px-3 py-1.5 z-50"
                     />
                   </div>
                 </div>

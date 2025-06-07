@@ -1,17 +1,12 @@
 import { useState, useCallback } from "react";
-import {
-  ChevronDown,
-  ChevronUp,
-  Code2,
-  Copy,
-  Check,
-} from "lucide-react";
+import { ChevronDown, ChevronUp, Code2, Copy, Check } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { materialDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { toast } from "react-toastify";
 import { Tooltip } from "react-tooltip";
 import { MarkdownRenderer } from "../../pages/CommentSection"; // Adjust path as needed
+import clsx from "clsx";
 
 const DataStructureOperations = ({ dataStructure, isAdmin = false }) => {
   const [openOperationIndex, setOpenOperationIndex] = useState(null);
@@ -46,38 +41,29 @@ const DataStructureOperations = ({ dataStructure, isAdmin = false }) => {
     return (
       <motion.div
         key={operationId}
-        initial={{ opacity: 0, x: -10 }}
-        animate={{ opacity: 1, x: 0 }}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.2, delay: index * 0.05 }}
-        className="bg-gray-50 dark:bg-gray-900 p-4 sm:p-6 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm"
+        className="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden"
       >
         <button
           onClick={() => toggleOperation(index)}
-          className="w-full flex justify-between items-center text-left text-base sm:text-lg font-semibold text-gray-900 dark:text-white hover:text-blue-500 dark:hover:text-blue-400 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          className="w-full flex justify-between items-center px-4 py-3 sm:px-5 sm:py-4 text-left text-base sm:text-lg font-semibold text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
           data-tooltip-id={operationId}
-          data-tooltip-content={`Toggle ${operation.name?.trim() ||
-            "operation"} details`}
+          data-tooltip-content={`Toggle ${operation.name?.trim() || "operation"} details`}
           aria-expanded={isOpen}
           aria-controls={`operation-content-${index}`}
         >
           <span>{operation.name?.trim() || `Operation ${index + 1}`}</span>
-          <motion.div
-            animate={{ rotate: isOpen ? 180 : 0 }}
-            transition={{ duration: 0.2 }}
-          >
-            {isOpen ? (
-              <ChevronUp className="h-5 w-5" />
-            ) : (
-              <ChevronDown className="h-5 w-5" />
-            )}
+          <motion.div animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
+            {isOpen ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
           </motion.div>
         </button>
         <Tooltip
           id={operationId}
           place="top"
-          className="z-50 text-xs bg-gray-800 text-white rounded px-2 py-1"
+          className="z-50 bg-gray-800 text-white text-sm rounded-md px-3 py-1.5"
         />
-
         <AnimatePresence>
           {isOpen && (
             <motion.div
@@ -86,19 +72,19 @@ const DataStructureOperations = ({ dataStructure, isAdmin = false }) => {
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.3 }}
-              className="mt-4 space-y-4 overflow-hidden"
+              className="px-4 py-4 sm:px-5 sm:py-5 space-y-4 overflow-hidden"
             >
               <div>
-                <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">
+                <h4 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-1">
                   Description
                 </h4>
-                <div className="prose prose-sm dark:prose-invert max-w-none text-gray-700 dark:text-gray-300">
+                <div className="prose prose-base dark:prose-invert max-w-none text-gray-600 dark:text-gray-300">
                   <MarkdownRenderer>
                     {operation.description?.trim() || "No description provided."}
                   </MarkdownRenderer>
                 </div>
               </div>
-              <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 text-sm text-gray-700 dark:text-gray-300">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 text-base text-gray-600 dark:text-gray-300">
                 <p>
                   <span className="font-medium">Time Complexity:</span>{" "}
                   {operation.complexity?.time?.trim() || "N/A"}
@@ -108,122 +94,115 @@ const DataStructureOperations = ({ dataStructure, isAdmin = false }) => {
                   {operation.complexity?.space?.trim() || "N/A"}
                 </p>
               </div>
-              {Array.isArray(operation.implementations) &&
-                operation.implementations.length > 0 && (
-                  <div>
-                    <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
-                      Implementations
-                    </h4>
-                    {/* Tabbed Interface for Implementations */}
-                    <div className="bg-gray-900 text-gray-100 rounded-lg shadow-lg overflow-hidden border border-gray-700 mt-2">
-                      <div className="flex overflow-x-auto border-b border-gray-700 bg-gray-800 px-2 py-1">
-                        {operation.implementations.map((impl, implIndex) => (
-                          <button
-                            key={implIndex}
-                            onClick={() => setSelectedLangIndex(implIndex)}
-                            className={`px-4 py-2 font-mono text-sm whitespace-nowrap border-b-2 transition-all duration-200 ${selectedLangIndex ===
-                              implIndex
-                                ? "border-blue-500 text-blue-400 font-bold"
-                                : "border-transparent text-gray-400 hover:text-gray-200 hover:bg-gray-700 rounded-t-md"
-                              }`}
-                          >
-                            {impl.codeDetails?.language?.trim() ||
-                              `Code ${implIndex + 1}`}
-                          </button>
-                        ))}
-                      </div>
-                      <div className="p-3 sm:p-4 bg-gray-100 dark:bg-gray-800 rounded-b-md border border-gray-300 dark:border-gray-700">
-                        <div className="space-y-3">
-                          <div>
-                            <h5 className="text-xs font-semibold text-gray-800 dark:text-gray-200 mb-1">
-                              Explanation
-                            </h5>
-                            <div className="prose prose-xs dark:prose-invert max-w-none text-gray-700 dark:text-gray-300">
-                              <MarkdownRenderer>
-                                {operation.implementations[selectedLangIndex]?.explanation?.trim() ||
-                                  "No explanation provided."}
-                              </MarkdownRenderer>
-                            </div>
+              {Array.isArray(operation.implementations) && operation.implementations.length > 0 && (
+                <div>
+                  <h4 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-2">
+                    Implementations
+                  </h4>
+                  <div className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+                    <div className="flex flex-wrap gap-1 p-1 bg-gray-100 dark:bg-gray-900">
+                      {operation.implementations.map((impl, implIndex) => (
+                        <button
+                          key={implIndex}
+                          onClick={() => setSelectedLangIndex(implIndex)}
+                          className={clsx(
+                            "px-3 py-1 text-sm font-medium rounded-md transition-colors duration-200",
+                            selectedLangIndex === implIndex
+                              ? "bg-blue-600 text-white"
+                              : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
+                          )}
+                        >
+                          {impl.codeDetails?.language?.trim() || `Code ${implIndex + 1}`}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="p-4 sm:p-5 bg-white dark:bg-gray-800">
+                      <div className="space-y-4">
+                        <div>
+                          <h5 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-1">
+                            Explanation
+                          </h5>
+                          <div className="prose prose-base dark:prose-invert max-w-none text-gray-600 dark:text-gray-300">
+                            <MarkdownRenderer>
+                              {operation.implementations[selectedLangIndex]?.explanation?.trim() ||
+                                "No explanation provided."}
+                            </MarkdownRenderer>
                           </div>
-                          <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 text-xs text-gray-700 dark:text-gray-300">
-                            <p>
-                              <span className="font-medium">Time Complexity:</span>{" "}
-                              {operation.implementations[selectedLangIndex]?.complexity?.time?.trim() ||
-                                "N/A"}
-                            </p>
-                            <p>
-                              <span className="font-medium">Space Complexity:</span>{" "}
-                              {operation.implementations[selectedLangIndex]?.complexity?.space?.trim() ||
-                                "N/A"}
-                            </p>
-                          </div>
-                          <div>
-                            <h5 className="text-xs font-semibold text-gray-800 dark:text-gray-200 mb-1">
-                              Code
-                            </h5>
-                            <div className="relative rounded-md overflow-hidden">
-                              {operation.implementations[selectedLangIndex]?.codeDetails?.code?.trim() ? (
-                                <>
-                                  <SyntaxHighlighter
-                                    language={
-                                      operation.implementations[
-                                        selectedLangIndex
-                                      ]?.codeDetails?.language
-                                        ?.toLowerCase()
-                                        .trim() || "javascript"
-                                    }
-                                    style={materialDark}
-                                    showLineNumbers
-                                    wrapLongLines
-                                    customStyle={{
-                                      padding: "1rem",
-                                      borderRadius: "0.375rem",
-                                      backgroundColor: "#212121", // Darker background for code
-                                      fontSize: "0.75rem",
-                                      lineHeight: "1.5",
-                                    }}
-                                  >
-                                    {operation.implementations[
-                                      selectedLangIndex
-                                    ]?.codeDetails?.code.trim()}
-                                  </SyntaxHighlighter>
-                                  <motion.button
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
-                                    onClick={() =>
-                                      copyCode(
-                                        operation.implementations[
-                                          selectedLangIndex
-                                        ]?.codeDetails?.code
-                                      )
-                                    }
-                                    className="absolute top-2 right-2 bg-blue-600 text-white px-2 py-1 rounded text-xs flex items-center gap-1 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                                    aria-label="Copy code"
-                                  >
-                                    <Copy className="h-3 w-3" /> Copy
-                                  </motion.button>
-                                </>
-                              ) : (
-                                <pre className="p-4 bg-gray-900 text-white text-xs rounded-md overflow-x-auto">
-                                  <code>No code available.</code>
-                                </pre>
-                              )}
-                            </div>
+                        </div>
+                        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 text-base text-gray-600 dark:text-gray-300">
+                          <p>
+                            <span className="font-medium">Time Complexity:</span>{" "}
+                            {operation.implementations[selectedLangIndex]?.complexity?.time?.trim() || "N/A"}
+                          </p>
+                          <p>
+                            <span className="font-medium">Space Complexity:</span>{" "}
+                            {operation.implementations[selectedLangIndex]?.complexity?.space?.trim() || "N/A"}
+                          </p>
+                        </div>
+                        <div>
+                          <h5 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-1">
+                            Code
+                          </h5>
+                          <div className="relative rounded-md overflow-hidden">
+                            {operation.implementations[selectedLangIndex]?.codeDetails?.code?.trim() ? (
+                              <>
+                                <SyntaxHighlighter
+                                  language={
+                                    operation.implementations[selectedLangIndex]?.codeDetails?.language
+                                      ?.toLowerCase()
+                                      .trim() || "javascript"
+                                  }
+                                  style={materialDark}
+                                  showLineNumbers
+                                  wrapLongLines
+                                  customStyle={{
+                                    padding: "1.25rem",
+                                    borderRadius: "0.5rem",
+                                    backgroundColor: "#1a1a1a",
+                                    fontSize: "0.875rem",
+                                    lineHeight: "1.5",
+                                  }}
+                                  codeTagProps={{ className: "font-mono" }}
+                                >
+                                  {operation.implementations[selectedLangIndex]?.codeDetails?.code.trim()}
+                                </SyntaxHighlighter>
+                                <motion.button
+                                  whileHover={{ scale: 1.05 }}
+                                  whileTap={{ scale: 0.95 }}
+                                  onClick={() =>
+                                    copyCode(operation.implementations[selectedLangIndex]?.codeDetails?.code)
+                                  }
+                                  className="absolute top-2 right-2 bg-blue-600 text-white px-3 py-1.5 rounded-md text-sm flex items-center gap-1.5 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                                  aria-label="Copy code"
+                                  data-tooltip-id={`copy-code-${operationId}-${selectedLangIndex}`}
+                                  data-tooltip-content="Copy code to clipboard"
+                                >
+                                  <Copy size={16} /> Copy
+                                </motion.button>
+                                <Tooltip
+                                  id={`copy-code-${operationId}-${selectedLangIndex}`}
+                                  place="top"
+                                  className="z-50 bg-gray-800 text-white text-sm rounded-md px-3 py-1.5"
+                                />
+                              </>
+                            ) : (
+                              <pre className="p-4 bg-gray-900 text-white text-sm rounded-md overflow-x-auto">
+                                <code>No code available.</code>
+                              </pre>
+                            )}
                           </div>
                         </div>
                       </div>
                     </div>
                   </div>
-                )}
+                </div>
+              )}
               {isAdmin && (
                 <div className="mt-4">
                   <button
-                    className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex items-center gap-1 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                    onClick={() =>
-                      toast.info("Edit operation functionality coming soon!")
-                    }
-                    aria-label={`Edit operation ${operation.name?.trim() ||
-                      `Operation ${index + 1}`}`}
+                    className="text-base text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex items-center gap-1.5 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                    onClick={() => toast.info("Edit operation functionality coming soon!")}
+                    aria-label={`Edit operation ${operation.name?.trim() || `Operation ${index + 1}`}`}
                   >
                     Edit Operation
                   </button>
@@ -242,44 +221,37 @@ const DataStructureOperations = ({ dataStructure, isAdmin = false }) => {
     const [copied, setCopied] = useState(false);
 
     const handleCopy = useCallback(() => {
+      setCopied(true);
       copyCode(impl.code);
+      setTimeout(() => setCopied(false), 2000);
     }, [copyCode, impl.code]);
 
     return (
       <motion.div
         key={implId}
-        initial={{ opacity: 0, x: -10 }}
-        animate={{ opacity: 1, x: 0 }}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.2, delay: index * 0.05 }}
-        className="bg-gray-50 dark:bg-gray-900 p-4 sm:p-6 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm"
+        className="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden"
       >
         <button
           onClick={() => toggleFullImplementation(index)}
-          className="w-full flex justify-between items-center text-left text-base sm:text-lg font-semibold text-gray-900 dark:text-white hover:text-blue-500 dark:hover:text-blue-400 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          className="w-full flex justify-between items-center px-4 py-3 sm:px-5 sm:py-4 text-left text-base sm:text-lg font-semibold text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
           data-tooltip-id={implId}
-          data-tooltip-content={`Toggle ${impl.language?.trim() ||
-            "implementation"} code`}
+          data-tooltip-content={`Toggle ${impl.language?.trim() || "implementation"} code`}
           aria-expanded={isOpen}
           aria-controls={`full-impl-content-${index}`}
         >
           <span>Full Implementation: {impl.language?.trim() || "Unknown"}</span>
-          <motion.div
-            animate={{ rotate: isOpen ? 180 : 0 }}
-            transition={{ duration: 0.2 }}
-          >
-            {isOpen ? (
-              <ChevronUp className="h-5 w-5" />
-            ) : (
-              <ChevronDown className="h-5 w-5" />
-            )}
+          <motion.div animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
+            {isOpen ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
           </motion.div>
         </button>
         <Tooltip
           id={implId}
           place="top"
-          className="z-50 text-xs bg-gray-800 text-white rounded px-2 py-1"
+          className="z-50 bg-gray-800 text-white text-sm rounded-md px-3 py-1.5"
         />
-
         <AnimatePresence>
           {isOpen && (
             <motion.div
@@ -288,62 +260,56 @@ const DataStructureOperations = ({ dataStructure, isAdmin = false }) => {
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.3 }}
-              className="mt-4 space-y-3 overflow-hidden"
+              className="px-4 py-4 sm:px-5 sm:py-5 space-y-4 overflow-hidden"
             >
-              <div className="bg-gray-900 text-gray-100 rounded-lg shadow-lg overflow-hidden border border-gray-700 mt-2">
-                <div className="flex justify-between items-center p-4 bg-gray-800 border-b border-gray-700">
-                  <h2 className="text-xl font-semibold text-white">
+              <div className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div className="flex justify-between items-center px-4 py-3 sm:px-5 sm:py-4 bg-gray-100 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+                  <h4 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">
                     Code Example
-                  </h2>
-                  <button
+                  </h4>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
                     onClick={handleCopy}
-                    title="Copy code"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-md text-base hover:bg-blue-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                     aria-label="Copy code"
-                    className="flex items-center gap-1 px-3 py-1.5 bg-gray-700 text-gray-200 rounded-md hover:bg-gray-600 transition-colors duration-200 text-sm font-medium"
+                    data-tooltip-id={`copy-full-impl-${implId}`}
+                    data-tooltip-content={copied ? "Copied!" : "Copy code to clipboard"}
                   >
-                    {copied ? (
-                      <>
-                        <Check size={16} className="text-green-400" />
-                        <span>Copied!</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy size={16} />
-                        <span>Copy</span>
-                      </>
-                    )}
-                  </button>
+                    {copied ? <Check size={16} className="text-green-400" /> : <Copy size={16} />}
+                    <span>{copied ? "Copied!" : "Copy"}</span>
+                  </motion.button>
+                  <Tooltip
+                    id={`copy-full-impl-${implId}`}
+                    place="top"
+                    className="z-50 bg-gray-800 text-white text-sm rounded-md px-3 py-1.5"
+                  />
                 </div>
-                <div className="relative">
+                <div className="p-4 sm:p-5 bg-white dark:bg-gray-800">
                   <SyntaxHighlighter
                     language={impl.language?.toLowerCase().trim() || "text"}
                     style={materialDark}
                     wrapLongLines
                     showLineNumbers
                     customStyle={{
-                      padding: "1.5rem",
-                      fontSize: "0.9rem",
+                      padding: "1.25rem",
+                      borderRadius: "0.5rem",
+                      backgroundColor: "#1a1a1a",
+                      fontSize: "0.875rem",
                       lineHeight: "1.5",
-                      borderRadius: "0 0 0.5rem 0.5rem",
-                      backgroundColor: "#212121",
                     }}
-                    codeTagProps={{
-                      className: "font-mono",
-                    }}
+                    codeTagProps={{ className: "font-mono" }}
                   >
-                    {impl.code?.trim()}
+                    {impl.code?.trim() || "No code available."}
                   </SyntaxHighlighter>
                 </div>
               </div>
               {isAdmin && (
-                <div className="mt-2">
+                <div>
                   <button
-                    className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex items-center gap-1 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                    onClick={() =>
-                      toast.info("Edit implementation functionality coming soon!")
-                    }
-                    aria-label={`Edit implementation in ${impl.language?.trim() ||
-                      "Unknown"}`}
+                    className="text-base text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex items-center gap-1.5 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                    onClick={() => toast.info("Edit implementation functionality coming soon!")}
+                    aria-label={`Edit implementation in ${impl.language?.trim() || "Unknown"}`}
                   >
                     Edit Implementation
                   </button>
@@ -358,43 +324,55 @@ const DataStructureOperations = ({ dataStructure, isAdmin = false }) => {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      className="space-y-6 p-4 sm:p-6 bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 font-sans"
+      variants={{
+        hidden: { opacity: 0, y: 20 },
+        visible: { opacity: 1, y: 0, transition: { duration: 0.3, staggerChildren: 0.1 } },
+      }}
+      initial="hidden"
+      animate="visible"
+      className="p-4 sm:p-6 lg:p-8 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm"
     >
-      {/* Operations */}
-      {Array.isArray(dataStructure.operations) &&
-        dataStructure.operations.length > 0 && (
+      <div className="space-y-6">
+        {/* Operations */}
+        {Array.isArray(dataStructure.operations) && dataStructure.operations.length > 0 && (
           <section aria-labelledby="operations-heading">
             <h3
               id="operations-heading"
-              className="flex items-center gap-2 text-lg sm:text-xl font-semibold text-gray-900 dark:text-white mb-4"
+              className="flex items-center gap-2 text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white mb-4"
+              data-tooltip-id="operations-tooltip"
+              data-tooltip-content="List of operations for this data structure"
             >
-              <Code2 className="h-5 w-5" aria-hidden="true" /> Operations
+              <Code2 size={20} className="text-blue-500" /> Operations
             </h3>
-            <div className="space-y-4">
-              {dataStructure.operations.map(renderOperation)}
-            </div>
+            <Tooltip
+              id="operations-tooltip"
+              place="top"
+              className="z-50 bg-gray-800 text-white text-sm rounded-md px-3 py-1.5"
+            />
+            <div className="space-y-4">{dataStructure.operations.map(renderOperation)}</div>
           </section>
         )}
 
-      {/* Full Implementations */}
-      {Array.isArray(dataStructure.fullImplementations) &&
-        dataStructure.fullImplementations.length > 0 && (
+        {/* Full Implementations */}
+        {Array.isArray(dataStructure.fullImplementations) && dataStructure.fullImplementations.length > 0 && (
           <section aria-labelledby="full-implementations-heading">
             <h3
               id="full-implementations-heading"
-              className="flex items-center gap-2 text-lg sm:text-xl font-semibold text-gray-900 dark:text-white mb-4"
+              className="flex items-center gap-2 text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white mb-4"
+              data-tooltip-id="full-implementations-tooltip"
+              data-tooltip-content="Complete implementations of the data structure"
             >
-              <Code2 className="h-5 w-5" aria-hidden="true" /> Full
-              Implementations
+              <Code2 size={20} className="text-blue-500" /> Full Implementations
             </h3>
-            <div className="space-y-4">
-              {dataStructure.fullImplementations.map(renderFullImplementation)}
-            </div>
+            <Tooltip
+              id="full-implementations-tooltip"
+              place="top"
+              className="z-50 bg-gray-800 text-white text-sm rounded-md px-3 py-1.5"
+            />
+            <div className="space-y-4">{dataStructure.fullImplementations.map(renderFullImplementation)}</div>
           </section>
         )}
+      </div>
     </motion.div>
   );
 };
