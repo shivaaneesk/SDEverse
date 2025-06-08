@@ -15,6 +15,14 @@ export const getAllDataStructures = async (params = {}) => {
   };
 };
 
+export const getAllDataStructuresForList = async (params = {}) => {
+  const res = await api.get("/data-structures/list", { params });
+  return {
+    dataStructures: res.data.dataStructures,
+    total: res.data.total,
+  };
+};
+
 export const getDataStructureBySlug = async (slug) => {
   const res = await api.get(`/data-structures/${slug}`);
   return res.data;

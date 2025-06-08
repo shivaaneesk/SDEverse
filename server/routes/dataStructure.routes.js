@@ -4,6 +4,7 @@ const router = express.Router();
 const {
   createDataStructure,
   getAllDataStructures,
+  getAllDataStructuresForList,
   getDataStructureBySlug,
   updateDataStructure,
   deleteDataStructure,
@@ -17,20 +18,18 @@ const {
 const { protect, admin } = require("../middleware/auth.middleware");
 const validateDataStructure = require("../middleware/validateDataStructure");
 
-// --- Public routes ---
-router.get("/", getAllDataStructures); // List with filters/pagination
-router.get("/categories", getAllCategories); // Fetch category list
-router.get("/search", searchDataStructures); // Filtered search
-router.get("/:slug", getDataStructureBySlug); // Single data structure by slug
+router.get("/", getAllDataStructures);
+router.get("/list", getAllDataStructuresForList);
+router.get("/categories", getAllCategories);
+router.get("/search", searchDataStructures);
+router.get("/:slug", getDataStructureBySlug);
 
-// --- Protected routes ---
-router.post("/", protect, validateDataStructure, createDataStructure); // Create
-router.put("/:slug", protect, validateDataStructure, updateDataStructure); // Update
-router.delete("/:slug", protect, admin, deleteDataStructure); // Delete
-router.post("/:slug/code", protect, addOperationImplementation); // or addOperationImplementation
+router.post("/", protect, validateDataStructure, createDataStructure);
+router.put("/:slug", protect, validateDataStructure, updateDataStructure);
+router.delete("/:slug", protect, admin, deleteDataStructure);
+router.post("/:slug/code", protect, addOperationImplementation);
 router.get("/:slug/contributors", getContributors);
 
-// --- Voting ---
 router.post("/:slug/vote", protect, voteDataStructure);
 
 module.exports = router;

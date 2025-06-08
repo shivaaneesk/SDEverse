@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   fetchCategories,
-  fetchAlgorithms,
+  fetchAlgorithmsForList,
   searchAllAlgorithms,
 } from "../features/algorithm/algorithmSlice";
 import { Link } from "react-router-dom";
@@ -15,10 +15,9 @@ const Algorithm = () => {
   const {
     categories = [],
     algorithms = [],
-    searchResults = [],
+    total,
     loading,
     error,
-    total,
   } = useSelector((state) => state.algorithm);
 
   const navigate = useNavigate();
@@ -28,7 +27,7 @@ const Algorithm = () => {
 
   useEffect(() => {
     dispatch(fetchCategories());
-    dispatch(fetchAlgorithms({ page: 1, limit: 10 }));
+    dispatch(fetchAlgorithmsForList());
   }, [dispatch]);
 
   const handleSearchChange = (e) => {
@@ -37,7 +36,7 @@ const Algorithm = () => {
     if (query.trim()) {
       dispatch(searchAllAlgorithms({ q: query }));
     } else {
-      dispatch(fetchAlgorithms({ page: 1, limit: 10 }));
+      dispatch(fetchAlgorithmsForList());
     }
   };
 
@@ -122,10 +121,10 @@ const Algorithm = () => {
         <div className="space-y-6">
           <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
             Search Results{" "}
-            {searchResults.length > 0 && `(${searchResults.length})`}
+            {algorithms.length > 0 && `(${algorithms.length})`}
           </h2>
 
-          {searchResults.length === 0 ? (
+          {algorithms.length === 0 ? (
             <div className="text-center py-10">
               <p className="text-gray-500 dark:text-gray-400 text-lg">
                 No algorithms found matching "{searchQuery}"
@@ -133,7 +132,7 @@ const Algorithm = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {searchResults.map((algorithm) => (
+              {algorithms.map((algorithm) => (
                 <motion.div
                   key={algorithm.slug}
                   initial={{ opacity: 0, y: 10 }}

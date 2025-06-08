@@ -2,6 +2,7 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import {
   createAlgorithm,
   getAllAlgorithms,
+  getAlgorithmsForList,
   getAlgorithmBySlug,
   updateAlgorithm,
   deleteAlgorithm,
@@ -22,13 +23,11 @@ const initialState = {
   error: null,
 };
 
-const getToken = (getState) => getState().auth?.token;
 const getUser = (getState) => getState().auth?.user;
 
 export const createNewAlgorithm = createAsyncThunk(
   "algorithm/createNewAlgorithm",
   async (algorithmData, { getState, rejectWithValue }) => {
-    const token = getToken(getState);
     const user = getUser(getState);
 
     if (user?.role !== "admin") {
@@ -36,7 +35,7 @@ export const createNewAlgorithm = createAsyncThunk(
     }
 
     try {
-      return await createAlgorithm(algorithmData, token);
+      return await createAlgorithm(algorithmData);
     } catch (error) {
       return rejectWithValue(error);
     }
@@ -45,10 +44,20 @@ export const createNewAlgorithm = createAsyncThunk(
 
 export const fetchAlgorithms = createAsyncThunk(
   "algorithm/fetchAlgorithms",
-  async (params, { getState, rejectWithValue }) => {
-    const token = getToken(getState);
+  async (params, { rejectWithValue }) => {
     try {
-      return await getAllAlgorithms(params, token);
+      return await getAllAlgorithms(params);
+    } catch (error) {
+      return rejectWithValue(error);
+    }
+  }
+);
+
+export const fetchAlgorithmsForList = createAsyncThunk(
+  "algorithm/fetchAlgorithmsForList",
+  async (params, { rejectWithValue }) => {
+    try {
+      return await getAlgorithmsForList(params);
     } catch (error) {
       return rejectWithValue(error);
     }
@@ -57,10 +66,9 @@ export const fetchAlgorithms = createAsyncThunk(
 
 export const fetchAlgorithmBySlug = createAsyncThunk(
   "algorithm/fetchAlgorithmBySlug",
-  async (slug, { getState, rejectWithValue }) => {
-    const token = getToken(getState);
+  async (slug, { rejectWithValue }) => {
     try {
-      return await getAlgorithmBySlug(slug, token);
+      return await getAlgorithmBySlug(slug);
     } catch (error) {
       return rejectWithValue(error);
     }
@@ -70,7 +78,6 @@ export const fetchAlgorithmBySlug = createAsyncThunk(
 export const updateExistingAlgorithm = createAsyncThunk(
   "algorithm/updateExistingAlgorithm",
   async ({ slug, algorithmData }, { getState, rejectWithValue }) => {
-    const token = getToken(getState);
     const user = getUser(getState);
 
     if (user?.role !== "admin") {
@@ -78,7 +85,7 @@ export const updateExistingAlgorithm = createAsyncThunk(
     }
 
     try {
-      return await updateAlgorithm(slug, algorithmData, token);
+      return await updateAlgorithm(slug, algorithmData);
     } catch (error) {
       return rejectWithValue(error);
     }
@@ -88,7 +95,6 @@ export const updateExistingAlgorithm = createAsyncThunk(
 export const deleteExistingAlgorithm = createAsyncThunk(
   "algorithm/deleteExistingAlgorithm",
   async (slug, { getState, rejectWithValue }) => {
-    const token = getToken(getState);
     const user = getUser(getState);
 
     if (user?.role !== "admin") {
@@ -96,7 +102,7 @@ export const deleteExistingAlgorithm = createAsyncThunk(
     }
 
     try {
-      await deleteAlgorithm(slug, token);
+      await deleteAlgorithm(slug);
       return slug;
     } catch (error) {
       return rejectWithValue(error);
@@ -106,10 +112,9 @@ export const deleteExistingAlgorithm = createAsyncThunk(
 
 export const voteOnAlgorithm = createAsyncThunk(
   "algorithm/voteOnAlgorithm",
-  async ({ slug, voteData }, { getState, rejectWithValue }) => {
-    const token = getToken(getState);
+  async ({ slug, voteData }, { rejectWithValue }) => {
     try {
-      return await voteAlgorithm(slug, voteData, token);
+      return await voteAlgorithm(slug, voteData);
     } catch (error) {
       return rejectWithValue(error);
     }
@@ -130,10 +135,9 @@ export const fetchCategories = createAsyncThunk(
 
 export const searchAllAlgorithms = createAsyncThunk(
   "algorithm/searchAllAlgorithms",
-  async (params, { getState, rejectWithValue }) => {
-    const token = getToken(getState);
+  async (params, { rejectWithValue }) => {
     try {
-      return await searchAlgorithms(params, token);
+      return await searchAlgorithms(params);
     } catch (error) {
       return rejectWithValue(error);
     }
@@ -168,6 +172,20 @@ const algorithmSlice = createSlice({
         state.currentPage = action.payload.currentPage;
       })
       .addCase(fetchAlgorithms.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+
+      .addCase(fetchAlgorithmsForList.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchAlgorithmsForList.fulfilled, (state, action) => {
+        state.loading = false;
+        state.algorithms = action.payload.algorithms;
+        state.total = action.payload.total;
+      })
+      .addCase(fetchAlgorithmsForList.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       })
@@ -249,7 +267,6 @@ const algorithmSlice = createSlice({
         state.voteLoading = false;
         state.error = action.payload;
       })
-
       .addCase(fetchCategories.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -262,7 +279,6 @@ const algorithmSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       })
-
       .addCase(searchAllAlgorithms.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -281,5 +297,5 @@ const algorithmSlice = createSlice({
   },
 });
 
-export const { resetAlgorithmState,clearAlgorithm } = algorithmSlice.actions;
+export const { resetAlgorithmState, clearAlgorithm } = algorithmSlice.actions;
 export default algorithmSlice.reducer;

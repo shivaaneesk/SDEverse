@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   fetchDataStructureCategories,
-  fetchDataStructures,
+  fetchAllDataStructuresForList,
   searchAllDataStructures,
 } from "../features/dataStructure/dataStructureSlice";
 import { Link } from "react-router-dom";
@@ -15,8 +15,7 @@ const DataStructures = () => {
   const {
     categories = [],
     dataStructures = [],
-    searchResults = [],
-    loading,
+    allDataStructuresLoading: loading,
     error,
     total,
   } = useSelector((state) => state.dataStructure);
@@ -28,7 +27,7 @@ const DataStructures = () => {
 
   useEffect(() => {
     dispatch(fetchDataStructureCategories());
-    dispatch(fetchDataStructures({ page: 1, limit: 10 }));
+    dispatch(fetchAllDataStructuresForList());
   }, [dispatch]);
 
   const handleSearchChange = (e) => {
@@ -37,7 +36,7 @@ const DataStructures = () => {
     if (query.trim()) {
       dispatch(searchAllDataStructures({ q: query }));
     } else {
-      dispatch(fetchDataStructures({ page: 1, limit: 10 }));
+      dispatch(fetchAllDataStructuresForList());
     }
   };
 
@@ -83,7 +82,7 @@ const DataStructures = () => {
         </h1>
         <p className="text-base sm:text-lg md:text-xl text-gray-600 dark:text-gray-300 leading-relaxed">
           Discover and learn about various data structures. Data structures are
-          specialized formats for organizing and storing data efficiently, forming 
+          specialized formats for organizing and storing data efficiently, forming
           the foundation of efficient algorithms and software systems.
         </p>
       </div>
@@ -97,7 +96,7 @@ const DataStructures = () => {
             type="text"
             value={searchQuery}
             onChange={handleSearchChange}
-            placeholder="Search data structures by name, category, or description..."
+            placeholder="Search data structures by name, category, or definition..."
             className="w-full py-3 pl-10 pr-4 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm transition-all"
           />
         </div>
@@ -114,11 +113,10 @@ const DataStructures = () => {
       ) : isSearching ? (
         <div className="space-y-6">
           <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
-            Search Results{" "}
-            {searchResults.length > 0 && `(${searchResults.length})`}
+            Search Results {dataStructures.length > 0 && `(${dataStructures.length})`}
           </h2>
 
-          {searchResults.length === 0 ? (
+          {dataStructures.length === 0 ? (
             <div className="text-center py-10">
               <p className="text-gray-500 dark:text-gray-400 text-lg">
                 No data structures found matching "{searchQuery}"
@@ -126,7 +124,7 @@ const DataStructures = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {searchResults.map((dataStructure) => (
+              {dataStructures.map((dataStructure) => (
                 <motion.div
                   key={dataStructure.slug}
                   initial={{ opacity: 0, y: 10 }}
@@ -151,7 +149,7 @@ const DataStructures = () => {
                       ))}
                     </div>
                     <p className="text-gray-600 dark:text-gray-400 line-clamp-2">
-                      {dataStructure.description || dataStructure.intuition}
+                      {dataStructure.definition}
                     </p>
                   </Link>
                 </motion.div>
@@ -229,8 +227,7 @@ const DataStructures = () => {
                                       {dataStructure.title}
                                     </h4>
                                     <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
-                                      {dataStructure.description ||
-                                        dataStructure.intuition}
+                                      {dataStructure.definition}
                                     </p>
                                   </Link>
                                 </motion.div>

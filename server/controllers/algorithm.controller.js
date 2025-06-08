@@ -53,23 +53,23 @@ const createAlgorithm = asyncHandler(async (req, res) => {
     codes,
     createdBy: req.user._id,
     isPublished: true,
-    // Add initial contributor
-    contributors: [{
-      user: req.user._id,
-      contributionType: "create",
-      description: "Initial creation"
-    }]
+    contributors: [
+      {
+        user: req.user._id,
+        contributionType: "create",
+        description: "Initial creation",
+      },
+    ],
   });
 
   const createdAlgorithm = await algorithm.save();
 
-  // Notify all users about the new algorithm
   const users = await User.find({}, "_id").lean();
 
   const notifications = users.map((user) => ({
     recipient: user._id,
     sender: req.user._id,
-    type: "new_algorithm", // dynamic type, can be changed as needed
+    type: "new_algorithm",
     message: `A new algorithm "${title}" has been added.`,
     link: `/algorithms/${slug}`,
     read: false,
@@ -109,13 +109,13 @@ const updateAlgorithm = asyncHandler(async (req, res) => {
     codes,
   } = req.body;
 
-  // Track changes for contribution record
   const changes = [];
   if (title && title !== algorithm.title) changes.push("title");
-  if (problemStatement && problemStatement !== algorithm.problemStatement) changes.push("problem statement");
+  if (problemStatement && problemStatement !== algorithm.problemStatement)
+    changes.push("problem statement");
   if (intuition && intuition !== algorithm.intuition) changes.push("intuition");
-  if (explanation && explanation !== algorithm.explanation) changes.push("explanation");
-  // Add other fields as needed
+  if (explanation && explanation !== algorithm.explanation)
+    changes.push("explanation");
 
   algorithm.title = title || algorithm.title;
   algorithm.problemStatement = problemStatement || algorithm.problemStatement;
@@ -128,12 +128,11 @@ const updateAlgorithm = asyncHandler(async (req, res) => {
   algorithm.links = links || algorithm.links;
   algorithm.codes = codes || algorithm.codes;
 
-  // Add contribution record if there were changes
   if (changes.length > 0) {
     algorithm.contributors.push({
       user: req.user._id,
       contributionType: "edit",
-      description: `Updated ${changes.join(", ")}`
+      description: `Updated ${changes.join(", ")}`,
     });
   }
 
@@ -142,32 +141,31 @@ const updateAlgorithm = asyncHandler(async (req, res) => {
   res.json(updatedAlgorithm);
 });
 
-// Add this new controller for adding code implementations
 const addAlgorithmCode = asyncHandler(async (req, res) => {
   const { language, code } = req.body;
-  
+
   const algorithm = await Algorithm.findOne({ slug: req.params.slug });
   if (!algorithm) {
     res.status(404);
     throw new Error("Algorithm not found");
   }
 
-  // Check if code for this language already exists
-  const existingCodeIndex = algorithm.codes.findIndex(c => c.language === language);
-  
+  const existingCodeIndex = algorithm.codes.findIndex(
+    (c) => c.language === language
+  );
+
   if (existingCodeIndex >= 0) {
-    // Update existing code
     algorithm.codes[existingCodeIndex].code = code;
   } else {
-    // Add new code
     algorithm.codes.push({ language, code });
   }
 
-  // Add contribution record
   algorithm.contributors.push({
     user: req.user._id,
     contributionType: "code",
-    description: `${existingCodeIndex >= 0 ? 'Updated' : 'Added'} ${language} implementation`
+    description: `${
+      existingCodeIndex >= 0 ? "Updated" : "Added"
+    } ${language} implementation`,
   });
 
   const updatedAlgorithm = await algorithm.save();
@@ -208,7 +206,7 @@ const getAllAlgorithms = asyncHandler(async (req, res) => {
     const algorithms = await Algorithm.find(filters)
       .skip((pageNumber - 1) * limitNumber)
       .limit(limitNumber)
-      .sort({ title: 1 })  // Sort by title ascending
+      .sort({ title: 1 })
       .lean();
 
     res.json({
@@ -225,9 +223,52 @@ const getAllAlgorithms = asyncHandler(async (req, res) => {
   }
 });
 
+const getAlgorithmsForList = asyncHandler(async (req, res) => {
+  const { search = "", category = "", difficulty = "" } = req.query;
+
+  const filters = {};
+
+  if (category) {
+    if (Array.isArray(category)) {
+      filters.category = { $in: category };
+    } else {
+      filters.category = category;
+    }
+  }
+
+  if (difficulty) filters.difficulty = difficulty;
+  if (search) filters.$text = { $search: search };
+
+  if (req.user?.role !== "admin") {
+    filters.isPublished = true;
+  }
+
+  try {
+    const algorithms = await Algorithm.find(filters)
+      .select("title slug category intuition description")
+      .sort({ title: 1 })
+      .lean();
+
+    res.json({
+      algorithms,
+      total: algorithms.length,
+    });
+  } catch (error) {
+    console.error("Error in getAlgorithmsForList:", error);
+    res
+      .status(500)
+      .json({
+        message: "Failed to fetch algorithms for list",
+        error: error.message,
+      });
+  }
+});
+
 const getAlgorithmBySlug = asyncHandler(async (req, res) => {
-  const algorithm = await Algorithm.findOne({ slug: req.params.slug })
-    .populate('contributors.user', 'username avatarUrl');
+  const algorithm = await Algorithm.findOne({ slug: req.params.slug }).populate(
+    "contributors.user",
+    "username avatarUrl"
+  );
 
   if (!algorithm) {
     res.status(404);
@@ -401,6 +442,7 @@ const searchAlgorithms = asyncHandler(async (req, res) => {
     filters,
     q ? { score: { $meta: "textScore" } } : {}
   )
+    .select("title slug category intuition description")
     .sort(q ? { score: { $meta: "textScore" } } : { createdAt: -1 })
     .skip((page - 1) * limit)
     .limit(parseInt(limit));
@@ -414,13 +456,13 @@ const searchAlgorithms = asyncHandler(async (req, res) => {
 });
 
 const getContributors = asyncHandler(async (req, res) => {
-  const item = await TargetModel.findOne({ slug: req.params.slug })
-    .populate('contributors.user', 'username avatarUrl')
-    .select('contributors');
-    
+  const item = await Algorithm.findOne({ slug: req.params.slug })
+    .populate("contributors.user", "username avatarUrl")
+    .select("contributors");
+
   if (!item) {
     res.status(404);
-    throw new Error("Item not found");
+    throw new Error("Algorithm not found");
   }
 
   res.json(item.contributors);
@@ -429,6 +471,7 @@ const getContributors = asyncHandler(async (req, res) => {
 module.exports = {
   createAlgorithm,
   getAllAlgorithms,
+  getAlgorithmsForList,
   getAlgorithmBySlug,
   updateAlgorithm,
   deleteAlgorithm,

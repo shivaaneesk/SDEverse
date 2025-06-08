@@ -4,6 +4,7 @@ const router = express.Router();
 const {
   createAlgorithm,
   getAllAlgorithms,
+  getAlgorithmsForList,
   getAlgorithmBySlug,
   updateAlgorithm,
   deleteAlgorithm,
@@ -17,20 +18,18 @@ const {
 const { protect, admin } = require("../middleware/auth.middleware");
 const validateAlgorithm = require("../middleware/validateAlgorithm");
 
-// --- Public routes ---
-router.get("/", getAllAlgorithms); // List with filters/pagination
-router.get("/categories", getAllCategories); // Fetch category list
-router.get("/search", searchAlgorithms); // Filtered search
-router.get("/:slug", getAlgorithmBySlug); // Single algorithm by slug
+router.get("/", getAllAlgorithms);
+router.get("/list", getAlgorithmsForList);
+router.get("/categories", getAllCategories);
+router.get("/search", searchAlgorithms);
+router.get("/:slug", getAlgorithmBySlug);
 
-// --- Protected routes ---
-router.post("/", protect, validateAlgorithm, createAlgorithm); // Create
-router.put("/:slug", protect, validateAlgorithm, updateAlgorithm); // Update
-router.delete("/:slug", protect, admin, deleteAlgorithm); // Delete
-router.post('/:slug/code', protect, addAlgorithmCode); // or addOperationImplementation
-router.get('/:slug/contributors', getContributors);
+router.post("/", protect, validateAlgorithm, createAlgorithm);
+router.put("/:slug", protect, validateAlgorithm, updateAlgorithm);
+router.delete("/:slug", protect, admin, deleteAlgorithm);
+router.post("/:slug/code", protect, addAlgorithmCode);
+router.get("/:slug/contributors", getContributors);
 
-// --- Voting ---
 router.post("/:slug/vote", protect, voteAlgorithm);
 
 module.exports = router;

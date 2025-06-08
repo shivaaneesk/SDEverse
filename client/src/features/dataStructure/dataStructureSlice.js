@@ -2,6 +2,7 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import {
   createDataStructure,
   getAllDataStructures,
+  getAllDataStructuresForList,
   getDataStructureBySlug,
   updateDataStructure,
   deleteDataStructure,
@@ -57,6 +58,17 @@ export const fetchDataStructures = createAsyncThunk(
   async (params = {}, { rejectWithValue }) => {
     try {
       return await getAllDataStructures(params);
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || error.message);
+    }
+  }
+);
+
+export const fetchAllDataStructuresForList = createAsyncThunk(
+  "dataStructure/fetchAllDataStructuresForList",
+  async (params = {}, { rejectWithValue }) => {
+    try {
+      return await getAllDataStructuresForList(params);
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || error.message);
     }
@@ -195,7 +207,6 @@ const dataStructureSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-
       .addCase(fetchDataStructures.pending, (state) => {
         state.allDataStructuresLoading = true;
         state.error = null;
@@ -211,7 +222,21 @@ const dataStructureSlice = createSlice({
         state.allDataStructuresLoading = false;
         state.error = action.payload;
       })
-
+      .addCase(fetchAllDataStructuresForList.pending, (state) => {
+        state.allDataStructuresLoading = true;
+        state.error = null;
+      })
+      .addCase(fetchAllDataStructuresForList.fulfilled, (state, action) => {
+        state.allDataStructuresLoading = false;
+        state.dataStructures = action.payload.dataStructures;
+        state.total = action.payload.total;
+        state.pages = 1;
+        state.currentPage = 1;
+      })
+      .addCase(fetchAllDataStructuresForList.rejected, (state, action) => {
+        state.allDataStructuresLoading = false;
+        state.error = action.payload;
+      })
       .addCase(fetchDataStructureBySlug.pending, (state) => {
         state.singleDataStructureLoading = true;
         state.error = null;
@@ -224,7 +249,6 @@ const dataStructureSlice = createSlice({
         state.singleDataStructureLoading = false;
         state.error = action.payload;
       })
-
       .addCase(createNewDataStructure.pending, (state) => {
         state.createLoading = true;
         state.error = null;
@@ -238,7 +262,6 @@ const dataStructureSlice = createSlice({
         state.createLoading = false;
         state.error = action.payload;
       })
-
       .addCase(updateExistingDataStructure.pending, (state) => {
         state.updateLoading = true;
         state.error = null;
@@ -258,7 +281,6 @@ const dataStructureSlice = createSlice({
         state.updateLoading = false;
         state.error = action.payload;
       })
-
       .addCase(deleteExistingDataStructure.pending, (state) => {
         state.deleteLoading = true;
         state.error = null;
@@ -277,7 +299,6 @@ const dataStructureSlice = createSlice({
         state.deleteLoading = false;
         state.error = action.payload;
       })
-
       .addCase(voteOnDataStructure.pending, (state) => {
         state.voteLoading = true;
         state.error = null;
@@ -297,7 +318,6 @@ const dataStructureSlice = createSlice({
         state.voteLoading = false;
         state.error = action.payload;
       })
-
       .addCase(fetchDataStructureCategories.pending, (state) => {
         state.categoriesLoading = true;
         state.error = null;
@@ -310,14 +330,13 @@ const dataStructureSlice = createSlice({
         state.categoriesLoading = false;
         state.error = action.payload;
       })
-
       .addCase(searchAllDataStructures.pending, (state) => {
         state.allDataStructuresLoading = true;
         state.error = null;
       })
       .addCase(searchAllDataStructures.fulfilled, (state, action) => {
         state.allDataStructuresLoading = false;
-        state.dataStructures = action.payload.results;
+        state.dataStructures = action.payload.dataStructures;
         state.total = action.payload.total;
         state.pages = action.payload.pages;
         state.currentPage = action.payload.currentPage;
@@ -326,7 +345,6 @@ const dataStructureSlice = createSlice({
         state.allDataStructuresLoading = false;
         state.error = action.payload;
       })
-
       .addCase(addNewOperationImplementation.pending, (state) => {
         state.addOperationImplLoading = true;
         state.error = null;
@@ -348,7 +366,6 @@ const dataStructureSlice = createSlice({
         state.addOperationImplLoading = false;
         state.error = action.payload;
       })
-
       .addCase(fetchDataStructureContributors.pending, (state) => {
         state.contributorsLoading = true;
         state.error = null;
