@@ -1,9 +1,9 @@
 const asyncHandler = require("express-async-handler");
-const User = require('../models/user.model');
-const Algorithm = require('../models/algorithm.model');
-const Proposal = require('../models/proposal.model');
-const Comment = require('../models/comment.model');
-const Feedback = require('../models/feedback.model');
+const User = require("../models/user.model");
+const Algorithm = require("../models/algorithm.model");
+const Proposal = require("../models/proposal.model");
+const Comment = require("../models/comment.model");
+const Feedback = require("../models/feedback.model");
 
 const {
   extractUsernameFromUrl,
@@ -21,17 +21,33 @@ const {
   fetchSocialStats,
 } = require("../utils/socialProfileFetchers");
 
+const socialStatsFieldsMap = {
+  github: [
+    { sourcePath: "profile.publicRepos", targetField: "publicRepos" },
+    { sourcePath: "profile.followers", targetField: "followers" },
+    { sourcePath: "profile.following", targetField: "following" },
+    { sourcePath: "repositories.totalStars", targetField: "totalStars" },
+    { sourcePath: "repositories.totalForks", targetField: "totalForks" },
+  ],
+  linkedin: ["connections", "profileViews"],
+  twitter: ["followers", "following", "tweets", "likes"],
+  facebook: ["friendsCount", "followers"],
+  instagram: ["followers", "posts"],
+};
+
 const getAdminAnalytics = async (req, res) => {
   try {
-    // Date boundaries for analytics
     const now = new Date();
     const daysAgo30 = new Date(now);
     daysAgo30.setDate(now.getDate() - 30);
     const daysAgo7 = new Date(now);
     daysAgo7.setDate(now.getDate() - 7);
 
-    // Aggregation helper for daily counts
-    const getDailyCounts = async (Model, dateField = 'createdAt', match = {}) => {
+    const getDailyCounts = async (
+      Model,
+      dateField = "createdAt",
+      match = {}
+    ) => {
       return await Model.aggregate([
         {
           $match: {
@@ -50,12 +66,11 @@ const getAdminAnalytics = async (req, res) => {
           },
         },
         {
-          $sort: { '_id.year': 1, '_id.month': 1, '_id.day': 1 },
+          $sort: { "_id.year": 1, "_id.month": 1, "_id.day": 1 },
         },
       ]);
     };
 
-    // Overall platform metrics
     const [
       totalUsers,
       totalAdmins,
@@ -75,19 +90,21 @@ const getAdminAnalytics = async (req, res) => {
       feedbackBySeverity,
     ] = await Promise.all([
       User.countDocuments(),
-      User.countDocuments({ role: 'admin' }),
+      User.countDocuments({ role: "admin" }),
       Algorithm.countDocuments(),
       Proposal.countDocuments(),
       Comment.countDocuments(),
       Feedback.countDocuments(),
-      // Active users calculation
+
       (async () => {
         const activeUserIdsSet = new Set();
 
-        const collectUserIds = async (Model, userField = 'createdBy') => {
+        const collectUserIds = async (Model, userField = "createdBy") => {
           const docs = await Model.find({
             createdAt: { $gte: daysAgo30, $lte: now },
-          }).select(userField).lean();
+          })
+            .select(userField)
+            .lean();
 
           docs.forEach((doc) => {
             const id = doc[userField] || doc.user;
@@ -96,111 +113,117 @@ const getAdminAnalytics = async (req, res) => {
         };
 
         await Promise.all([
-          collectUserIds(Algorithm, 'createdBy'),
-          collectUserIds(Proposal, 'contributor'),
-          collectUserIds(Comment, 'user'),
+          collectUserIds(Algorithm, "createdBy"),
+          collectUserIds(Proposal, "contributor"),
+          collectUserIds(Comment, "user"),
         ]);
 
         return activeUserIdsSet.size;
       })(),
-      // Role distribution
-      User.aggregate([
-        { $group: { _id: '$role', count: { $sum: 1 } } }
-      ]),
-      // Algorithms by difficulty
+
+      User.aggregate([{ $group: { _id: "$role", count: { $sum: 1 } } }]),
+
       Algorithm.aggregate([
-        { $group: { _id: '$difficulty', count: { $sum: 1 } } }
+        { $group: { _id: "$difficulty", count: { $sum: 1 } } },
       ]),
-      // Algorithms by category (top 5)
+
       Algorithm.aggregate([
-        { $unwind: '$category' },
-        { $group: { _id: '$category', count: { $sum: 1 } } },
+        { $unwind: "$category" },
+        { $group: { _id: "$category", count: { $sum: 1 } } },
         { $sort: { count: -1 } },
-        { $limit: 5 }
+        { $limit: 5 },
       ]),
-      // Proposals by status
-      Proposal.aggregate([
-        { $group: { _id: '$status', count: { $sum: 1 } } }
-      ]),
-      // Feedback by status
-      Feedback.aggregate([
-        { $group: { _id: '$status', count: { $sum: 1 } } }
-      ]),
-      // Trending algorithms (most viewed in last 7 days)
+
+      Proposal.aggregate([{ $group: { _id: "$status", count: { $sum: 1 } } }]),
+
+      Feedback.aggregate([{ $group: { _id: "$status", count: { $sum: 1 } } }]),
+
       Algorithm.aggregate([
-        { 
-          $match: { 
-            'viewedBy.viewedAt': { $gte: daysAgo7 } 
-          } 
+        {
+          $match: {
+            "viewedBy.viewedAt": { $gte: daysAgo7 },
+          },
         },
         {
           $addFields: {
             recentViews: {
               $size: {
                 $filter: {
-                  input: '$viewedBy',
-                  as: 'view',
-                  cond: { $gte: ['$$view.viewedAt', daysAgo7] }
-                }
-              }
-            }
-          }
+                  input: "$viewedBy",
+                  as: "view",
+                  cond: { $gte: ["$$view.viewedAt", daysAgo7] },
+                },
+              },
+            },
+          },
         },
         { $sort: { recentViews: -1 } },
         { $limit: 5 },
-        { $project: { title: 1, recentViews: 1 } }
+        { $project: { title: 1, recentViews: 1 } },
       ]),
-      // Popular categories (by algorithm count)
+
       Algorithm.aggregate([
-        { $unwind: '$category' },
-        { $group: { _id: '$category', count: { $sum: 1 } } },
+        { $unwind: "$category" },
+        { $group: { _id: "$category", count: { $sum: 1 } } },
         { $sort: { count: -1 } },
-        { $limit: 5 }
+        { $limit: 5 },
       ]),
-      // User activity breakdown
+
       (async () => {
-        const [algorithmContributors, proposalContributors, commentContributors] = await Promise.all([
-          Algorithm.distinct('createdBy', { createdAt: { $gte: daysAgo30 } }),
-          Proposal.distinct('contributor', { createdAt: { $gte: daysAgo30 } }),
-          Comment.distinct('user', { createdAt: { $gte: daysAgo30 } }),
+        const [
+          algorithmContributors,
+          proposalContributors,
+          commentContributors,
+        ] = await Promise.all([
+          Algorithm.distinct("createdBy", { createdAt: { $gte: daysAgo30 } }),
+          Proposal.distinct("contributor", { createdAt: { $gte: daysAgo30 } }),
+          Comment.distinct("user", { createdAt: { $gte: daysAgo30 } }),
         ]);
-        
+
         return {
           algorithmContributors: algorithmContributors.length,
           proposalContributors: proposalContributors.length,
           commentContributors: commentContributors.length,
         };
       })(),
-      // Feedback by severity
+
       Feedback.aggregate([
-        { $group: { _id: '$severity', count: { $sum: 1 } } }
+        { $group: { _id: "$severity", count: { $sum: 1 } } },
       ]),
     ]);
 
-    // Daily stats
-    const [dailyNewUsers, dailyNewAlgorithms, dailyNewProposals, dailyNewComments] = await Promise.all([
+    const [
+      dailyNewUsers,
+      dailyNewAlgorithms,
+      dailyNewProposals,
+      dailyNewComments,
+    ] = await Promise.all([
       getDailyCounts(User),
       getDailyCounts(Algorithm),
       getDailyCounts(Proposal),
       getDailyCounts(Comment),
     ]);
 
-    // User engagement metrics
-    const avgAlgorithmsPerUser = totalUsers > 0 ? (totalAlgorithms / totalUsers).toFixed(2) : 0;
-    const avgProposalsPerUser = totalUsers > 0 ? (totalProposals / totalUsers).toFixed(2) : 0;
-    const avgCommentsPerUser = totalUsers > 0 ? (totalComments / totalUsers).toFixed(2) : 0;
-    
-    // Feedback resolution metrics
-    const resolvedFeedback = feedbackByStatus.find(f => f._id === 'resolved')?.count || 0;
-    const feedbackResolutionRate = totalFeedback > 0 
-      ? Math.round((resolvedFeedback / totalFeedback) * 100) 
-      : 0;
+    const avgAlgorithmsPerUser =
+      totalUsers > 0 ? (totalAlgorithms / totalUsers).toFixed(2) : 0;
+    const avgProposalsPerUser =
+      totalUsers > 0 ? (totalProposals / totalUsers).toFixed(2) : 0;
+    const avgCommentsPerUser =
+      totalUsers > 0 ? (totalComments / totalUsers).toFixed(2) : 0;
 
-    // Proposal approval metrics
-    const approvedProposals = proposalsByStatus.find(p => p._id === 'approved')?.count || 0;
-    const proposalApprovalRate = totalProposals > 0 
-      ? Math.round((approvedProposals / totalProposals) * 100) 
-      : 0;
+    const resolvedFeedback =
+      feedbackByStatus.find((f) => f._id === "resolved")?.count || 0;
+    const feedbackResolutionRate =
+      totalFeedback > 0
+        ? Math.round((resolvedFeedback / totalFeedback) * 100)
+        : 0;
+
+    const approvedProposals =
+      proposalsByStatus.find((p) => p._id === "approved")?.count || 0;
+    const proposalApprovalRate =
+      totalProposals > 0
+        ? Math.round((approvedProposals / totalProposals) * 100)
+        : 0;
 
     res.status(200).json({
       platformMetrics: {
@@ -246,8 +269,8 @@ const getAdminAnalytics = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Error fetching admin analytics:', error);
-    res.status(500).json({ message: 'Server Error' });
+    console.error("Error fetching admin analytics:", error);
+    res.status(500).json({ message: "Server Error" });
   }
 };
 
@@ -255,13 +278,19 @@ const updateSingleCompetitiveStat = asyncHandler(async (req, res) => {
   try {
     const { platform } = req.params;
     const user = await User.findById(req.user._id);
-    
+
     if (!user) {
       res.status(404);
       throw new Error("User not found");
     }
 
-    const validPlatforms = ["leetcode", "codeforces", "codechef", "atcoder", "spoj"];
+    const validPlatforms = [
+      "leetcode",
+      "codeforces",
+      "codechef",
+      "atcoder",
+      "spoj",
+    ];
     if (!validPlatforms.includes(platform)) {
       res.status(400);
       throw new Error("Invalid platform");
@@ -269,15 +298,15 @@ const updateSingleCompetitiveStat = asyncHandler(async (req, res) => {
 
     const url = user.competitiveProfiles[platform];
     if (!url) {
-      return res.status(400).json({ 
-        error: `No ${platform} profile URL found for this user` 
+      return res.status(400).json({
+        error: `No ${platform} profile URL found for this user`,
       });
     }
 
     const username = extractUsernameFromUrl(platform, url);
     if (!username) {
-      return res.status(400).json({ 
-        error: `Could not extract username from ${platform} URL` 
+      return res.status(400).json({
+        error: `Could not extract username from ${platform} URL`,
       });
     }
 
@@ -308,81 +337,76 @@ const updateSingleCompetitiveStat = asyncHandler(async (req, res) => {
       };
     }
 
-    // Update only the specific platform's stats (summary only)
     user.competitiveStats[platform] = stats.summary;
     await user.save();
 
     return res.status(200).json({
       message: `${platform} stats updated`,
-      platform, // Add platform to response
-      competitiveStats: user.competitiveStats,  // All summary data
-      extraStats: { 
+      platform,
+      competitiveStats: user.competitiveStats,
+      extraStats: {
         [platform]: {
           summary: stats.summary,
           moreInfo: stats.moreInfo,
-          profileUrl: stats.profileUrl
-        }
-      }
+          profileUrl: stats.profileUrl,
+        },
+      },
     });
   } catch (error) {
-    console.error(`updateSingleCompetitiveStat error (${req.params.platform}):`, error);
+    console.error(
+      `updateSingleCompetitiveStat error (${req.params.platform}):`,
+      error
+    );
     return res.status(500).json({ error: "Server error" });
   }
 });
-
-// Define field mapping for social stats
-const socialStatsFieldsMap = {
-  github: ['publicRepos', 'followers', 'following', 'totalStars', 'totalForks'],
-  linkedin: ['connections', 'profileViews'],
-  twitter: ['followers', 'following', 'tweets', 'likes'],
-  facebook: ['friendsCount', 'followers'],
-  instagram: ['followers', 'following', 'posts']
-};
 
 const updateSingleSocialStat = asyncHandler(async (req, res) => {
   try {
     const { platform } = req.params;
     const userId = req.user.id;
     const user = await User.findById(userId);
-    
+
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
 
-    // Validate the requested platform
-    const validPlatforms = ["github", "linkedin", "twitter", "facebook", "instagram"];
+    const validPlatforms = [
+      "github",
+      "linkedin",
+      "twitter",
+      "facebook",
+      "instagram",
+    ];
     if (!validPlatforms.includes(platform)) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: "Invalid platform",
-        validPlatforms: validPlatforms.join(", ")
+        validPlatforms: validPlatforms.join(", "),
       });
     }
 
-    // Check if user has a profile URL for this platform
     const socialLinks = user.socialLinks || {};
     const url = socialLinks[platform];
-    
+
     if (!url) {
-      return res.status(400).json({ 
-        error: `No ${platform} profile URL found for this user` 
+      return res.status(400).json({
+        error: `No ${platform} profile URL found for this user`,
       });
     }
 
-    // Extract username from URL
     const username = extractSocialUsernameFromUrl(platform, url);
     if (!username) {
-      return res.status(400).json({ 
-        error: `Could not extract username from ${platform} URL` 
+      return res.status(400).json({
+        error: `Could not extract username from ${platform} URL`,
       });
     }
 
-    // Fetch stats for the specific platform
     let stats;
     try {
       stats = await fetchSocialStats(platform, username);
     } catch (err) {
       console.error(`Error fetching ${platform} stats:`, err.message);
-      // Return default stats if fetch fails
+
       stats = {
         summary: `${platform} stats unavailable`,
         moreInfo: {},
@@ -390,40 +414,39 @@ const updateSingleSocialStat = asyncHandler(async (req, res) => {
       };
     }
 
-    // Create summary object for database storage
     const summary = {};
     const fields = socialStatsFieldsMap[platform] || [];
-    
-    fields.forEach(field => {
+
+    fields.forEach((field) => {
       if (stats.moreInfo[field] !== undefined) {
         summary[field] = stats.moreInfo[field];
       }
     });
-    
-    // Always include updatedAt
+
     summary.updatedAt = new Date();
 
-    // Update only the specific platform's stats (summary only)
     user.socialStats[platform] = summary;
     await user.save();
 
     return res.status(200).json({
       message: `${platform} stats updated successfully`,
-       platform, // Add platform to response
-      socialStats: user.socialStats,  // All summary data
-      extraSocialStats: { [platform]: stats.moreInfo },  // Detailed info for updated platform
+      platform,
+      socialStats: user.socialStats,
+      extraSocialStats: { [platform]: stats.moreInfo },
       profileUrl: url,
     });
   } catch (error) {
-    console.error(`updateSingleSocialStat error (${req.params.platform}):`, error);
-    return res.status(500).json({ 
+    console.error(
+      `updateSingleSocialStat error (${req.params.platform}):`,
+      error
+    );
+    return res.status(500).json({
       error: "Server error",
-      details: error.message 
+      details: error.message,
     });
   }
 });
 
-// Update all competitive stats
 const updateAllCompetitiveStats = asyncHandler(async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
@@ -436,16 +459,14 @@ const updateAllCompetitiveStats = asyncHandler(async (req, res) => {
       user.competitiveProfiles
     );
 
-    // Update summary for each platform
     const platforms = ["leetcode", "codeforces", "codechef", "atcoder", "spoj"];
     for (const platform of platforms) {
       if (allStatsWithExtra[platform]?.summary) {
-        // Preserve existing updatedAt if it exists, otherwise set to now
         const existingUpdatedAt = user.competitiveStats[platform]?.updatedAt;
-        
+
         user.competitiveStats[platform] = {
           ...allStatsWithExtra[platform].summary,
-          updatedAt: existingUpdatedAt || new Date()
+          updatedAt: existingUpdatedAt || new Date(),
         };
       }
     }
@@ -463,7 +484,7 @@ const updateAllCompetitiveStats = asyncHandler(async (req, res) => {
   }
 });
 
-// Update all social profiles
+// --- MODIFIED: updateSocialProfiles to correctly use socialStatsFieldsMap ---
 const updateSocialProfiles = asyncHandler(async (req, res) => {
   try {
     const userId = req.user.id;
@@ -488,24 +509,45 @@ const updateSocialProfiles = asyncHandler(async (req, res) => {
       try {
         const stats = await fetchSocialStats(platform, username);
         if (stats && stats.moreInfo) {
-          // Create summary based on field mapping
           const summary = {};
-          const fields = socialStatsFieldsMap[platform] || [];
-          
-          fields.forEach(field => {
-            if (stats.moreInfo[field] !== undefined) {
-              summary[field] = stats.moreInfo[field];
+          // The crucial line to fix: use fieldsMapping instead of fields
+          const fieldsMapping = socialStatsFieldsMap[platform] || [];
+
+          fieldsMapping.forEach((mapping) => {
+            let sourceField;
+            let targetField;
+
+            if (typeof mapping === "string") {
+              sourceField = mapping;
+              targetField = mapping;
+            } else {
+              // It's an object { sourcePath, targetField }
+              sourceField = mapping.sourcePath;
+              targetField = mapping.targetField;
+            }
+
+            // Safely get nested value
+            const value = sourceField.split(".").reduce((acc, part) => {
+              return acc && typeof acc === "object" ? acc[part] : undefined;
+            }, stats.moreInfo);
+
+            if (value !== undefined) {
+              summary[targetField] = value;
             }
           });
-          
-          // Preserve existing updatedAt if it exists
-          const existingUpdatedAt = user.socialStats[platform]?.updatedAt;
-          
+
+          const fetchedUpdatedAt = stats.moreInfo.updatedAt || new Date();
+
+          // Ensure user.socialStats[platform] is initialized if it doesn't exist
+          user.socialStats = user.socialStats || {};
+          user.socialStats[platform] = user.socialStats[platform] || {};
+
           // Update platform stats
           user.socialStats[platform] = {
+            ...user.socialStats[platform], // Keep existing fields if not explicitly updated
             ...summary,
-            updatedAt: existingUpdatedAt || new Date(),
-            profileUrl: url
+            updatedAt: fetchedUpdatedAt,
+            profileUrl: url,
           };
         }
       } catch (err) {
@@ -542,7 +584,7 @@ const getAllUsers = async (req, res) => {
     }
 
     if (role) {
-      query.role = role.toLowerCase(); // Ensure consistent role format
+      query.role = role.toLowerCase();
     }
 
     const skip = (parseInt(page) - 1) * parseInt(limit);

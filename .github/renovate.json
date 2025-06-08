@@ -1,0 +1,19 @@
+{
+  "extends": ["config:base"],
+  "schedule": ["before 5am on Monday"],
+  "packageRules": [
+    {
+      "matchUpdateTypes": ["minor", "patch"],
+      "automerge": true
+    }
+  ],
+  "npm": {
+    "enabled": true,
+    "packageRules": [
+      {
+        "matchPaths": ["client/package.json", "server/package.json"],
+        "groupName": "npm dependencies"
+      }
+    ]
+  }
+}
