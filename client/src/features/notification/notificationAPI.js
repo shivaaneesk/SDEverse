@@ -20,6 +20,16 @@ export const markNotificationAsRead = async (id) => {
   }
 };
 
+export const markAllNotificationsAsRead = async () => {
+  try {
+    const response = await api.put("/notifications/read-all");
+    return response.data;
+  } catch (error) {
+    console.error("Error marking all notifications as read:", error);
+    throw error;
+  }
+};
+
 export const sendBroadcastNotification = async (payload) => {
   try {
     const response = await api.post("/notifications/admin/broadcast", payload);

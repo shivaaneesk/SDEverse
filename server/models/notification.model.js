@@ -21,9 +21,9 @@ const notificationSchema = new mongoose.Schema(
       ref: "Comment",
     },
     read: { type: Boolean, default: false },
-    message: { type: String }, // For custom platform messages
-    link: { type: String }, // For linking to comment
-    preview: { type: String }, // Short preview of comment
+    message: { type: String }, 
+    link: { type: String }, 
+    preview: { type: String }, 
   },
   { timestamps: true }
 );

@@ -1,6 +1,6 @@
 const asyncHandler = require("express-async-handler");
 const Notification = require("../models/notification.model");
-const User = require('../models/user.model');
+const User = require("../models/user.model");
 
 const colorMap = {
   mention: "blue",
@@ -78,8 +78,28 @@ const broadcastNotification = asyncHandler(async (req, res) => {
   res.status(201).json({ message: `Broadcast sent to ${users.length} users.` });
 });
 
+const markAllNotificationsRead = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+
+  const result = await Notification.updateMany(
+    { recipient: userId, read: false },
+    { $set: { read: true } }
+  );
+
+  if (result.modifiedCount === 0) {
+    return res
+      .status(200)
+      .json({ message: "No unread notifications to mark as read." });
+  }
+
+  res.json({
+    message: `Successfully marked ${result.modifiedCount} notifications as read.`,
+  });
+});
+
 module.exports = {
   getUserNotifications,
   markNotificationRead,
   broadcastNotification,
+  markAllNotificationsRead,
 };

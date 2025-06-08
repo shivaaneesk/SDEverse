@@ -2,6 +2,7 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import {
   getNotifications,
   markNotificationAsRead,
+  markAllNotificationsAsRead,
   sendBroadcastNotification,
 } from "./notificationAPI";
 
@@ -34,6 +35,17 @@ export const markAsRead = createAsyncThunk(
   }
 );
 
+export const markAllAsRead = createAsyncThunk(
+  "notifications/markAllAsRead",
+  async (_, { rejectWithValue }) => {
+    try {
+      return await markAllNotificationsAsRead();
+    } catch (err) {
+      return rejectWithValue(err.response?.data || err.message);
+    }
+  }
+);
+
 export const broadcastNotification = createAsyncThunk(
   "notifications/broadcastNotification",
   async (payload, { rejectWithValue }) => {
@@ -57,6 +69,13 @@ const notificationSlice = createSlice({
         state.notifications[index].read = true;
       }
     },
+
+    markAllReadLocally: (state) => {
+      state.notifications.forEach((notification) => {
+        notification.read = true;
+      });
+    },
+
     resetBroadcastStatus: (state) => {
       state.broadcastStatus = null;
       state.error = null;
@@ -81,9 +100,25 @@ const notificationSlice = createSlice({
           (n) => n._id === action.payload._id
         );
         if (index !== -1) {
-          state.notifications[index] = action.payload;
+          state.notifications[index].read = true;
         }
       })
+
+      .addCase(markAllAsRead.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(markAllAsRead.fulfilled, (state, action) => {
+        state.loading = false;
+
+        state.notifications.forEach((notification) => {
+          notification.read = true;
+        });
+      })
+      .addCase(markAllAsRead.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+
       .addCase(broadcastNotification.pending, (state) => {
         state.broadcastStatus = "loading";
       })
@@ -96,5 +131,7 @@ const notificationSlice = createSlice({
       });
   },
 });
-export const { markReadLocally,resetBroadcastStatus } = notificationSlice.actions;
+
+export const { markReadLocally, markAllReadLocally, resetBroadcastStatus } =
+  notificationSlice.actions;
 export default notificationSlice.reducer;
