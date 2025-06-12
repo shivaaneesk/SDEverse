@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 import Layout from "./components/Layout";
 import Loader from "./components/Loader";
@@ -21,8 +22,8 @@ import DataStructureDetail from "./pages/DataStructureDetail";
 import CreateDataStructureProposal from "./pages/CreateDataStructureProposal";
 import EditDataStructureProposal from "./pages/EditDataStructureProposal";
 
-import EditProposal from "./pages/EditProposal";
 import CreateProposal from "./pages/CreateProposal";
+import EditProposal from "./pages/EditProposal";
 import MyProposals from "./pages/MyProposals";
 
 import AdminRoute from "./components/AdminRoute";
@@ -33,6 +34,7 @@ import AdminAnalytics from "./pages/AdminAnalytics";
 import AdminDataStructures from "./pages/AdminDataStructures";
 import AdminDataStructureProposalReview from "./pages/AdminDataStructureProposalReview";
 import { getMe } from "./features/auth/authSlice";
+import { toast } from "react-toastify";
 
 const router = createBrowserRouter([
   {
@@ -71,22 +73,17 @@ const router = createBrowserRouter([
         path: "algorithms/:slug",
         element: <AlgorithmDetail />,
       },
-
       {
-        path: "proposals/:slug/edit",
+        path: "algorithms/proposals/new",
+        element: <CreateProposal />,
+      },
+      {
+        path: "algorithms/proposals/:slug/edit",
         element: <EditProposal />,
       },
       {
         path: "algorithms/:slug/contribute",
-        element: <EditProposal />,
-      },
-      {
-        path: "proposals/new",
         element: <CreateProposal />,
-      },
-      {
-        path: "proposals",
-        element: <MyProposals />,
       },
       {
         path: "data-structures",
@@ -96,7 +93,6 @@ const router = createBrowserRouter([
         path: "data-structures/:slug",
         element: <DataStructureDetail />,
       },
-
       {
         path: "data-structures/proposals/new",
         element: <CreateDataStructureProposal />,
@@ -106,10 +102,13 @@ const router = createBrowserRouter([
         element: <EditDataStructureProposal />,
       },
       {
+        path: "proposals",
+        element: <MyProposals />,
+      },
+      {
         path: "community-guidelines",
         element: <CommunityGuidelines />,
       },
-
       {
         path: "admin/manage-algorithms",
         element: (
@@ -171,9 +170,14 @@ function App() {
       const token = localStorage.getItem("token");
       if (token) {
         try {
-          await dispatch(getMe(token));
+          await dispatch(getMe(token)).unwrap();
         } catch (error) {
           console.error("User authentication failed:", error);
+          toast.error("Failed to authenticate user. Please log in again.", {
+            position: "top-right",
+            autoClose: 3000,
+            theme: "colored",
+          });
         }
       }
       setIsLoading(false);
@@ -183,8 +187,13 @@ function App() {
   }, [dispatch]);
 
   return isLoading ? (
-    <div className="flex items-center justify-center h-screen bg-gray-100 dark:bg-gray-950">
-      <Loader />
+    <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
+      <div className="text-center">
+        <Loader />
+        <p className="mt-4 text-gray-600 dark:text-gray-300 text-lg font-medium">
+          Loading your experience...
+        </p>
+      </div>
     </div>
   ) : (
     <>
@@ -199,7 +208,9 @@ function App() {
         pauseOnFocusLoss
         draggable
         pauseOnHover
-        theme="light"
+        theme="colored"
+        toastClassName="rounded-lg shadow-lg"
+        bodyClassName="text-sm font-medium"
       />
     </>
   );

@@ -37,13 +37,7 @@ const AlgorithmDetail = () => {
       return;
     }
     if (!algorithm?.slug) return;
-
-    dispatch(
-      voteOnAlgorithm({
-        slug: algorithm.slug,
-        voteData: { type },
-      })
-    );
+    dispatch(voteOnAlgorithm({ slug: algorithm.slug, voteData: { type } }));
   };
 
   const currentUserVoteType = (() => {
@@ -63,14 +57,14 @@ const AlgorithmDetail = () => {
 
   if (loading)
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950">
+      <div className="flex h-full items-center justify-center">
         <Loader />
       </div>
     );
 
   if (error)
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950 p-4">
+      <div className="flex h-full items-center justify-center p-4">
         <div className="bg-red-100 dark:bg-red-900/20 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-300 px-6 py-4 rounded-lg shadow-md text-center max-w-lg w-full">
           <p className="text-xl font-semibold mb-3">Oops! An error occurred.</p>
           <p className="text-base mb-4">
@@ -88,7 +82,7 @@ const AlgorithmDetail = () => {
 
   if (!algorithm)
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950 p-4">
+      <div className="flex h-full items-center justify-center p-4">
         <div className="bg-blue-100 dark:bg-blue-900/20 border border-blue-400 dark:border-blue-700 text-blue-700 dark:text-blue-300 px-6 py-4 rounded-lg shadow-md text-center max-w-lg w-full">
           <p className="text-xl font-semibold mb-3">No algorithm found.</p>
           <p className="text-base mb-4">
@@ -104,55 +98,56 @@ const AlgorithmDetail = () => {
       </div>
     );
 
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
-      className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100"
+      className="w-full"
     >
-      {/* Sticky Header */}
-      <header className="sticky top-0 z-10 w-full bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-md">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-3 flex justify-between items-center h-14">
-          <button
-            onClick={() => navigate(-1)}
-            className="flex items-center gap-2 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 transition-all text-sm"
-            title="Go Back"
-            aria-label="Go back to previous page"
-          >
-            <ArrowLeft size={18} />
-            <span className="hidden sm:inline">Back</span>
-          </button>
-          <h1 className="text-lg sm:text-xl font-semibold truncate max-w-[calc(100%-160px)] text-center">
-            {algorithm.title}
-          </h1>
-          <button
-            onClick={() => navigate(1)}
-            className="flex items-center gap-2 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 transition-all text-sm"
-            title="Go Forward"
-            aria-label="Go forward to next page"
-          >
-            <span className="hidden sm:inline">Forward</span>
-            <ArrowRight size={18} />
-          </button>
-        </div>
-      </header>
+      {/* The sticky header can stay as is, but it's part of the page flow */}
+      <header className="sticky top-0 z-10 w-full bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-md mb-8">
+        <div className="flex justify-between items-center h-14 px-4">
+           <button
+             onClick={() => navigate(-1)}
+             className="flex items-center gap-2 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 transition-all text-sm"
+             title="Go Back"
+           >
+             <ArrowLeft size={18} />
+             <span className="hidden sm:inline">Back</span>
+           </button>
+           <h1 className="text-lg sm:text-xl font-semibold truncate text-center">
+             {algorithm.title}
+           </h1>
+           <button
+             onClick={() => navigate(1)}
+             className="flex items-center gap-2 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 transition-all text-sm"
+             title="Go Forward"
+           >
+             <span className="hidden sm:inline">Forward</span>
+             <ArrowRight size={18} />
+           </button>
+         </div>
+       </header>
 
-      {/* Main Content Area - Single Column */}
-      <main className="flex-1 overflow-y-auto custom-scrollbar container mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10">
+      {/* KEY CHANGE: This is now a simple div. 
+        It does NOT use `container`, `mx-auto`, or `px-*` classes. 
+        It naturally fills the space provided by the parent `Layout.js`.
+      */}
+      <div className="space-y-10">
         {/* Algorithm Preview */}
         <section className="bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
           <AlgorithmPreview algorithm={algorithm} />
         </section>
 
-        {/* Voting and Contribute Buttons - Straight-through, compact */}
+        {/* Voting and Contribute Buttons */}
         <section className="flex flex-col sm:flex-row items-center justify-center gap-6 p-4 rounded-xl bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700">
           {/* Voting Buttons */}
           <div className="flex justify-center gap-4">
             <button
               onClick={() => handleVote("upvote")}
               className="flex items-center gap-2 px-5 py-2 rounded-full bg-green-100 hover:bg-green-200 dark:bg-green-900/40 dark:hover:bg-green-900 text-green-700 dark:text-green-300 shadow-md transition-all duration-200 transform hover:scale-105"
-              aria-label="Upvote algorithm"
             >
               <ThumbsUp
                 size={20}
@@ -167,7 +162,6 @@ const AlgorithmDetail = () => {
             <button
               onClick={() => handleVote("downvote")}
               className="flex items-center gap-2 px-5 py-2 rounded-full bg-red-100 hover:bg-red-200 dark:bg-red-900/40 dark:hover:bg-red-900 text-red-700 dark:text-red-300 shadow-md transition-all duration-200 transform hover:scale-105"
-              aria-label="Downvote algorithm"
             >
               <ThumbsDown
                 size={20}
@@ -186,7 +180,6 @@ const AlgorithmDetail = () => {
             <button
               onClick={handleContribute}
               className="flex items-center gap-2 px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 dark:bg-blue-800 dark:hover:bg-blue-700 text-white font-medium shadow-lg transition-all duration-300 transform hover:scale-105"
-              aria-label="Contribute to this algorithm"
             >
               <Sparkles size={20} />
               <span>Contribute</span>
@@ -202,7 +195,7 @@ const AlgorithmDetail = () => {
             parentSlug={algorithm.slug}
           />
         </section>
-      </main>
+      </div>
     </motion.div>
   );
 };

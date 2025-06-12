@@ -1,8 +1,9 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Copy, Check } from "lucide-react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { materialDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { toast } from "react-toastify";
+import { motion } from "framer-motion";
 
 const CodeDisplay = ({ algorithm }) => {
   const [selectedLangIndex, setSelectedLangIndex] = useState(0);
@@ -25,17 +26,20 @@ const CodeDisplay = ({ algorithm }) => {
   if (!algorithm.codes?.length) return null;
 
   return (
-    <div className="bg-gray-900 text-gray-100 rounded-lg shadow-lg overflow-hidden border border-gray-700 mt-8">
-      {" "}
-      {/* Darker background for code block wrapper */}
-      {/* Header with title and copy button */}
-      <div className="flex justify-between items-center p-4 bg-gray-800 border-b border-gray-700">
-        <h2 className="text-xl font-semibold text-white">Code Example</h2>
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, ease: "easeOut" }}
+      className="w-full max-w-full bg-gray-900 text-gray-100 rounded-lg shadow-lg border border-gray-700 mt-6 overflow-hidden box-border"
+    >
+      <div className="flex flex-wrap justify-between items-center p-3 sm:p-4 bg-gray-800 border-b border-gray-700">
+        <h2 className="text-lg sm:text-xl font-semibold text-white truncate flex-1">
+          Code Example
+        </h2>
         <button
           onClick={handleCopy}
           title="Copy code"
-          aria-label="Copy code"
-          className="flex items-center gap-1 px-3 py-1.5 bg-gray-700 text-gray-200 rounded-md hover:bg-gray-600 transition-colors duration-200 text-sm font-medium"
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-700 text-gray-200 rounded-md hover:bg-gray-600 transition-colors duration-200 text-sm font-medium"
         >
           {copied ? (
             <>
@@ -50,13 +54,12 @@ const CodeDisplay = ({ algorithm }) => {
           )}
         </button>
       </div>
-      {/* Language Tabs */}
-      <div className="flex overflow-x-auto border-b border-gray-700 bg-gray-800 px-2 py-1">
+      <div className="flex border-b border-gray-700 bg-gray-800 px-2 py-1 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800">
         {algorithm.codes.map((code, index) => (
           <button
             key={index}
             onClick={() => setSelectedLangIndex(index)}
-            className={`px-4 py-2 font-mono text-sm whitespace-nowrap border-b-2 transition-all duration-200 ${
+            className={`px-3 sm:px-4 py-2 font-mono text-sm whitespace-nowrap border-b-2 transition-all duration-200 ${
               selectedLangIndex === index
                 ? "border-blue-500 text-blue-400 font-bold"
                 : "border-transparent text-gray-400 hover:text-gray-200 hover:bg-gray-700 rounded-t-md"
@@ -66,30 +69,38 @@ const CodeDisplay = ({ algorithm }) => {
           </button>
         ))}
       </div>
-      {/* SyntaxHighlighter for the code block */}
-      <div className="relative">
-        {" "}
-        {/* Added relative for potential absolute positioning of custom elements */}
+      <div className="max-w-full box-border">
         <SyntaxHighlighter
           language={currentCode.language?.toLowerCase() || "text"}
           style={materialDark}
-          wrapLongLines
           showLineNumbers
+          wrapLongLines={true}
           customStyle={{
-            padding: "1.5rem",
-            fontSize: "0.9rem",
-            lineHeight: "1.5",
-            borderRadius: "0 0 0.5rem 0.5rem",
+            margin: 0,
+            padding: "1rem",
+            fontSize: "0.875rem",
+            lineHeight: "1.6",
             backgroundColor: "#212121",
+            boxSizing: "border-box",
+            whiteSpace: "pre-wrap",
+            wordBreak: "break-all",
+            maxWidth: "100%",
+            display: "block",
           }}
           codeTagProps={{
             className: "font-mono",
+            style: {
+              whiteSpace: "pre-wrap",
+              wordBreak: "break-all",
+              maxWidth: "100%",
+              display: "block",
+            },
           }}
         >
-          {currentCode.code}
+          {currentCode.code || ""}
         </SyntaxHighlighter>
       </div>
-    </div>
+    </motion.div>
   );
 };
 
