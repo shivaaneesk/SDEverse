@@ -14,10 +14,10 @@ const CodeDisplay = ({ algorithm }) => {
     if (code) {
       navigator.clipboard.writeText(code);
       setCopied(true);
-      toast.success("Code copied to clipboard!");
+      toast.success("Code copied to clipboard!", { theme: "dark" });
       setTimeout(() => setCopied(false), 2000);
     } else {
-      toast.error("No code to copy!");
+      toast.error("No code to copy!", { theme: "dark" });
     }
   };
 
@@ -30,76 +30,92 @@ const CodeDisplay = ({ algorithm }) => {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, ease: "easeOut" }}
-      className="w-full max-w-full bg-gray-900 text-gray-100 rounded-lg shadow-lg border border-gray-700 mt-6 overflow-hidden box-border"
+      className="w-full bg-gradient-to-br from-gray-900 to-black text-gray-100 rounded-xl shadow-2xl border border-gray-700 overflow-hidden mt-4 sm:mt-6"
     >
-      <div className="flex flex-wrap justify-between items-center p-3 sm:p-4 bg-gray-800 border-b border-gray-700">
-        <h2 className="text-lg sm:text-xl font-semibold text-white truncate flex-1">
+      <div className="flex flex-wrap justify-between items-center p-3 xs:p-4 sm:p-5 bg-gray-800/70 backdrop-blur-sm border-b border-gray-700">
+        <h2 className="text-base xs:text-lg sm:text-xl font-extrabold text-white truncate flex-1">
           Code Example
         </h2>
         <button
           onClick={handleCopy}
           title="Copy code"
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-700 text-gray-200 rounded-md hover:bg-gray-600 transition-colors duration-200 text-sm font-medium"
+          className="flex items-center gap-1 xs:gap-1.5 px-3 xs:px-4 sm:px-5 py-2 xs:py-2.5 bg-indigo-700/80 text-white rounded-lg hover:bg-indigo-600/90 transition-all duration-300 ease-in-out text-xs xs:text-sm sm:text-base font-semibold min-h-[44px] shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-900"
         >
           {copied ? (
             <>
-              <Check size={16} className="text-green-400" />
+              <Check size={18} className="text-green-300" />
               <span>Copied!</span>
             </>
           ) : (
             <>
-              <Copy size={16} />
+              <Copy size={18} />
               <span>Copy</span>
             </>
           )}
         </button>
       </div>
-      <div className="flex border-b border-gray-700 bg-gray-800 px-2 py-1 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800">
+
+      <div className="flex flex-wrap gap-1 xs:gap-2 border-b border-gray-700/70 bg-gray-800/60 px-2 xs:px-3 py-1 xs:py-1.5 overflow-x-auto max-w-full">
         {algorithm.codes.map((code, index) => (
           <button
             key={index}
             onClick={() => setSelectedLangIndex(index)}
-            className={`px-3 sm:px-4 py-2 font-mono text-sm whitespace-nowrap border-b-2 transition-all duration-200 ${
-              selectedLangIndex === index
-                ? "border-blue-500 text-blue-400 font-bold"
-                : "border-transparent text-gray-400 hover:text-gray-200 hover:bg-gray-700 rounded-t-md"
-            }`}
+            className={`
+              relative px-3 xs:px-4 sm:px-5 py-2 xs:py-2.5 font-mono text-xs xs:text-sm sm:text-base font-medium truncate
+              max-w-[100px] xs:max-w-[120px] sm:max-w-[150px] transition-all duration-200 ease-in-out
+              min-h-[44px] rounded-md
+              ${
+                selectedLangIndex === index
+                  ? "text-indigo-400 bg-indigo-900/40"
+                  : "text-gray-400 hover:text-gray-200 hover:bg-gray-700/40"
+              }
+              focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-900
+            `}
           >
             {code.language}
           </button>
         ))}
       </div>
-      <div className="max-w-full box-border">
-        <SyntaxHighlighter
-          language={currentCode.language?.toLowerCase() || "text"}
-          style={materialDark}
-          showLineNumbers
-          wrapLongLines={true}
-          customStyle={{
-            margin: 0,
-            padding: "1rem",
-            fontSize: "0.875rem",
-            lineHeight: "1.6",
-            backgroundColor: "#212121",
-            boxSizing: "border-box",
-            whiteSpace: "pre-wrap",
-            wordBreak: "break-all",
-            maxWidth: "100%",
+
+      <SyntaxHighlighter
+        language={currentCode.language?.toLowerCase() || "text"}
+        style={materialDark}
+        showLineNumbers
+        customStyle={{
+          margin: 0,
+          padding: "1rem",
+          fontSize: "0.95rem",
+          lineHeight: "1.6",
+          backgroundColor: "#1a1a1a",
+          display: "block",
+          whiteSpace: "pre",
+          overflowX: "auto",
+          width: "100%",
+          boxSizing: "border-box",
+          scrollbarWidth: "thin",
+          scrollbarColor: "#6b7280 #2d3748",
+          borderRadius: "0 0 0.75rem 0.75rem",
+        }}
+        codeTagProps={{
+          style: {
+            whiteSpace: "pre",
             display: "block",
-          }}
-          codeTagProps={{
-            className: "font-mono",
-            style: {
-              whiteSpace: "pre-wrap",
-              wordBreak: "break-all",
-              maxWidth: "100%",
-              display: "block",
-            },
-          }}
-        >
-          {currentCode.code || ""}
-        </SyntaxHighlighter>
-      </div>
+            width: "fit-content",
+            minWidth: "100%",
+          },
+        }}
+        lineNumberStyle={{
+          paddingRight: "0.9rem",
+          width: "2.5rem",
+          minWidth: "2.5rem",
+          textAlign: "right",
+          color: "#6b7280",
+          boxSizing: "border-box",
+          userSelect: "none",
+        }}
+      >
+        {currentCode.code || "// No code available"}
+      </SyntaxHighlighter>
     </motion.div>
   );
 };

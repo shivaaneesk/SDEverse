@@ -15,8 +15,6 @@ const AlgorithmPreview = ({ algorithm }) => {
   }
 
   return (
-    // KEY CHANGE: Removed all width, max-width, padding, and overflow classes.
-    // This component now naturally fills the space of its parent section.
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
