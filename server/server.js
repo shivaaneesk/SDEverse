@@ -34,6 +34,11 @@ app.use("/api/community", communityRoutes);
 app.use("/api/data-structures", dataStructureRoutes);
 app.use("/api/data-structure-proposals", dataStructureProposalRoutes);
 
+// Health check endpoint for keep-alive
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "OK", timestamp: new Date().toISOString() });
+});
+
 app.use(notFound);
 app.use(errorHandler);
 
