@@ -1,0 +1,22 @@
+---
+name: Feature Request
+about: Suggest an idea for SDEverse
+title: '[FEATURE] '
+labels: ['enhancement']
+assignees: ''
+---
+
+## Feature Description
+Clear description of the proposed feature.
+
+## Problem/Motivation
+What problem does this solve or what improvement does it provide?
+
+## Proposed Solution
+How should this feature work? Include use cases and basic implementation ideas.
+
+## Alternatives Considered
+Any alternative approaches you've thought of?
+
+## Additional Context
+Screenshots, mockups, or references that help explain the feature.
