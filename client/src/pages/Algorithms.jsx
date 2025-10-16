@@ -6,7 +6,7 @@ import {
   searchAllAlgorithms,
 } from "../features/algorithm/algorithmSlice";
 import { Link } from "react-router-dom";
-import { ChevronDown, Search, ArrowLeft, ArrowRight } from "lucide-react";
+import { ChevronDown, Search, ArrowLeft, ArrowRight, Info } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -24,11 +24,18 @@ const Algorithm = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [expandedCategories, setExpandedCategories] = useState({});
+  const [allowMultipleDropdowns, setAllowMultipleDropdowns] = useState(true);
 
   useEffect(() => {
     dispatch(fetchCategories());
     dispatch(fetchAlgorithmsForList());
   }, [dispatch]);
+
+  // Close all dropdowns when the toggle setting changes
+  useEffect(() => {
+    setExpandedCategories({});
+    setSelectedCategory(null);
+  }, [allowMultipleDropdowns]);
 
   const handleSearchChange = (e) => {
     const query = e.target.value;
@@ -42,10 +49,27 @@ const Algorithm = () => {
 
   const toggleCategory = (category) => {
     setSelectedCategory(selectedCategory === category ? null : category);
-    setExpandedCategories((prev) => ({
-      ...prev,
-      [category]: !prev[category],
-    }));
+    
+    if (allowMultipleDropdowns) {
+      // Allow multiple dropdowns to be open
+      setExpandedCategories((prev) => ({
+        ...prev,
+        [category]: !prev[category],
+      }));
+    } else {
+      // Only allow one dropdown to be open at a time
+      const isCurrentlyOpen = expandedCategories[category];
+      if (isCurrentlyOpen) {
+        // Close the current category
+        setExpandedCategories((prev) => ({
+          ...prev,
+          [category]: false,
+        }));
+      } else {
+        // Close all other categories and open the selected one
+        setExpandedCategories({ [category]: true });
+      }
+    }
   };
 
   const isSearching = searchQuery.trim().length > 0;
@@ -80,6 +104,31 @@ const Algorithm = () => {
         </div>
       </div>
 
+      {/* Top Control for Multiple Dropdowns Toggle with Info */}
+      <div className="mb-4 px-4 sm:px-6 lg:px-8 w-full max-w-7xl mx-auto">
+        <div className="flex items-center justify-end space-x-3">
+          <button
+            onClick={() => setAllowMultipleDropdowns(!allowMultipleDropdowns)}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+              allowMultipleDropdowns ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
+            }`}
+            aria-label="Toggle multiple dropdowns"
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                allowMultipleDropdowns ? 'translate-x-6' : 'translate-x-1'
+              }`}
+            />
+          </button>
+          <div className="relative group">
+            <Info size={16} className="text-gray-500 dark:text-gray-400 cursor-help" />
+            <div className="absolute right-0 mt-2 px-3 py-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10 shadow-lg border border-gray-700 dark:border-gray-200">
+              Toggle whether multiple categories can be expanded simultaneously.
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Hero Section */}
       <div className="mb-10 px-4 sm:px-6 lg:px-8 w-full max-w-7xl mx-auto">
         <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4">
@@ -91,6 +140,8 @@ const Algorithm = () => {
           computer programming and data science.
         </p>
       </div>
+
+      
 
       {/* Search Bar */}
       <div className="mb-10">
