@@ -17,7 +17,6 @@ function formatKey(key) {
 }
 
 const PLATFORM_DOMAINS = {
- 
   github: "github.com",
   linkedin: "linkedin.com",
   twitter: "twitter.com",
@@ -54,8 +53,23 @@ export default function Profile() {
     social: null,
   });
 
-  
   const [urlErrors, setUrlErrors] = useState({});
+  const [imagePreview, setImagePreview] = useState(null);
+  const [bannerPreview, setBannerPreview] = useState(null);
+  const [uploadedImageBase64, setUploadedImageBase64] = useState(null);
+
+  const [uploadedBannerBase64, setUploadedBannerBase64] = useState(null);
+
+  const imageData = {
+    imagePreview,
+    setImagePreview,
+    uploadedImageBase64,
+    setUploadedImageBase64,
+    bannerPreview,
+    setBannerPreview,
+    uploadedBannerBase64,
+    setUploadedBannerBase64
+  };
 
   useEffect(() => {
     dispatch(getMyProfile());
@@ -67,6 +81,7 @@ export default function Profile() {
         fullName: myProfile.fullName || "",
         bio: myProfile.bio || "",
         avatarUrl: myProfile.avatarUrl || "",
+        bannerUrl: myProfile.bannerUrl || "",
         location: myProfile.location || "",
         website: myProfile.website || "",
         socialLinks: myProfile.socialLinks || {},
@@ -88,7 +103,6 @@ export default function Profile() {
     const trimmedVal = val.trim();
 
     try {
-      
       const url = new URL(
         trimmedVal.startsWith("http") ? trimmedVal : `https://${trimmedVal}`
       );
@@ -120,20 +134,18 @@ export default function Profile() {
 
         if (requiredDomain) {
           try {
-
             const url = new URL(
               trimmedValue.startsWith("http")
                 ? trimmedValue
                 : `https://${trimmedValue}`
             );
-           
+
             if (!url.hostname.endsWith(requiredDomain)) {
               errorMsg = `This link must be a valid ${formatKey(
                 platform
               )} profile URL (must contain ${requiredDomain}).`;
             }
           } catch (e) {
-            
             errorMsg = "Invalid URL structure.";
           }
         }
@@ -155,6 +167,7 @@ export default function Profile() {
     const isUrlField =
       name === "avatarUrl" ||
       name === "website" ||
+      name === "bannerUrl" ||
       name.startsWith("socialLinks.") ||
       name.startsWith("competitiveProfiles.");
 
@@ -166,11 +179,11 @@ export default function Profile() {
         ...prev,
         [section]: {
           ...prev[section],
-          [key]: newValue, 
+          [key]: newValue,
         },
       }));
     } else {
-      setFormData((prev) => ({ ...prev, [name]: newValue })); 
+      setFormData((prev) => ({ ...prev, [name]: newValue }));
     }
 
     if (isUrlField) {
@@ -178,13 +191,11 @@ export default function Profile() {
     }
   };
 
- 
   const validateAllUrlsBeforeSubmit = (data) => {
     const errors = {};
     const check = (k, v) => {
       const trimmedValue = v ? v.trim() : "";
       if (!trimmedValue) return;
-
 
       if (!isValidUrl(trimmedValue)) {
         errors[k] =
@@ -235,19 +246,30 @@ export default function Profile() {
     return errors;
   };
 
+  const getAvatarValue = () => {
+    return uploadedImageBase64 || formData.avatarUrl;
+  };
+  const getBannerValue = () => {
+    return uploadedBannerBase64;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const avatarValue = getAvatarValue() || formData.avatarUrl;
+    const bannerValue = getBannerValue();
 
- 
     const validationErrors = validateAllUrlsBeforeSubmit(formData);
     if (Object.keys(validationErrors).length > 0) {
       setUrlErrors(validationErrors);
-     
+
       return;
     }
 
-    const dataToSubmit = { ...formData };
-
+    const dataToSubmit = {
+      ...formData,
+      avatarUrl: avatarValue,
+      bannerUrl: bannerValue,
+    };
 
     dataToSubmit.avatarUrl = ensureProtocol(dataToSubmit.avatarUrl);
     dataToSubmit.website = ensureProtocol(dataToSubmit.website);
@@ -268,9 +290,9 @@ export default function Profile() {
         ])
       );
     }
-   
+
     await dispatch(patchMyProfile(dataToSubmit));
-    await dispatch(getMyProfile()); 
+    await dispatch(getMyProfile());
 
     setIsEditing(false);
     setHasChanges(false);
@@ -283,6 +305,7 @@ export default function Profile() {
         fullName: myProfile.fullName || "",
         bio: myProfile.bio || "",
         avatarUrl: myProfile.avatarUrl || "",
+        bannerUrl: myProfile.bannerUrl || "",
         location: myProfile.location || "",
         website: myProfile.website || "",
         socialLinks: myProfile.socialLinks || {},
@@ -290,7 +313,10 @@ export default function Profile() {
         socialStats: myProfile.socialStats || {},
         competitiveStats: myProfile.competitiveStats || {},
       });
+
     }
+    setImagePreview(null);
+    setBannerPreview(null);
     setIsEditing(false);
     setHasChanges(false);
     setUrlErrors({});
@@ -304,7 +330,7 @@ export default function Profile() {
       } else {
         await dispatch(refreshSocialStats());
       }
-      
+
       await dispatch(getMyProfile());
     } finally {
       setRefreshing({ type: null });
@@ -340,12 +366,13 @@ export default function Profile() {
         hasChanges={hasChanges}
         refreshing={refreshing}
         lastRefreshed={lastRefreshed}
-        urlErrors={urlErrors} 
+        urlErrors={urlErrors}
         onChange={handleChange}
         onSubmit={handleSubmit}
         onCancel={handleCancel}
         onEditToggle={() => setIsEditing(!isEditing)}
         onRefresh={handleRefresh}
+        imageData={imageData}
       />
     </div>
   );
