@@ -616,6 +616,15 @@ const getUserById = asyncHandler(async (req, res) => {
   res.json(user);
 });
 
+const getUserByUsername = asyncHandler(async (req, res) => {
+  const user = await User.findOne({ username: req.params.username }).select("-password");
+  if (!user) {
+    res.status(404);
+    throw new Error("User not found");
+  }
+  res.json(user);
+});
+
 const deleteUser = asyncHandler(async (req, res) => {
   const user = await User.findByIdAndDelete(req.params.id);
   if (!user) {
@@ -713,9 +722,52 @@ const updateMyProfile = asyncHandler(async (req, res) => {
   res.json({ message: "Profile updated", user: updatedUser });
 });
 
+const searchUsers = asyncHandler(async (req, res) => {
+  try {
+    const { query } = req.query;
+    
+    // Hardcoded @sdeverse suggestion (not in database)
+    const sdeverseSuggestion = {
+      _id: "sdeverse-admin",
+      username: "sdeverse",
+      avatarUrl: "/default-avatar.png"
+    };
+
+    // Handle empty query - show @sdeverse first (when user types @)
+    if (!query || query.trim() === "") {
+      return res.json([sdeverseSuggestion]);
+    }
+
+    const results = [];
+    
+    // Only show @sdeverse if query starts with 's'
+    if (query.toLowerCase().startsWith('s')) {
+      results.push(sdeverseSuggestion);
+    }
+
+    // Find other users matching the query (exclude admin users)
+    const otherUsers = await User.find(
+      { 
+        username: { $regex: query, $options: "i" },
+        role: { $ne: "admin" } // Exclude admin users from suggestions
+      },
+      { username: 1, _id: 1, avatarUrl: 1 }
+    ).limit(4); // Limit to 4 since we might add sdeverse
+
+    // Add other matching users
+    results.push(...otherUsers);
+
+    res.json(results);
+  } catch (error) {
+    console.error("Error fetching user suggestions:", error);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
 module.exports = {
   getAllUsers,
   getUserById,
+  getUserByUsername,
   deleteUser,
   updateUserRole,
   getMyProfile,
@@ -725,4 +777,5 @@ module.exports = {
   updateSingleCompetitiveStat,
   updateSingleSocialStat,
   getAdminAnalytics,
+  searchUsers,
 };
