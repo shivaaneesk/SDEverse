@@ -36,6 +36,8 @@ import AdminDataStructures from "./pages/AdminDataStructures";
 import AdminDataStructureProposalReview from "./pages/AdminDataStructureProposalReview";
 import { getMe } from "./features/auth/authSlice";
 import { toast } from "react-toastify";
+import Contact from "./pages/Contact";
+import AdminUsersContact from "./pages/AdminUsersContact";
 import FaqPage from './pages/FaqPage';
 
 const router = createBrowserRouter([
@@ -54,6 +56,10 @@ const router = createBrowserRouter([
       {
         index: true,
         element: <Home />,
+      },
+       {
+        path: "contact",
+        element: <Contact />,
       },
       {
         path: "feedback",
@@ -124,6 +130,14 @@ const router = createBrowserRouter([
         element: (
           <AdminRoute>
             <AdminDataStructures />
+          </AdminRoute>
+        ),
+      },
+      {
+        path: "admin/manage-users-contacts",
+        element: (
+          <AdminRoute>
+            <AdminUsersContact />
           </AdminRoute>
         ),
       },
