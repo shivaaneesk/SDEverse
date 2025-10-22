@@ -16,9 +16,16 @@ export default function ProfileForm({
   onRefresh,
   imageData,
   readonly = false,
+  actionError = null,
 }) {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10 rounded-2xl shadow-xl p-6 sm:p-8 lg:p-12 border bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 overflow-visible">
+      {actionError && (
+        <div className="w-full rounded-md bg-red-50 dark:bg-red-900/40 border border-red-200 dark:border-red-700 p-3 text-red-700 dark:text-red-300">
+          <strong className="block font-semibold">Error</strong>
+          <p className="text-sm mt-1">{actionError}</p>
+        </div>
+      )}
       {/* Header */}
       {!readonly && (
         <div className="flex flex-col sm:flex-row justify-between items-center gap-6 pt-4 pb-8 border-b border-gray-200 dark:border-gray-700 overflow-visible">

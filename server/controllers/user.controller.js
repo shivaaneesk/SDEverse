@@ -681,30 +681,61 @@ const updateMyProfile = asyncHandler(async (req, res) => {
   // Handle image upload or direct URL
   let imageUrl = user.avatarUrl;
   let image = req.body.avatarUrl;
-
   let bannerUrl = req.body.bannerUrl;
 
-  if (image) {
-    if (image.startsWith("https://data:") || image.startsWith("http://data:")) {
-      image = image.replace(/^https?:\/\//, "");
+  // Normalize possible data URI prefixes and detect base64 data correctly.
+  // Valid base64 data URIs start with 'data:' (optionally prefixed by protocol if submitted wrong).
+  const isBase64Data = (str) => {
+    if (!str || typeof str !== "string") return false;
+    // strip any accidental leading protocol artifacts
+    const trimmed = str.trim();
+    if (trimmed.startsWith("http://data:") || trimmed.startsWith("https://data:")) {
+      return true;
     }
-    if (image.startsWith("http://") || image.startsWith("https://")) {
-      // No need to upload
-      imageUrl = image;
-    } else {
-      // It's a base64 image (e.g., data:image/png;base64,...)
-      const uploadResponse = await cloudinary.uploader.upload(image, {
-        folder: "profile_avatars",
-      });
-      imageUrl = uploadResponse.secure_url;
+    if (trimmed.startsWith("data:")) return true;
+    return false;
+  };
+
+  if (image) {
+    // If the client sent a data URI (base64), upload it to Cloudinary
+    try {
+      if (isBase64Data(image)) {
+        // remove accidental protocol if present
+        const cleaned = image.replace(/^https?:\/\//, "");
+        const uploadResponse = await cloudinary.uploader.upload(cleaned, {
+          folder: "profile_avatars",
+        });
+        imageUrl = uploadResponse.secure_url;
+      } else if (image.startsWith("http://") || image.startsWith("https://")) {
+        // image is already a valid URL
+        imageUrl = image;
+      } else {
+        // If it's neither a URL nor a data URI, assume it's already a URL-ish string and set it
+        imageUrl = image;
+      }
+    } catch (err) {
+      console.error("Error uploading avatar to cloudinary:", err.message || err);
+      // keep existing avatarUrl on failure
     }
   }
 
   if (bannerUrl) {
-    const uploadResponse = await cloudinary.uploader.upload(bannerUrl, {
-      folder: "profile_banners",
-    });
-    bannerUrl = uploadResponse.secure_url;
+    try {
+      if (isBase64Data(bannerUrl)) {
+        const cleaned = bannerUrl.replace(/^https?:\/\//, "");
+        const uploadResponse = await cloudinary.uploader.upload(cleaned, {
+          folder: "profile_banners",
+        });
+        bannerUrl = uploadResponse.secure_url;
+      } else if (bannerUrl.startsWith("http://") || bannerUrl.startsWith("https://")) {
+        // leave as-is
+      } else {
+        // leave as-is
+      }
+    } catch (err) {
+      console.error("Error uploading banner to cloudinary:", err.message || err);
+      // keep existing banner on failure
+    }
   }
   user.avatarUrl = imageUrl;
   user.bannerUrl = bannerUrl;

@@ -45,6 +45,7 @@ export default function Profile() {
   const dispatch = useDispatch();
   const { username } = useParams();
   const { myProfile, selectedUser, status } = useSelector((state) => state.user);
+  const authUser = useSelector((state) => state.auth.user);
   const themeMode = useSelector((state) => state.theme.mode);
 
   const [formData, setFormData] = useState(null);
@@ -57,6 +58,7 @@ export default function Profile() {
   });
 
   const [urlErrors, setUrlErrors] = useState({});
+  const [actionError, setActionError] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [bannerPreview, setBannerPreview] = useState(null);
   const [uploadedImageBase64, setUploadedImageBase64] = useState(null);
@@ -75,17 +77,23 @@ export default function Profile() {
   };
 
   useEffect(() => {
+    // If route has username and it matches the logged-in user, load myProfile
     if (username) {
-      // Viewing another user's profile
-      dispatch(getUserByUsername(username));
+      if (authUser && authUser.username === username) {
+        dispatch(getMyProfile());
+      } else {
+        // Viewing another user's profile
+        dispatch(getUserByUsername(username));
+      }
     } else {
       // Viewing own profile
       dispatch(getMyProfile());
     }
-  }, [dispatch, username]);
+  }, [dispatch, username, authUser]);
 
   useEffect(() => {
-    const profileData = username ? selectedUser : myProfile;
+    const isViewingOtherUser = username && !(authUser && authUser.username === username);
+    const profileData = isViewingOtherUser ? selectedUser : myProfile;
     if (profileData) {
       setFormData({
         fullName: profileData.fullName || "",
@@ -106,7 +114,7 @@ export default function Profile() {
       setHasChanges(false);
       setUrlErrors({});
     }
-  }, [myProfile, selectedUser, username]);
+  }, [myProfile, selectedUser, username, authUser]);
 
   const isValidUrl = (val) => {
     if (!val) return true;
@@ -117,7 +125,7 @@ export default function Profile() {
         trimmedVal.startsWith("http") ? trimmedVal : `https://${trimmedVal}`
       );
       return !!url.hostname && url.hostname.includes(".");
-    } catch (e) {
+    } catch {
       return false;
     }
   };
@@ -155,7 +163,7 @@ export default function Profile() {
                 platform
               )} profile URL (must contain ${requiredDomain}).`;
             }
-          } catch (e) {
+          } catch {
             errorMsg = "Invalid URL structure.";
           }
         }
@@ -232,7 +240,7 @@ export default function Profile() {
                 platform
               )} profile URL (must contain ${requiredDomain}).`;
             }
-          } catch (e) {
+          } catch {
             errors[k] = "Invalid URL format.";
           }
         }
@@ -307,8 +315,16 @@ export default function Profile() {
       );
     }
 
-    await dispatch(patchMyProfile(dataToSubmit));
-    await dispatch(getMyProfile());
+    try {
+      setActionError(null);
+      const res = await dispatch(patchMyProfile(dataToSubmit));
+      if (res?.error) throw new Error(res.error?.message || res.payload || 'Update failed');
+      const res2 = await dispatch(getMyProfile());
+      if (res2?.error) throw new Error(res2.error?.message || res2.payload || 'Fetch profile failed');
+    } catch (err) {
+      setActionError(err.message || 'Failed to update profile');
+      return; // keep editing so user can fix
+    }
 
     setIsEditing(false);
     setHasChanges(false);
@@ -345,20 +361,19 @@ export default function Profile() {
   const handleRefresh = async (type) => {
     setRefreshing({ type });
     try {
-      if (type === "competitive") {
-        await dispatch(refreshCompetitiveStats());
-      } else {
-        await dispatch(refreshSocialStats());
-      }
-
-      await dispatch(getMyProfile());
+      setActionError(null);
+      const thunk = type === "competitive" ? refreshCompetitiveStats() : refreshSocialStats();
+      const res = await dispatch(thunk);
+      if (res?.error) throw new Error(res.error?.message || res.payload || 'Refresh failed');
+      const res2 = await dispatch(getMyProfile());
+      if (res2?.error) throw new Error(res2.error?.message || res2.payload || 'Fetch profile failed');
     } finally {
       setRefreshing({ type: null });
     }
   };
 
   const isLoading = status.fetchProfile === "loading" || status.fetchSelectedUser === "loading";
-  const isViewingOtherUser = !!username;
+  const isViewingOtherUser = username && !(authUser && authUser.username === username);
   
   if (isLoading || !formData) {
     return (
@@ -396,6 +411,7 @@ export default function Profile() {
         onEditToggle={() => !isViewingOtherUser && setIsEditing(!isEditing)}
         onRefresh={handleRefresh}
         imageData={imageData}
+        actionError={actionError}
         readonly={isViewingOtherUser}
       />
     </div>
