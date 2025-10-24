@@ -1,6 +1,8 @@
 const asyncHandler = require("express-async-handler");
 const User = require("../models/user.model");
+const OTP = require("../models/otp.model");
 const generateToken = require("../utils/generateToken");
+const sendEmail = require("../config/sendEmail");
 
 const validateEmail = (email) => {
   if (typeof email !== "string") return false;
@@ -145,8 +147,118 @@ const getMe = asyncHandler(async (req, res) => {
   res.status(200).json(user);
 });
 
+const forgotPassword = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+  
+  if (!email) {
+    res.status(400);
+    throw new Error("Please provide an email address");
+  }
+
+  const sanitizedEmail = sanitizeInput(email);
+
+  if (!validateEmail(sanitizedEmail)) {
+    res.status(400);
+    throw new Error("Please provide a valid email address");
+  }
+
+  const user = await User.findOne({ email: sanitizedEmail.toLowerCase() });
+
+  if (!user) {
+    res.status(200).json({ 
+      message: "If an account exists with this email, an OTP has been sent",
+      success: true 
+    });
+    return;
+  }
+
+  const otpCode = Math.floor(100000 + Math.random() * 999999);
+
+  const newOtp = new OTP({
+    email: sanitizedEmail.toLowerCase(),
+    code: otpCode,
+  });
+
+  await newOtp.save();
+
+  const message = `Your OTP code for password reset is: ${otpCode}. It will expire in 5 minutes.`;
+  await sendEmail(sanitizedEmail, "Password Reset OTP", message);
+
+  res.status(200).json({ 
+    message: "OTP sent to email successfully",
+    success: true 
+  });
+});
+
+const validateOTP = asyncHandler(async (req, res) => {
+  const { email, code } = req.body;
+
+  const sanitizedEmail = sanitizeInput(email);
+  const otpRecord = await OTP.findOne({ email: sanitizedEmail, code: Number(code) });
+    
+  if (!otpRecord || Date.now() > otpRecord.createdAt.getTime() + 5 * 60 * 1000) {
+    res.status(400);
+    throw new Error("Invalid or expired OTP");
+  }
+
+  res.status(200).json({
+    message: "OTP validated successfully",
+    success: true
+  });
+});
+
+const resetPassword = asyncHandler(async (req, res) => {
+  const { email, code, newPassword, confirmPassword } = req.body;
+
+  // Validate all fields are provided
+  if (!newPassword || !confirmPassword) {
+    res.status(400);
+    throw new Error("New password, and confirm password");
+  }
+
+  sanitizedEmail = sanitizeInput(email);
+  const otpRecord = await OTP.findOne({ email: sanitizedEmail, code: Number(code) });
+    
+  if (!otpRecord || Date.now() > otpRecord.createdAt.getTime() + 5 * 60 * 1000) {
+    res.status(400);
+    throw new Error("Invalid or expired OTP");
+  }
+
+  // Check if passwords match
+  if (newPassword !== confirmPassword) {
+    res.status(400);
+    throw new Error("Passwords do not match");
+  }
+
+  // Validate new password strength
+  if (!validatePassword(newPassword)) {
+    res.status(400);
+    throw new Error("New password must be at least 6 characters and contain at least one letter and one number");
+  }
+
+  // Find user by email
+  const user = await User.findOne({ email: sanitizedEmail.toLowerCase() });
+
+  if (!user) {
+    res.status(404);
+    throw new Error("User not found with this email");
+  }
+
+  // Update password (will be hashed by the pre-save hook in user model)
+  user.password = newPassword;
+  await user.save();
+
+  res.status(200).json({ 
+    message: "Password reset successfully",
+    success: true 
+  });
+});
+
 module.exports = {
   registerUser,
   loginUser,
   getMe,
+  forgotPassword,
+  validateOTP,
+  resetPassword,
 };
