@@ -5,6 +5,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Loader2, Eye, EyeOff, ArrowLeft, Check, X } from "lucide-react";
 import SDEverse from "../assets/sdeverse.png";
+import { toast } from "react-toastify";
 
 const Register = () => {
   const dispatch = useDispatch();
@@ -84,6 +85,7 @@ const Register = () => {
 
     setValidationErrors({});
     dispatch(registerUser(formData));
+    
   };
 
   const formatErrorMessage = (error) => {
@@ -104,13 +106,21 @@ const Register = () => {
     if (errorString.includes("validation")) {
       return "Please check your input and try again.";
     }
-    
     return errorString;
   };
 
   useEffect(() => {
-    if (user) navigate("/");
+    if (user) {
+      toast.success("Successfully Registered")
+      navigate("/");
+    } 
   }, [user, navigate]);
+
+  useEffect(()=>{
+    if(error){
+      toast.error("Error,Please try again")
+    }
+  } , [error])
 
   return (
     <motion.div

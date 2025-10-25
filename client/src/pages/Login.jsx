@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { loginUser } from "../features/auth/authSlice";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { toast } from "react-toastify";
 import { Loader2, Eye, EyeOff, ArrowLeft } from "lucide-react";
 import SDEverse from "../assets/sdeverse.png";
 
@@ -23,8 +24,17 @@ const Login = () => {
   };
 
   useEffect(() => {
-    if (user) navigate("/");
+    if (user) {
+      toast.success("Login successful!");
+      navigate("/");
+    }
   }, [user, navigate]);
+
+  useEffect(() => {
+    if (error) {
+      toast.error("Invalid email or password");
+    }
+  }, [error]);
 
   return (
     <motion.div
