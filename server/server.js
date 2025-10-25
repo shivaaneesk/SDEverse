@@ -1,4 +1,3 @@
-// server/server.js
 const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
@@ -23,17 +22,14 @@ connectDB();
 
 const app = express();
 
-// --- CORS Configuration ---
 const corsOptions = {
-  origin: 'http://localhost:5173', // Your client's URL
+  origin: 'http://localhost:5173',
   optionsSuccessStatus: 200
 };
 app.use(cors(corsOptions));
-// --- End CORS Configuration ---
 
-app.use(express.json()); // Middleware to parse JSON bodies
+app.use(express.json()); 
 
-// --- API Routes ---
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/algorithms", algorithmRoutes);
