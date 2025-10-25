@@ -172,9 +172,7 @@ function App() {
   const dispatch = useDispatch();
 
   useEffect(() => {
-    // Initialize theme on app startup
     const storedTheme = localStorage.getItem("theme") || "light";
-    // console.log("Initializing theme with:", storedTheme);
     dispatch(setTheme(storedTheme));
 
     const fetchUser = async () => {

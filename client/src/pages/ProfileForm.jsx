@@ -1,6 +1,6 @@
 import { Pencil } from "lucide-react";
-import ProfileSection from "./ProfileSection";
-import LinksSection from "./LinksSection";
+import ProfileSection from "./ProfileSection"; 
+import LinksSection from "./LinksSection"; 
 
 export default function ProfileForm({
   formData,
@@ -13,8 +13,12 @@ export default function ProfileForm({
   onCancel,
   onEditToggle,
   onRefresh,
-  readonly = false,
+  readonly = false, 
 }) {
+  if (!formData) {
+    return null; 
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10 rounded-2xl shadow-xl p-6 sm:p-8 lg:p-12 border bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 overflow-visible">
       {/* Header */}
@@ -60,7 +64,7 @@ export default function ProfileForm({
       <section className="space-y-8">
         <ProfileSection
           isEditing={isEditing && !readonly}
-          formData={formData}
+          formData={formData} 
           handleChange={onChange}
         />
       </section>
@@ -69,14 +73,14 @@ export default function ProfileForm({
       <section className="space-y-8">
         <LinksSection
           title="Competitive Links"
-          links={formData.competitiveProfiles}
-          stats={formData.competitiveStats}
+          links={formData?.competitiveProfiles || {}}
+          stats={formData?.competitiveStats || {}}
           isEditing={isEditing && !readonly}
           readonly={readonly}
           handleChange={onChange}
-          refreshing={refreshing.type === "competitive"}
+          refreshing={refreshing?.type === "competitive"}
           onRefresh={() => onRefresh("competitive")}
-          lastUpdated={lastRefreshed.competitive}
+          lastUpdated={lastRefreshed?.competitive} 
         />
       </section>
 
@@ -84,14 +88,14 @@ export default function ProfileForm({
       <section className="space-y-8">
         <LinksSection
           title="Social Links"
-          links={formData.socialLinks}
-          stats={formData.socialStats}
+          links={formData?.socialLinks || {}}
+          stats={formData?.socialStats || {}}
           isEditing={isEditing && !readonly}
           readonly={readonly}
           handleChange={onChange}
-          refreshing={refreshing.type === "social"}
+          refreshing={refreshing?.type === "social"}
           onRefresh={() => onRefresh("social")}
-          lastUpdated={lastRefreshed.social}
+          lastUpdated={lastRefreshed?.social} 
         />
       </section>
     </div>
