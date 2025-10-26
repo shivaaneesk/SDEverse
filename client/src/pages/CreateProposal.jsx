@@ -18,6 +18,8 @@ const CreateProposal = () => {
   const navigate = useNavigate();
   const { slug } = useParams();
 
+  const themeMode = useSelector((state) => state.theme.mode);
+
   const {
     categories,
     algorithm,
@@ -132,7 +134,7 @@ const CreateProposal = () => {
 
   if (algorithmLoading || (slug && !algorithm && !algorithmError)) {
     return (
-      <div className="flex justify-center items-center min-h-screen bg-gray-950 dark:bg-black">
+      <div className={`flex justify-center items-center min-h-screen ${themeMode === 'dark' ? 'bg-gray-950' : 'bg-gray-50'}`}>
         <DotLoader color="#A855F7" size={60} />
       </div>
     );
@@ -140,12 +142,12 @@ const CreateProposal = () => {
 
   if (slug && algorithmError) {
     return (
-      <div className="flex flex-col justify-center items-center min-h-screen bg-gray-950 dark:bg-black text-red-500 dark:text-red-400 p-4 text-center">
+      <div className={`flex flex-col justify-center items-center min-h-screen ${themeMode === 'dark' ? 'bg-gray-950 text-red-400' : 'bg-gray-50 text-red-600'} p-4 text-center`}>
         <XCircle size={48} className="mb-4" />
         <h2 className="text-3xl font-extrabold mb-3">
           Failed to Load Algorithm
         </h2>
-        <p className="text-xl text-gray-300 max-w-lg mx-auto">
+        <p className={`text-xl max-w-lg mx-auto ${themeMode === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
           We couldn't fetch the algorithm data. Please check your connection or
           try again later.
         </p>
@@ -169,7 +171,7 @@ const CreateProposal = () => {
       // Adjusted top/bottom padding for the entire page container
       className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 font-sans" // py-8 instead of py-12
     >
-      <div className="bg-gradient-to-br from-gray-900 to-black rounded-3xl shadow-3xl overflow-hidden border border-gray-700 backdrop-blur-sm relative">
+      <div className={`bg-gradient-to-br ${themeMode === 'dark' ? 'from-gray-900 to-black' : 'from-gray-100 to-white'} rounded-3xl shadow-3xl overflow-hidden border ${themeMode === 'dark' ? 'border-gray-700' : 'border-gray-300'} backdrop-blur-sm relative`}>
         {/* Subtle background pattern/gradient for visual interest */}
         <div className="absolute inset-0 z-0 opacity-10" style={{
             backgroundImage: "radial-gradient(ellipse at top left, var(--tw-gradient-stops))",
@@ -189,10 +191,10 @@ const CreateProposal = () => {
         }}></div>
 
         {/* Header Section */}
-        <div className="relative z-10 p-6 md:p-8 lg:p-8 border-b border-gray-700"> {/* Reduced padding here */}
+        <div className={`relative z-10 p-6 md:p-8 lg:p-8 border-b ${themeMode === 'dark' ? 'border-gray-700' : 'border-gray-300'}`}> {/* Reduced padding here */}
           <motion.button
             onClick={handleCancel}
-            className="flex items-center text-base font-medium text-gray-400 hover:text-purple-400 transition-colors duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-gray-900 rounded-lg p-2 mb-3" // Reduced mb-4 to mb-3
+            className={`flex items-center text-base font-medium ${themeMode === 'dark' ? 'text-gray-400 hover:text-purple-400' : 'text-gray-600 hover:text-purple-600'} transition-colors duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 ${themeMode === 'dark' ? 'focus:ring-offset-gray-900' : 'focus:ring-offset-white'} rounded-lg p-2 mb-3`} // Reduced mb-4 to mb-3
             whileHover={{ x: -5 }}
             aria-label="Go back"
           >
@@ -202,10 +204,10 @@ const CreateProposal = () => {
           </motion.button>
           
           <div className="text-left">
-            <h1 className="text-4xl md:text-5xl font-extrabold text-white mb-2 leading-tight tracking-tight">
+            <h1 className={`text-4xl md:text-5xl font-extrabold mb-2 leading-tight tracking-tight ${themeMode === 'dark' ? 'text-white' : 'text-gray-900'}`}>
               {isContribution ? "Propose Algorithm Enhancements" : "Submit a New Algorithm Idea"}
             </h1>
-            <p className="text-xl text-gray-400 mt-2">
+            <p className={`text-xl mt-2 ${themeMode === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
               {isContribution
                 ? `Refine "${algorithm?.title || "an existing algorithm"}"`
                 : "Share your innovative solution with the community"}
@@ -214,7 +216,7 @@ const CreateProposal = () => {
         </div>
 
         {/* Mode Toggle Tabs */}
-        <div className="relative z-10 flex border-b border-gray-700 bg-gray-800">
+        <div className={`relative z-10 flex border-b ${themeMode === 'dark' ? 'border-gray-700 bg-gray-800' : 'border-gray-300 bg-gray-100'}`}>
           {["edit", "preview"].map((tab) => (
             <button
               key={tab}
@@ -222,8 +224,8 @@ const CreateProposal = () => {
               className={clsx(
                 "flex-1 py-4 px-6 text-center text-xl font-bold transition-all duration-200 relative group", // Reduced py-5 to py-4
                 mode === tab
-                  ? "text-purple-400 bg-gray-850"
-                  : "text-gray-500 hover:text-purple-300 bg-gray-800"
+                  ? `text-purple-400 ${themeMode === 'dark' ? 'bg-gray-850' : 'bg-white'}`
+                  : `${themeMode === 'dark' ? 'text-gray-500 hover:text-purple-300 bg-gray-800' : 'text-gray-600 hover:text-purple-500 bg-gray-100'}`
               )}
               aria-selected={mode === tab}
               role="tab"
@@ -241,7 +243,7 @@ const CreateProposal = () => {
         </div>
 
         {/* Proposal Form Section */}
-        <div className="relative z-10 p-6 md:p-8 lg:p-8 bg-gray-850 border-t border-gray-700 rounded-b-3xl"> {/* Reduced padding here */}
+        <div className={`relative z-10 p-6 md:p-8 lg:p-8 ${themeMode === 'dark' ? 'bg-gray-850' : 'bg-white'} border-t ${themeMode === 'dark' ? 'border-gray-700' : 'border-gray-300'} rounded-b-3xl`}> {/* Reduced padding here */}
           <ProposalForm
             categories={categories}
             proposal={formData}
@@ -251,14 +253,14 @@ const CreateProposal = () => {
         </div>
 
         {/* Action Buttons Section */}
-        <div className="relative z-10 p-6 md:p-8 lg:p-8 bg-gray-900 border-t border-gray-700"> {/* Reduced padding here */}
+        <div className={`relative z-10 p-6 md:p-8 lg:p-8 ${themeMode === 'dark' ? 'bg-gray-900' : 'bg-gray-50'} border-t ${themeMode === 'dark' ? 'border-gray-700' : 'border-gray-300'}`}> {/* Reduced padding here */}
           <div className="flex flex-col-reverse sm:flex-row justify-end gap-5">
             <motion.button
               onClick={handleCancel}
-              className="px-8 py-4 rounded-full bg-gray-700 text-gray-200 font-semibold text-lg hover:bg-gray-600 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:ring-offset-gray-900 flex items-center justify-center gap-2"
+              className={`px-8 py-4 rounded-full ${themeMode === 'dark' ? 'bg-gray-700 text-gray-200 hover:bg-gray-600' : 'bg-gray-300 text-gray-800 hover:bg-gray-400'} font-semibold text-lg hover:shadow-lg transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 ${themeMode === 'dark' ? 'focus:ring-offset-gray-900' : 'focus:ring-offset-white'} flex items-center justify-center gap-2`}
               type="button"
               aria-label="Cancel proposal submission"
-              whileHover={{ scale: 1.02, backgroundColor: "#4b5563" }}
+              whileHover={{ scale: 1.02, backgroundColor: themeMode === 'dark' ? "#4b5563" : "#9ca3af" }}
               whileTap={{ scale: 0.98 }}
             >
               Cancel

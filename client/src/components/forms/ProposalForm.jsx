@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import { Trash2, Plus, ChevronDown, Info } from "lucide-react";
 import MonacoEditor from "@monaco-editor/react";
-import AlgorithmPreview from "../../pages/AlgorithmPreview"; // Assuming this path is correct
-import clsx from "clsx"; // For conditional class joining
+import AlgorithmPreview from "../../pages/AlgorithmPreview"; // Ensure this path is correct
+import clsx from "clsx";
 import { useSelector } from "react-redux";
 
 const ProposalForm = ({ proposal = {}, onSave, categories = [], mode }) => {
   const themeMode = useSelector((state) => state.theme.mode);
-  const [editedData, setEditedData] = useState({
+  const [editedData, setEditedData] = useState(() => ({
     title: proposal.title || "",
     problemStatement: proposal.problemStatement || "",
     intuition: proposal.intuition || "",
@@ -18,45 +18,26 @@ const ProposalForm = ({ proposal = {}, onSave, categories = [], mode }) => {
     tags: proposal.tags || [],
     links: proposal.links || [],
     codes: proposal.codes?.length ? proposal.codes : [{ language: "", code: "" }],
-  });
-
+  }));
   const [selectedCodeIndex, setSelectedCodeIndex] = useState(0);
   const [showDifficultyDropdown, setShowDifficultyDropdown] = useState(false);
   const [showInfo, setShowInfo] = useState(true);
 
   // Ref to store the latest onSave callback
   const onSaveRef = useRef(onSave);
+  const prevDataRef = useRef();
+
   useEffect(() => {
     onSaveRef.current = onSave;
   }, [onSave]);
 
-  // Effect to call onSave whenever editedData changes
+  // Call onSave when editedData changes
   useEffect(() => {
-    onSaveRef.current(editedData);
-  }, [editedData]);
-
-  // Effect to update internal state when proposal prop changes (for EditProposal)
-  useEffect(() => {
-    setEditedData({
-      title: proposal.title || "",
-      problemStatement: proposal.problemStatement || "",
-      intuition: proposal.intuition || "",
-      explanation: proposal.explanation || "",
-      complexity: proposal.complexity || { time: "", space: "" },
-      difficulty: proposal.difficulty || "Easy",
-      category: proposal.category || [],
-      tags: proposal.tags || [],
-      links: proposal.links || [],
-      codes: proposal.codes?.length ? proposal.codes : [{ language: "", code: "" }],
-    });
-    // Reset selected code index if codes array becomes empty or the selected index is out of bounds
-    if (proposal.codes?.length > 0 && selectedCodeIndex >= proposal.codes.length) {
-        setSelectedCodeIndex(Math.max(0, proposal.codes.length - 1));
-    } else if (proposal.codes?.length === 0) {
-        setSelectedCodeIndex(0);
+    if (JSON.stringify(editedData) !== JSON.stringify(prevDataRef.current)) {
+      prevDataRef.current = editedData;
+      onSaveRef.current(editedData);
     }
-  }, [proposal]);
-
+  }, [editedData]);
 
   const handleChange = (field, value) => {
     setEditedData((prev) => ({ ...prev, [field]: value }));
@@ -75,7 +56,7 @@ const ProposalForm = ({ proposal = {}, onSave, categories = [], mode }) => {
   };
 
   const removeArrayItem = (field, index) => {
-    if (field === "codes" && editedData.codes.length === 1) return; // Prevent removing the last code snippet
+    if (field === "codes" && editedData.codes.length === 1) return;
     const updated = editedData[field].filter((_, i) => i !== index);
     handleChange(field, updated);
     if (field === "codes") {
@@ -153,7 +134,7 @@ const ProposalForm = ({ proposal = {}, onSave, categories = [], mode }) => {
   );
 
   return (
-    <div className="min-h-[500px]"> {/* Added min-height for better layout during preview */}
+    <div className="min-h-[500px]">
       {mode === "edit" ? (
         <div className="space-y-8">
           <div className="flex justify-between items-start mb-6">
@@ -178,61 +159,54 @@ const ProposalForm = ({ proposal = {}, onSave, categories = [], mode }) => {
                 <li>Include multiple implementations in different programming languages</li>
                 <li>Add relevant complexity analysis and real-world applications</li>
                 <li>Tag your algorithm with appropriate categories and difficulty level</li>
-                <li>All submissions will be reviewed by our team before publishing</li>
+                <li>All submissions are reviewed by our team</li>
               </ul>
             </div>
           )}
 
-          {renderInput("Algorithm Title", editedData.title,
-            (val) => handleChange("title", val),
-            false,
-            "e.g., Dijkstra's Shortest Path Algorithm"
-          )}
-
-          {renderInput("Problem Statement", editedData.problemStatement,
+          {renderInput("Title", editedData.title, (val) => handleChange("title", val))}
+          {renderInput(
+            "Problem Statement",
+            editedData.problemStatement,
             (val) => handleChange("problemStatement", val),
             true,
             "Describe the problem this algorithm solves..."
           )}
-
-          {renderInput("Intuition", editedData.intuition,
+          {renderInput(
+            "Intuition",
+            editedData.intuition,
             (val) => handleChange("intuition", val),
             true,
-            "Explain the core idea behind the solution..."
+            "Explain the core idea behind the algorithm..."
           )}
-
-          {renderInput("Detailed Explanation", editedData.explanation,
+          {renderInput(
+            "Explanation",
+            editedData.explanation,
             (val) => handleChange("explanation", val),
             true,
-            "Provide step-by-step explanation with examples..."
+            "Provide a detailed step-by-step explanation..."
           )}
 
-          {/* Complexity */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {["time", "space"].map((key) => (
-              <div className="space-y-3" key={key}>
-                <label htmlFor={`${key}-complexity`} className="block text-base font-medium text-gray-700 dark:text-gray-300 capitalize">
-                  {key} Complexity
-                </label>
-                <input
-                  id={`${key}-complexity`}
-                  type="text"
-                  className="w-full p-4 text-base rounded-xl bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
-                  value={editedData.complexity[key]}
-                  placeholder={`O(...)`}
-                  onChange={(e) =>
-                    setEditedData((prev) => ({
-                      ...prev,
-                      complexity: { ...prev.complexity, [key]: e.target.value },
-                    }))
-                  }
-                />
-              </div>
-            ))}
+          <div className="space-y-3">
+            <label className="block text-base font-medium text-gray-700 dark:text-gray-300">Complexity</label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {renderInput("Time Complexity", editedData.complexity.time, (val) =>
+                setEditedData((prev) => ({
+                  ...prev,
+                  complexity: { ...prev.complexity, time: val },
+                }))
+              )}
+              {renderInput("Space Complexity", editedData.complexity.space, (val) =>
+                setEditedData((prev) => ({
+                  ...prev,
+                  complexity: { ...prev.complexity, space: val },
+                }))
+              )}
+            </div>
           </div>
 
           {renderDropdown(
-            "Difficulty Level",
+            "Difficulty",
             ["Easy", "Medium", "Hard"],
             editedData.difficulty,
             (val) => handleChange("difficulty", val),
@@ -240,7 +214,6 @@ const ProposalForm = ({ proposal = {}, onSave, categories = [], mode }) => {
             setShowDifficultyDropdown
           )}
 
-          {/* Categories */}
           <div className="space-y-3">
             <label className="block text-base font-medium text-gray-700 dark:text-gray-300">Categories</label>
             <div className="flex flex-wrap gap-3">
@@ -270,7 +243,6 @@ const ProposalForm = ({ proposal = {}, onSave, categories = [], mode }) => {
             </div>
           </div>
 
-          {/* Tags & Links */}
           {["tags", "links"].map((field) => (
             <div key={field} className="space-y-3">
               <div className="flex justify-between items-center">
@@ -312,7 +284,6 @@ const ProposalForm = ({ proposal = {}, onSave, categories = [], mode }) => {
             </div>
           ))}
 
-          {/* Code Snippets */}
           <div className="space-y-6">
             <div className="flex justify-between items-center">
               <div>
@@ -403,7 +374,6 @@ const ProposalForm = ({ proposal = {}, onSave, categories = [], mode }) => {
         </div>
       ) : (
         <div className="p-6 bg-gray-50 dark:bg-gray-800/50 rounded-2xl">
-          {/* Ensure AlgorithmPreview handles potentially empty data gracefully */}
           <AlgorithmPreview algorithm={editedData} />
         </div>
       )}

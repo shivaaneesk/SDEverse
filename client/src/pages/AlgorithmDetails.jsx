@@ -55,48 +55,52 @@ const AlgorithmDetail = () => {
     navigate(`/algorithms/${algorithm.slug}/contribute`);
   };
 
-  if (loading)
+  // Loading state
+  if (loading) {
     return (
-      <div className="flex h-full items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-950 dark:to-gray-900">
         <Loader />
       </div>
     );
+  }
 
-  if (error)
+  // Error state
+  if (error) {
     return (
-      <div className="flex h-full items-center justify-center p-4">
-        <div className="bg-red-100 dark:bg-red-900/20 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-300 px-6 py-4 rounded-lg shadow-md text-center max-w-lg w-full">
-          <p className="text-xl font-semibold mb-3">Oops! An error occurred.</p>
-          <p className="text-base mb-4">
-            {error.message || "Failed to load algorithm details."}
-          </p>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-950 dark:to-gray-900 p-4">
+        <div className="bg-red-50 dark:bg-red-900/30 border border-red-300 dark:border-red-800 text-red-800 dark:text-red-200 p-6 rounded-2xl shadow-xl max-w-md w-full text-center">
+          <h2 className="text-2xl font-bold mb-4">Something Went Wrong</h2>
+          <p className="mb-6 text-sm">{error || "Unable to load algorithm."}</p>
           <button
             onClick={() => navigate("/")}
-            className="mt-4 px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors shadow-md"
+            className="px-6 py-2 bg-red-600 text-white rounded-full hover:bg-red-700 transition-all shadow-md"
           >
-            Go to Home
+            Return Home
           </button>
         </div>
       </div>
     );
+  }
 
-  if (!algorithm)
+  // No algorithm found
+  if (!algorithm) {
     return (
-      <div className="flex h-full items-center justify-center p-4">
-        <div className="bg-blue-100 dark:bg-blue-900/20 border border-blue-400 dark:border-blue-700 text-blue-700 dark:text-blue-300 px-6 py-4 rounded-lg shadow-md text-center max-w-lg w-full">
-          <p className="text-xl font-semibold mb-3">No algorithm found.</p>
-          <p className="text-base mb-4">
-            The requested algorithm could not be found or may have been removed.
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-950 dark:to-gray-900 p-4">
+        <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-800 text-blue-800 dark:text-blue-200 p-6 rounded-2xl shadow-xl max-w-md w-full text-center">
+          <h2 className="text-2xl font-bold mb-4">Algorithm Not Found</h2>
+          <p className="mb-6 text-sm">
+            The requested algorithm could not be found.
           </p>
           <button
             onClick={() => navigate("/algorithms")}
-            className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors shadow-md"
+            className="px-6 py-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-all shadow-md"
           >
             Browse Algorithms
           </button>
         </div>
       </div>
     );
+  }
 
 
   return (
@@ -104,98 +108,104 @@ const AlgorithmDetail = () => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
-      className="w-full"
+      className="min-h-screen flex flex-col bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-950 dark:to-gray-900 text-gray-900 dark:text-gray-100"
     >
-      {/* The sticky header can stay as is, but it's part of the page flow */}
-      <header className="sticky top-0 z-10 w-full bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-md mb-8">
-        <div className="flex justify-between items-center h-14 px-4">
-           <button
-             onClick={() => navigate(-1)}
-             className="flex items-center gap-2 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 transition-all text-sm"
-             title="Go Back"
-           >
-             <ArrowLeft size={18} />
-             <span className="hidden sm:inline">Back</span>
-           </button>
-           <h1 className="text-lg sm:text-xl font-semibold truncate text-center">
-             {algorithm.title}
-           </h1>
-           <button
-             onClick={() => navigate(1)}
-             className="flex items-center gap-2 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 transition-all text-sm"
-             title="Go Forward"
-           >
-             <span className="hidden sm:inline">Forward</span>
-             <ArrowRight size={18} />
-           </button>
-         </div>
-       </header>
+      {/* Sticky Header */}
+      <header className="sticky top-0 z-20 bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border-b border-gray-200/50 dark:border-gray-800/50 shadow-sm">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between max-w-7xl">
+          <button
+            onClick={() => navigate(-1)}
+            className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 transition-all text-sm"
+            aria-label="Go back"
+          >
+            <ArrowLeft size={20} />
+            <span className="hidden md:inline">Back</span>
+          </button>
+          <h1 className="text-lg md:text-xl lg:text-2xl font-bold truncate max-w-[60%] text-center">
+            {algorithm.title}
+          </h1>
+          <button
+            onClick={() => navigate(1)}
+            className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 transition-all text-sm"
+            aria-label="Go forward"
+          >
+            <span className="hidden md:inline">Forward</span>
+            <ArrowRight size={20} />
+          </button>
+        </div>
+      </header>
 
-      {/* KEY CHANGE: This is now a simple div. 
-        It does NOT use `container`, `mx-auto`, or `px-*` classes. 
-        It naturally fills the space provided by the parent `Layout.js`.
-      */}
-      <div className="space-y-10">
+      {/* Main Content */}
+      <main className="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 py-8 max-w-7xl space-y-8">
         {/* Algorithm Preview */}
-        <section className="bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
+        <section className="bg-white dark:bg-gray-800 p-6 md:p-8 rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-700/50">
           <AlgorithmPreview algorithm={algorithm} />
         </section>
 
-        {/* Voting and Contribute Buttons */}
-        <section className="flex flex-col sm:flex-row items-center justify-center gap-6 p-4 rounded-xl bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700">
-          {/* Voting Buttons */}
-          <div className="flex justify-center gap-4">
-            <button
-              onClick={() => handleVote("upvote")}
-              className="flex items-center gap-2 px-5 py-2 rounded-full bg-green-100 hover:bg-green-200 dark:bg-green-900/40 dark:hover:bg-green-900 text-green-700 dark:text-green-300 shadow-md transition-all duration-200 transform hover:scale-105"
-            >
-              <ThumbsUp
-                size={20}
-                className={
-                  currentUserVoteType === "upvote" ? "fill-current" : ""
-                }
-              />
-              <span className="font-semibold text-base">
-                {algorithm.upvotes || 0}
-              </span>
-            </button>
-            <button
-              onClick={() => handleVote("downvote")}
-              className="flex items-center gap-2 px-5 py-2 rounded-full bg-red-100 hover:bg-red-200 dark:bg-red-900/40 dark:hover:bg-red-900 text-red-700 dark:text-red-300 shadow-md transition-all duration-200 transform hover:scale-105"
-            >
-              <ThumbsDown
-                size={20}
-                className={
-                  currentUserVoteType === "downvote" ? "fill-current" : ""
-                }
-              />
-              <span className="font-semibold text-base">
-                {algorithm.downvotes || 0}
-              </span>
-            </button>
-          </div>
+        {/* Voting and Contribute Section */}
+        <section className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-700/50">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
+            {/* Voting Buttons */}
+            <div className="flex items-center gap-4">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => handleVote("upvote")}
+                className={`flex items-center gap-2 px-5 py-2 rounded-full shadow-md transition-all ${
+                  currentUserVoteType === "upvote"
+                    ? "bg-green-600 text-white"
+                    : "bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-900"
+                }`}
+                aria-label="Upvote"
+              >
+                <ThumbsUp
+                  size={20}
+                  className={currentUserVoteType === "upvote" ? "fill-current" : ""}
+                />
+                <span className="font-semibold">{algorithm.upvotes || 0}</span>
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => handleVote("downvote")}
+                className={`flex items-center gap-2 px-5 py-2 rounded-full shadow-md transition-all ${
+                  currentUserVoteType === "downvote"
+                    ? "bg-red-600 text-white"
+                    : "bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-900"
+                }`}
+                aria-label="Downvote"
+              >
+                <ThumbsDown
+                  size={20}
+                  className={currentUserVoteType === "downvote" ? "fill-current" : ""}
+                />
+                <span className="font-semibold">{algorithm.downvotes || 0}</span>
+              </motion.button>
+            </div>
 
-          {/* Contribute Button */}
-          <div className="flex justify-center mt-4 sm:mt-0">
-            <button
+            {/* Contribute Button */}
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
               onClick={handleContribute}
-              className="flex items-center gap-2 px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 dark:bg-blue-800 dark:hover:bg-blue-700 text-white font-medium shadow-lg transition-all duration-300 transform hover:scale-105"
+              className="flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-700 dark:to-blue-800 text-white font-medium shadow-lg hover:from-blue-700 hover:to-blue-800 transition-all"
+              aria-label="Contribute to algorithm"
             >
               <Sparkles size={20} />
               <span>Contribute</span>
-            </button>
+            </motion.button>
           </div>
         </section>
 
         {/* Comment Section */}
-        <section>
+        <section className="bg-white dark:bg-gray-800 p-6 md:p-8 rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-700/50">
           <CommentSection
             parentType="Algorithm"
             parentId={algorithm._id}
             parentSlug={algorithm.slug}
           />
         </section>
-      </div>
+      </main>
     </motion.div>
   );
 };

@@ -25,7 +25,25 @@ const CodeDisplay = ({ algorithm }) => {
 
   const currentCode = algorithm.codes?.[selectedLangIndex];
 
-  if (!algorithm.codes?.length) return null;
+  if (!algorithm.codes?.length) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, ease: "easeOut" }}
+        className="w-full bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-black text-gray-900 dark:text-gray-100 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden mt-4 sm:mt-6"
+      >
+        <div className="flex flex-wrap justify-between items-center p-3 xs:p-4 sm:p-5 bg-gray-100/70 dark:bg-gray-800/70 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700">
+          <h2 className="text-base xs:text-lg sm:text-xl font-bold text-gray-900 dark:text-white truncate flex-1">
+            Full Implementation
+          </h2>
+        </div>
+        <div className="p-6 text-center text-gray-500 dark:text-gray-400">
+          No code implementations available.
+        </div>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div
