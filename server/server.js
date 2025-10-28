@@ -13,7 +13,8 @@ const feedbackRoutes = require("./routes/feedback.routes");
 const communityRoutes = require("./routes/community.routes");
 const dataStructureRoutes = require("./routes/dataStructure.routes");
 const dataStructureProposalRoutes = require("./routes/dataStructureProposal.routes");
-const noteRoutes = require('./routes/noteRoutes'); // Import notes route
+const noteRoutes = require('./routes/noteRoutes');
+const contactRoutes = require("./routes/contact.routes");
 
 const { notFound, errorHandler } = require("./middleware/error.middleware");
 
@@ -28,7 +29,7 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
-app.use(express.json()); 
+app.use(express.json({ limit: "10mb" }));
 
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
@@ -40,7 +41,8 @@ app.use("/api/feedback", feedbackRoutes);
 app.use("/api/community", communityRoutes);
 app.use("/api/data-structures", dataStructureRoutes);
 app.use("/api/data-structure-proposals", dataStructureProposalRoutes);
-app.use("/api/notes", noteRoutes); 
+app.use("/api/notes", noteRoutes);
+app.use("/api/contact", contactRoutes);
 
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "OK", timestamp: new Date().toISOString() });
@@ -49,9 +51,10 @@ app.get("/health", (req, res) => {
 app.use(notFound);
 app.use(errorHandler);
 
-const PORT = process.env.PORT || 5001; 
+const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+
   const keepAlive = new KeepAlive();
-  setTimeout(() => keepAlive.start(), 10000); 
+  setTimeout(() => keepAlive.start(), 10000);
 });

@@ -8,7 +8,7 @@ import {
 import Loader from "../components/Loader";
 import AlgorithmPreview from "./AlgorithmPreview";
 import CommentSection from "./CommentSection";
-import NotesSection from "../components/noteSection"; 
+import NotesSection from "../components/NotesSection";
 import {
   ArrowLeft,
   ArrowRight,
@@ -46,7 +46,7 @@ const AlgorithmDetail = () => {
   };
 
   const currentUserVoteType = (() => {
-    if (!user || !algorithm || !algorithm.upvotedBy || !algorithm.downvotedBy) return null; 
+    if (!user || !algorithm || !algorithm.upvotedBy || !algorithm.downvotedBy) return null;
     if (algorithm.upvotedBy.includes(user._id)) return "upvote";
     if (algorithm.downvotedBy.includes(user._id)) return "downvote";
     return null;
@@ -60,48 +60,47 @@ const AlgorithmDetail = () => {
     navigate(`/algorithms/${algorithm.slug}/contribute`);
   };
 
-  if (loading)
+  if (loading) {
     return (
-      <div className="flex h-full items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-950 dark:to-gray-900">
         <Loader />
       </div>
     );
+  }
 
-  if (error)
+  if (error) {
     return (
-      <div className="flex h-full items-center justify-center p-4">
-        <div className="bg-red-100 dark:bg-red-900/20 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-300 px-6 py-4 rounded-lg shadow-md text-center max-w-lg w-full">
-          <p className="text-xl font-semibold mb-3">Oops! An error occurred.</p>
-          <p className="text-base mb-4">
-            {error.message || "Failed to load algorithm details."}
-          </p>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-950 dark:to-gray-900 p-4">
+        <div className="bg-red-50 dark:bg-red-900/30 border border-red-300 dark:border-red-800 text-red-800 dark:text-red-200 p-6 rounded-2xl shadow-xl max-w-md w-full text-center">
+          <h2 className="text-2xl font-bold mb-4">Something Went Wrong</h2>
+          <p className="mb-6 text-sm">{error.message || "Unable to load algorithm."}</p>
           <button
             onClick={() => navigate("/")}
-            className="mt-4 px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors shadow-md"
+            className="px-6 py-2 bg-red-600 text-white rounded-full hover:bg-red-700 transition-all shadow-md"
           >
-            Go to Home
+            Return Home
           </button>
         </div>
       </div>
     );
+  }
 
-  if (!algorithm)
+  if (!algorithm) {
     return (
-      <div className="flex h-full items-center justify-center p-4">
-        <div className="bg-blue-100 dark:bg-blue-900/20 border border-blue-400 dark:border-blue-700 text-blue-700 dark:text-blue-300 px-6 py-4 rounded-lg shadow-md text-center max-w-lg w-full">
-          <p className="text-xl font-semibold mb-3">No algorithm found.</p>
-          <p className="text-base mb-4">
-            The requested algorithm could not be found or may have been removed.
-          </p>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-950 dark:to-gray-900 p-4">
+        <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-800 text-blue-800 dark:text-blue-200 p-6 rounded-2xl shadow-xl max-w-md w-full text-center">
+          <h2 className="text-2xl font-bold mb-4">Algorithm Not Found</h2>
+          <p className="mb-6 text-sm">The requested algorithm could not be found.</p>
           <button
             onClick={() => navigate("/algorithms")}
-            className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors shadow-md"
+            className="px-6 py-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-all shadow-md"
           >
             Browse Algorithms
           </button>
         </div>
       </div>
     );
+  }
 
   const toggleNotesPanel = () => setIsNotesPanelOpen(!isNotesPanelOpen);
 
@@ -112,10 +111,8 @@ const AlgorithmDetail = () => {
       transition={{ duration: 0.5, ease: "easeOut" }}
       className="w-full relative overflow-x-hidden"
     >
-      {/* Header */}
       <header className="sticky top-0 z-10 w-full bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-md mb-8">
         <div className="flex justify-between items-center h-14 px-4">
-           {/* Back Button */}
            <button
              onClick={() => navigate(-1)}
              className="flex items-center gap-2 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 transition-all text-sm"
@@ -125,28 +122,24 @@ const AlgorithmDetail = () => {
              <span className="hidden sm:inline">Back</span>
            </button>
 
-           {/* Title */}
            <h1 className="text-lg sm:text-xl font-semibold truncate text-center mx-4">
              {algorithm.title}
            </h1>
 
-           {/* Right Side Buttons */}
            <div className="flex items-center gap-2">
-             {/* Notes Button - Conditionally Rendered */}
-             {user && ( 
+             {user && (
                  <button
                    onClick={toggleNotesPanel}
                    className={`p-2 rounded-md transition-all ${
                        isNotesPanelOpen
-                        ? 'bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300' 
-                        : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300' 
+                        ? 'bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300'
+                        : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300'
                    }`}
                    title={isNotesPanelOpen ? "Close Personal Notes" : "Open Personal Notes"}
                  >
                    <Notebook size={20} />
                  </button>
              )}
-             {/* Forward Button */}
              <button
                onClick={() => navigate(1)}
                className="flex items-center gap-2 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 transition-all text-sm"
@@ -159,20 +152,14 @@ const AlgorithmDetail = () => {
          </div>
        </header>
 
-      {/* Main Layout */}
       <div className="flex relative">
-        {/* Main Content Area */}
-        {/* Use margin-right to "push" content left when panel opens on larger screens */}
         <div className={`flex-grow transition-all duration-300 ease-in-out ${isNotesPanelOpen ? 'lg:mr-80' : 'mr-0'}`}>
-          <div className="space-y-10 px-4 sm:px-6 lg:px-8 pb-8"> {/* Add bottom padding */}
-            {/* Algorithm Preview */}
+          <div className="space-y-10 px-4 sm:px-6 lg:px-8 pb-8">
             <section className="bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
               <AlgorithmPreview algorithm={algorithm} />
             </section>
 
-            {/* Voting and Contribute Buttons */}
             <section className="flex flex-col sm:flex-row items-center justify-center gap-6 p-4 rounded-xl bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700">
-               {/* Voting Buttons */}
                <div className="flex justify-center gap-4">
                  <button
                    onClick={() => handleVote("upvote")}
@@ -189,7 +176,6 @@ const AlgorithmDetail = () => {
                    <span className="font-semibold text-base">{algorithm.downvotes || 0}</span>
                  </button>
                </div>
-               {/* Contribute Button */}
                <div className="flex justify-center mt-4 sm:mt-0">
                  <button
                    onClick={handleContribute}
@@ -201,7 +187,6 @@ const AlgorithmDetail = () => {
                </div>
             </section>
 
-            {/* Comment Section */}
             <section>
               <CommentSection
                 parentType="Algorithm"
@@ -212,19 +197,17 @@ const AlgorithmDetail = () => {
           </div>
         </div>
 
-        {/* Side Notes Panel (Animated) */}
         <AnimatePresence>
-          {isNotesPanelOpen && ( 
+          {isNotesPanelOpen && (
             <motion.aside
               key="notes-panel"
-              initial={{ x: '100%' }} 
-              animate={{ x: 0 }} 
-              exit={{ x: '100%' }} 
-              transition={{ type: 'tween', duration: 0.3, ease: 'easeInOut' }} 
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'tween', duration: 0.3, ease: 'easeInOut' }}
               className="fixed top-0 right-0 h-screen w-80 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 shadow-xl z-20 p-6 flex flex-col"
               style={{ paddingTop: 'calc(3.5rem + 1.5rem)', paddingBottom: '1.5rem' }}
             >
-              {/* Panel Header */}
               <div className="flex justify-between items-center mb-4 flex-shrink-0">
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Personal Notes</h2>
                 <button
@@ -235,8 +218,7 @@ const AlgorithmDetail = () => {
                   <X size={20} />
                 </button>
               </div>
-              {/* Panel Content - Notes Section takes remaining space */}
-              <div className="flex-grow min-h-0 overflow-y-auto"> {/* Allow content to scroll if needed */}
+              <div className="flex-grow min-h-0 overflow-y-auto">
                 <NotesSection algorithmId={algorithm._id} />
               </div>
             </motion.aside>
