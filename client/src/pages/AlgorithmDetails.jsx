@@ -8,7 +8,7 @@ import {
 import Loader from "../components/Loader";
 import AlgorithmPreview from "./AlgorithmPreview";
 import CommentSection from "./CommentSection";
-import NotesSection from "../components/NotesSection";
+import NotesSection from "../components/noteSection";
 import {
   ArrowLeft,
   ArrowRight,
