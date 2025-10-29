@@ -13,6 +13,7 @@ import Algorithms from "./pages/Algorithms";
 import AlgorithmDetail from "./pages/AlgorithmDetails";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import ForgotPassword from "./pages/ForgotPassword";
 import MoreInfoPage from "./pages/MoreInfoPage";
 import Profile from "./pages/Profile";
 import Feedback from "./pages/Feedback";
@@ -36,6 +37,8 @@ import AdminDataStructures from "./pages/AdminDataStructures";
 import AdminDataStructureProposalReview from "./pages/AdminDataStructureProposalReview";
 import { getMe } from "./features/auth/authSlice";
 import { toast } from "react-toastify";
+import Contact from "./pages/Contact";
+import AdminUsersContact from "./pages/AdminUsersContact";
 import FaqPage from './pages/FaqPage';
 
 const router = createBrowserRouter([
@@ -48,12 +51,20 @@ const router = createBrowserRouter([
     element: <Register />,
   },
   {
+    path: "/forgot-password",
+    element: <ForgotPassword />,
+  },
+  {
     path: "/",
     element: <Layout />,
     children: [
       {
         index: true,
         element: <Home />,
+      },
+       {
+        path: "contact",
+        element: <Contact />,
       },
       {
         path: "feedback",
@@ -124,6 +135,14 @@ const router = createBrowserRouter([
         element: (
           <AdminRoute>
             <AdminDataStructures />
+          </AdminRoute>
+        ),
+      },
+      {
+        path: "admin/manage-users-contacts",
+        element: (
+          <AdminRoute>
+            <AdminUsersContact />
           </AdminRoute>
         ),
       },
