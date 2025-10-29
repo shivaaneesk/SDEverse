@@ -12,19 +12,20 @@ import DataStructureOperations from "../components/code/DataStructureOperations"
 
 // Content block component similar to AlgorithmContentBlock
 const DataStructureContentBlock = ({ title, content, children }) => {
-  if (!content && !children) return null;
-
   return (
     <div className="bg-gray-50 dark:bg-gray-900 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-8 last:mb-0">
       <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 pb-3 mb-5 border-b border-gray-200 dark:border-gray-700">
         {title}
       </h2>
-      {content && (
+      {content ? (
         <div className="prose dark:prose-invert max-w-none text-gray-700 dark:text-gray-300 leading-relaxed">
           <MarkdownRenderer>{content}</MarkdownRenderer>
         </div>
+      ) : children ? (
+        children
+      ) : (
+        <p className="text-gray-500 dark:text-gray-400 italic">Not provided</p>
       )}
-      {children}
     </div>
   );
 };
@@ -85,20 +86,91 @@ const DataStructurePreview = ({ dataStructure }) => {
   return (
     <div className="space-y-8">
       {/* Definition */}
-      <DataStructureContentBlock 
-        title="Definition" 
-        content={dataStructure.definition} 
+      <DataStructureContentBlock
+        title="Definition"
+        content={dataStructure.definition}
       />
 
       {/* Characteristics */}
-      <DataStructureContentBlock 
-        title="Characteristics" 
-        content={dataStructure.characteristics} 
+      <DataStructureContentBlock
+        title="Characteristics"
+        content={dataStructure.characteristics}
       />
 
+      {/* Category */}
+      <DataStructureContentBlock title="Category">
+        <p className="text-gray-700 dark:text-gray-300">
+          {Array.isArray(dataStructure.category) && dataStructure.category.length > 0
+            ? dataStructure.category.join(", ")
+            : "Not provided"}
+        </p>
+      </DataStructureContentBlock>
+
+      {/* Type */}
+      <DataStructureContentBlock title="Type">
+        <p className="text-gray-700 dark:text-gray-300">
+          {dataStructure.type || "Not provided"}
+        </p>
+      </DataStructureContentBlock>
+
+      {/* Difficulty */}
+      <DataStructureContentBlock title="Difficulty">
+        <p className={`text-base font-medium ${
+            dataStructure.difficulty === 'Easy' ? 'text-green-500' :
+            dataStructure.difficulty === 'Medium' ? 'text-yellow-500' :
+            dataStructure.difficulty === 'Hard' ? 'text-red-500' : 'text-gray-700 dark:text-gray-300'
+          }`}>
+          {dataStructure.difficulty || "Not provided"}
+        </p>
+      </DataStructureContentBlock>
+
+      {/* References */}
+      <DataStructureContentBlock title="References">
+        {dataStructure.references && dataStructure.references.length > 0 ? (
+          <ul className="list-disc pl-6 text-blue-600 dark:text-blue-400 space-y-2">
+            {dataStructure.references.map((ref, index) => (
+              <li key={index}>
+                <a
+                  href={ref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:underline text-base break-all"
+                >
+                  {ref}
+                </a>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-gray-500 dark:text-gray-400 italic">No references available</p>
+        )}
+      </DataStructureContentBlock>
+
+      {/* Video Links */}
+      <DataStructureContentBlock title="Video Links">
+        {dataStructure.videoLinks && dataStructure.videoLinks.length > 0 ? (
+          <ul className="list-disc pl-6 text-blue-600 dark:text-blue-400 space-y-2">
+            {dataStructure.videoLinks.map((link, index) => (
+              <li key={index}>
+                <a
+                  href={link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:underline text-base break-all"
+                >
+                  {link}
+                </a>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-gray-500 dark:text-gray-400 italic">No video links available</p>
+        )}
+      </DataStructureContentBlock>
+
       {/* Applications */}
-      {dataStructure.applications && dataStructure.applications.length > 0 && (
-        <DataStructureContentBlock title="Applications">
+      <DataStructureContentBlock title="Applications">
+        {dataStructure.applications && dataStructure.applications.length > 0 ? (
           <div className="space-y-3">
             {dataStructure.applications.map((app, index) => (
               <div key={index} className="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
@@ -115,12 +187,14 @@ const DataStructurePreview = ({ dataStructure }) => {
               </div>
             ))}
           </div>
-        </DataStructureContentBlock>
-      )}
+        ) : (
+          <p className="text-gray-500 dark:text-gray-400 italic">No applications available</p>
+        )}
+      </DataStructureContentBlock>
 
       {/* Comparisons */}
-      {dataStructure.comparisons && dataStructure.comparisons.length > 0 && (
-        <DataStructureContentBlock title="Comparisons">
+      <DataStructureContentBlock title="Comparisons">
+        {dataStructure.comparisons && dataStructure.comparisons.length > 0 ? (
           <div className="space-y-3">
             {dataStructure.comparisons.map((comp, index) => (
               <div key={index} className="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
@@ -156,12 +230,14 @@ const DataStructurePreview = ({ dataStructure }) => {
               </div>
             ))}
           </div>
-        </DataStructureContentBlock>
-      )}
+        ) : (
+          <p className="text-gray-500 dark:text-gray-400 italic">No comparisons available</p>
+        )}
+      </DataStructureContentBlock>
 
       {/* Tags */}
-      {dataStructure.tags && dataStructure.tags.length > 0 && (
-        <DataStructureContentBlock title="Tags">
+      <DataStructureContentBlock title="Tags">
+        {dataStructure.tags && dataStructure.tags.length > 0 ? (
           <div className="flex flex-wrap gap-2">
             {dataStructure.tags.map((tag, index) => (
               <span
@@ -172,31 +248,22 @@ const DataStructurePreview = ({ dataStructure }) => {
               </span>
             ))}
           </div>
-        </DataStructureContentBlock>
-      )}
+        ) : (
+          <p className="text-gray-500 dark:text-gray-400 italic">No tags available</p>
+        )}
+      </DataStructureContentBlock>
 
       {/* Operations */}
       <DataStructureOperations dataStructure={dataStructure} isAdmin={isAdmin} />
 
       {/* Full Implementation */}
-      {Array.isArray(dataStructure.fullImplementations) && dataStructure.fullImplementations.length > 0 && (
-        <section aria-labelledby="full-implementations-heading">
-          <h3
-            id="full-implementations-heading"
-            className="flex items-center gap-2 text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white mb-4"
-            data-tooltip-id="full-implementations-tooltip"
-            data-tooltip-content="Complete implementations of the data structure"
-          >
-        
-          </h3>
-          <Tooltip
-            id="full-implementations-tooltip"
-            place="top"
-            className="z-50 bg-gray-800 text-white text-sm rounded-md px-3 py-1.5"
-          />
-          {renderFullImplementations()}
-        </section>
-      )}
+      <DataStructureContentBlock title="Full Implementation">
+        {Array.isArray(dataStructure.fullImplementations) && dataStructure.fullImplementations.length > 0 ? (
+          renderFullImplementations()
+        ) : (
+          <p className="text-gray-500 dark:text-gray-400 italic">No implementations available</p>
+        )}
+      </DataStructureContentBlock>
     </div>
   );
 };

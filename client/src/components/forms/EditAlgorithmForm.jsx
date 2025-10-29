@@ -152,7 +152,7 @@ const EditAlgorithmForm = ({ algorithm = {}, onSave, onCancel, categories }) => 
                     </label>
                     <input
                       type="text"
-                      className="w-full p-3 text-base border rounded-lg bg-white dark:bg-gray-800 text-black dark:text-white border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full p-3 text-base border rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       value={editedData.complexity[key]}
                       onChange={(e) =>
                         setEditedData((prev) => ({
@@ -223,7 +223,7 @@ const EditAlgorithmForm = ({ algorithm = {}, onSave, onCancel, categories }) => 
                         <input
                           value={item}
                           onChange={(e) => updateArrayItem(field, i, e.target.value)}
-                          className="flex-1 p-2 text-base border rounded-lg bg-white dark:bg-gray-800 text-black dark:text-white border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          className="flex-1 p-2 text-base border rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         />
                         <button
                           onClick={() => removeArrayItem(field, i)}
@@ -277,7 +277,7 @@ const EditAlgorithmForm = ({ algorithm = {}, onSave, onCancel, categories }) => 
                         updated[selectedCodeIndex].language = e.target.value;
                         handleChange("codes", updated);
                       }}
-                      className="flex-grow p-2 text-base border rounded-lg bg-white dark:bg-gray-800 text-black dark:text-white border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="flex-grow p-2 text-base border rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                     {editedData.codes.length > 1 && (
                       <button

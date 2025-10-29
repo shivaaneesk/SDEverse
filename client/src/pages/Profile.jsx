@@ -63,14 +63,12 @@ export default function Profile() {
     imagePreview, setImagePreview, uploadedImageBase64, setUploadedImageBase64,
     bannerPreview, setBannerPreview, uploadedBannerBase64, setUploadedBannerBase64,
   };
-  // --- End State ---
 
   const isViewingOtherUser = username && !(authUser && authUser.username === username);
   const profileDataToDisplay = isViewingOtherUser ? selectedUser : myProfile;
   const canEdit = !isViewingOtherUser && authUser;
 
   useEffect(() => {
-    // Logic to fetch correct profile based on username param and authUser
     if (username) {
       if (authUser && authUser.username === username) {
         dispatch(getMyProfile());
@@ -85,7 +83,6 @@ export default function Profile() {
   }, [dispatch, username, authUser]); // Add dependencies
 
   useEffect(() => {
-    // Use the correct profile data source
     const profileData = isViewingOtherUser ? selectedUser : myProfile;
     if (profileData) {
       setFormData({
@@ -106,22 +103,93 @@ export default function Profile() {
       });
       setHasChanges(false);
       setUrlErrors({});
-      // Reset image previews etc. when data source changes
       setImagePreview(null);
       setBannerPreview(null);
       setUploadedImageBase64(null);
       setUploadedBannerBase64(null);
-      setIsEditing(false); // Reset editing state
+      setIsEditing(false);
     }
-  }, [myProfile, selectedUser, isViewingOtherUser]); // Update dependencies
+  }, [myProfile, selectedUser, isViewingOtherUser]);
 
-  // --- Validation and Image Handling (Keep from previous merge) ---
-  const isValidUrl = (val) => { /* ... */ };
-  const validateAndSetError = (name, value) => { /* ... */ };
-  const validateAllUrlsBeforeSubmit = (data) => { /* ... */ };
+  const isValidUrl = (val) => {
+    if (!val) return true;
+    const trimmedVal = val.trim();
+    try {
+      const url = new URL(trimmedVal.startsWith("http") ? trimmedVal : `https://${trimmedVal}`);
+      return !!url.hostname && url.hostname.includes(".");
+    } catch {
+      return false;
+    }
+  };
+
+  const validateAndSetError = (name, value) => {
+    let errorMsg = null;
+    const trimmedValue = value ? value.trim() : "";
+    if (trimmedValue && !isValidUrl(trimmedValue)) {
+      errorMsg = "Please enter a valid URL structure (e.g., https://example.com or example.com).";
+    }
+    if (!errorMsg && trimmedValue && (name.startsWith("socialLinks.") || name.startsWith("competitiveProfiles."))) {
+      const parts = name.split(".");
+      if (parts.length === 2) {
+        const platform = parts[1];
+        const requiredDomain = PLATFORM_DOMAINS[platform];
+        if (requiredDomain) {
+          try {
+            const url = new URL(trimmedValue.startsWith("http") ? trimmedValue : `https://${trimmedValue}`);
+            if (!url.hostname.endsWith(requiredDomain)) {
+              errorMsg = `This link must be a valid ${formatKey(platform)} profile URL (must contain ${requiredDomain}).`;
+            }
+          } catch {
+            errorMsg = "Invalid URL structure.";
+          }
+        }
+      }
+    }
+    setUrlErrors((prev) => {
+      const next = { ...prev };
+      if (errorMsg) next[name] = errorMsg;
+      else delete next[name];
+      return next;
+    });
+  };
+
+  const validateAllUrlsBeforeSubmit = (data) => {
+    const errors = {};
+    const check = (k, v) => {
+      const trimmedValue = v ? v.trim() : "";
+      if (!trimmedValue) return;
+      if (!isValidUrl(trimmedValue)) {
+        errors[k] = "Please enter a valid URL structure (e.g., https://example.com).";
+        return;
+      }
+      if (k.startsWith("socialLinks.") || k.startsWith("competitiveProfiles.")) {
+        const platform = k.split(".")[1];
+        const requiredDomain = PLATFORM_DOMAINS[platform];
+        if (requiredDomain) {
+          try {
+            const url = new URL(trimmedValue.startsWith("http") ? trimmedValue : `https://${trimmedValue}`);
+            if (!url.hostname.endsWith(requiredDomain)) {
+              errors[k] = `The link must be a valid ${formatKey(platform)} profile URL (must contain ${requiredDomain}).`;
+            }
+          } catch {
+            errors[k] = "Invalid URL format.";
+          }
+        }
+      }
+    };
+    check("avatarUrl", data.avatarUrl);
+    check("website", data.website);
+    if (data.socialLinks) {
+      Object.entries(data.socialLinks).forEach(([key, val]) => check(`socialLinks.${key}`, val));
+    }
+    if (data.competitiveProfiles) {
+      Object.entries(data.competitiveProfiles).forEach(([key, val]) => check(`competitiveProfiles.${key}`, val));
+    }
+    return errors;
+  };
+
   const getAvatarValue = () => uploadedImageBase64 || formData?.avatarUrl || "";
   const getBannerValue = () => uploadedBannerBase64 || formData?.bannerUrl || "";
-  // ---
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -153,25 +221,40 @@ export default function Profile() {
       return;
     }
     const dataToSubmit = { ...currentFormData };
-    if (dataToSubmit.avatarUrl && !dataToSubmit.avatarUrl.startsWith("data:")) dataToSubmit.avatarUrl = ensureProtocol(dataToSubmit.avatarUrl);
-    if (dataToSubmit.bannerUrl && !dataToSubmit.bannerUrl.startsWith("data:")) dataToSubmit.bannerUrl = ensureProtocol(dataToSubmit.bannerUrl);
+    if (dataToSubmit.avatarUrl && !dataToSubmit.avatarUrl.startsWith("data:")) {
+      dataToSubmit.avatarUrl = ensureProtocol(dataToSubmit.avatarUrl);
+    }
+    if (dataToSubmit.bannerUrl && !dataToSubmit.bannerUrl.startsWith("data:")) {
+        dataToSubmit.bannerUrl = ensureProtocol(dataToSubmit.bannerUrl);
+    }
     dataToSubmit.website = ensureProtocol(dataToSubmit.website);
-    if (dataToSubmit.socialLinks) dataToSubmit.socialLinks = Object.fromEntries( Object.entries(dataToSubmit.socialLinks).map(([key, val]) => [key, ensureProtocol(val)]) );
-    if (dataToSubmit.competitiveProfiles) dataToSubmit.competitiveProfiles = Object.fromEntries( Object.entries(dataToSubmit.competitiveProfiles).map(([key, val]) => [key, ensureProtocol(val)]) );
-
+    if (dataToSubmit.socialLinks) {
+        dataToSubmit.socialLinks = Object.fromEntries(
+            Object.entries(dataToSubmit.socialLinks).map(([key, val]) => [key, ensureProtocol(val)])
+        );
+    }
+    if (dataToSubmit.competitiveProfiles) {
+        dataToSubmit.competitiveProfiles = Object.fromEntries(
+            Object.entries(dataToSubmit.competitiveProfiles).map(([key, val]) => [key, ensureProtocol(val)])
+        );
+    }
     try {
       setActionError(null);
       const res = await dispatch(patchMyProfile(dataToSubmit));
       if (res?.error) throw new Error(res.error?.message || res.payload || 'Update failed');
-      const res2 = await dispatch(getMyProfile()); // Re-fetch after save
-      if (res2?.error) throw new Error(res2.error?.message || res2.payload || 'Fetch failed after update');
+      const res2 = await dispatch(getMyProfile());
+      if (res2?.error) throw new Error(res2.error?.message || res2.payload || 'Fetch profile failed after update');
     } catch (err) {
       setActionError(err.message || 'Failed to update profile');
       return;
     }
-    setIsEditing(false); setHasChanges(false); setUrlErrors({});
-    setImagePreview(null); setBannerPreview(null);
-    setUploadedImageBase64(null); setUploadedBannerBase64(null);
+    setIsEditing(false);
+    setHasChanges(false);
+    setUrlErrors({});
+    setImagePreview(null);
+    setBannerPreview(null);
+    setUploadedImageBase64(null);
+    setUploadedBannerBase64(null);
   };
 
   const handleCancel = () => {
@@ -190,9 +273,14 @@ export default function Profile() {
          competitiveStats: profileData.competitiveStats || {},
        });
     }
-    setImagePreview(null); setBannerPreview(null);
-    setUploadedImageBase64(null); setUploadedBannerBase64(null);
-    setIsEditing(false); setHasChanges(false); setUrlErrors({}); setActionError(null);
+    setImagePreview(null);
+    setBannerPreview(null);
+    setUploadedImageBase64(null);
+    setUploadedBannerBase64(null);
+    setIsEditing(false);
+    setHasChanges(false);
+    setUrlErrors({});
+    setActionError(null);
   };
 
   const handleRefresh = async (type) => {
@@ -204,7 +292,7 @@ export default function Profile() {
       const res = await dispatch(thunk);
       if (res?.error) throw new Error(res.error?.message || res.payload || 'Refresh failed');
       const res2 = await dispatch(getMyProfile());
-      if (res2?.error) throw new Error(res2.error?.message || res2.payload || 'Fetch failed after refresh');
+      if (res2?.error) throw new Error(res2.error?.message || res2.payload || 'Fetch profile failed after refresh');
     } catch(err) {
         setActionError(err.message || `Failed to refresh ${type} stats`);
     } finally {
@@ -214,10 +302,12 @@ export default function Profile() {
 
   const handleTabChange = (tabName) => {
     if (isEditing && activeTab === 'profile') {
-        if (!window.confirm("You have unsaved changes. Are you sure?")) return;
+        if (!window.confirm("You have unsaved changes. Are you sure you want to switch tabs? Changes will be lost.")) {
+            return;
+        }
     }
     setActiveTab(tabName);
-    handleCancel(); // Use cancel to reset editing state and form
+    handleCancel();
   };
 
   const handleEditProfile = () => {
@@ -263,8 +353,12 @@ export default function Profile() {
          </div>
          <div className="w-full sm:w-auto flex justify-end">
              {canEdit && activeTab === 'profile' && !isEditing && (
-                <button onClick={handleEditProfile} className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg shadow-sm hover:bg-green-600 transition duration-200">
-                    <Edit size={18} /> <span>Edit Profile</span>
+                <button
+                    onClick={handleEditProfile}
+                    className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg shadow-sm hover:bg-green-600 transition duration-200"
+                >
+                    <Edit size={18} />
+                    <span>Edit Profile</span>
                 </button>
              )}
          </div>
@@ -289,8 +383,10 @@ export default function Profile() {
             readonly={!canEdit}
           />
         )}
+
       {canEdit && activeTab === 'notes' && <AllNotesList />}
       {canEdit && activeTab === 'bookmarks' && <Bookmarks />}
+
     </div>
   );
 }

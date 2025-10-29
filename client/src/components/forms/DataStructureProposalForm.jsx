@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import MonacoEditor from "@monaco-editor/react";
-import { Plus, Trash2, XCircle } from "lucide-react";
+import { Plus, Trash2, XCircle, Info } from "lucide-react";
 import DataStructurePreview from "../../pages/DataStructurePreview";
 import { toast } from "react-toastify";
 import { useSelector } from "react-redux";
+import clsx from "clsx";
 
 const DATA_STRUCTURE_TYPES = ["Linear", "Non-Linear", "Hierarchical", "Graph", "Other"];
 
@@ -42,45 +43,58 @@ const calculateEditorHeight = (code) => {
   return Math.max(300, Math.min(800, lines * 24));
 };
 
-const DataStructureProposalForm = ({ initialData = {}, dsCategories = [], dataStructures = [], onChange, onSubmit }) => {
+const DataStructureProposalForm = ({ proposal = {}, onSave, categories = [], mode, dataStructures = [] }) => {
   const themeMode = useSelector((state) => state.theme.mode);
-  const [isEditing, setIsEditing] = useState(true);
-  const [formData, setFormData] = useState({
-    title: initialData.title || "",
-    definition: initialData.definition || "",
-    category: initialData.category || [],
-    type: initialData.type || "",
-    characteristics: initialData.characteristics || "",
-    visualization: initialData.visualization || "",
-    operations: initialData.operations?.length > 0 ? initialData.operations : [
+  const [editedData, setEditedData] = useState(() => ({
+    title: proposal.title || "",
+    definition: proposal.definition || "",
+    category: proposal.category || [],
+    type: proposal.type || "",
+    characteristics: proposal.characteristics || "",
+    visualization: proposal.visualization || "",
+    operations: proposal.operations?.length > 0 ? proposal.operations : [
       { name: "", description: "", complexity: { time: "", space: "" }, implementations: [{ language: "", code: "", explanation: "", complexity: { time: "", space: "" } }] }
     ],
-    fullImplementations: initialData.fullImplementations?.length > 0 ? initialData.fullImplementations : [{ language: "", code: "" }],
-    applications: initialData.applications?.length > 0 ? initialData.applications : [{ domain: "", examples: [""] }],
-    comparisons: initialData.comparisons?.length > 0 ? initialData.comparisons : [{ with: "", advantages: [""], disadvantages: [""], whenToUse: "" }],
-    tags: initialData.tags || [],
-    references: initialData.references || [],
-    videoLinks: initialData.videoLinks || [],
-    targetDataStructure: initialData.targetDataStructure || null,
-  });
+    fullImplementations: proposal.fullImplementations?.length > 0 ? proposal.fullImplementations : [{ language: "", code: "" }],
+    applications: proposal.applications?.length > 0 ? proposal.applications : [{ domain: "", examples: [""] }],
+    comparisons: proposal.comparisons?.length > 0 ? proposal.comparisons : [{ with: "", advantages: [""], disadvantages: [""], whenToUse: "" }],
+    tags: proposal.tags || [],
+    references: proposal.references || [],
+    videoLinks: proposal.videoLinks || [],
+    targetDataStructure: proposal.targetDataStructure || null,
+  }));
   const [errors, setErrors] = useState({});
+  const [showInfo, setShowInfo] = useState(true);
+  const [selectedCodeIndex, setSelectedCodeIndex] = useState(0);
+
+  // Ref to store the latest onSave callback
+  const onSaveRef = useRef(onSave);
+  const prevDataRef = useRef();
 
   useEffect(() => {
-    onChange(formData);
-  }, [formData, onChange]);
+    onSaveRef.current = onSave;
+  }, [onSave]);
+
+  // Call onSave when editedData changes
+  useEffect(() => {
+    if (JSON.stringify(editedData) !== JSON.stringify(prevDataRef.current)) {
+      prevDataRef.current = editedData;
+      onSaveRef.current(editedData);
+    }
+  }, [editedData]);
 
   const validate = () => {
     const newErrors = {};
-    if (!formData.title.trim()) newErrors.title = true;
-    if (!formData.definition.trim()) newErrors.definition = true;
-    if (!formData.type) newErrors.type = true;
-    if (!formData.characteristics.trim()) newErrors.characteristics = true;
-    if (!formData.category.length) newErrors.category = true;
-    formData.category.forEach((cat) => {
-      if (!dsCategories.includes(cat)) newErrors[`cat-${cat}`] = true;
+    if (!editedData.title.trim()) newErrors.title = true;
+    if (!editedData.definition.trim()) newErrors.definition = true;
+    if (!editedData.type) newErrors.type = true;
+    if (!editedData.characteristics.trim()) newErrors.characteristics = true;
+    if (!editedData.category.length) newErrors.category = true;
+    editedData.category.forEach((cat) => {
+      if (!categories.includes(cat)) newErrors[`cat-${cat}`] = true;
     });
 
-    formData.operations.forEach((op, i) => {
+    editedData.operations.forEach((op, i) => {
       if (!op.name.trim()) newErrors[`op-${i}-name`] = true;
       if (!op.description.trim()) newErrors[`op-${i}-description`] = true;
       if (!op.complexity.time.trim()) newErrors[`op-${i}-time`] = true;
@@ -94,17 +108,17 @@ const DataStructureProposalForm = ({ initialData = {}, dsCategories = [], dataSt
       });
     });
 
-    formData.fullImplementations.forEach((impl, i) => {
+    editedData.fullImplementations.forEach((impl, i) => {
       if (!impl.language.trim()) newErrors[`fullImpl-${i}-language`] = true;
       if (!impl.code.trim()) newErrors[`fullImpl-${i}-code`] = true;
     });
 
-    formData.applications.forEach((app, i) => {
+    editedData.applications.forEach((app, i) => {
       if (!app.domain.trim()) newErrors[`app-${i}-domain`] = true;
       if (!app.examples.some((ex) => ex.trim())) newErrors[`app-${i}-examples`] = true;
     });
 
-    formData.comparisons.forEach((comp, i) => {
+    editedData.comparisons.forEach((comp, i) => {
       if (!comp.with.trim()) newErrors[`comp-${i}-with`] = true;
       if (!comp.whenToUse.trim()) newErrors[`comp-${i}-whenToUse`] = true;
       if (!comp.advantages.some((adv) => adv.trim())) newErrors[`comp-${i}-advantages`] = true;
@@ -115,69 +129,24 @@ const DataStructureProposalForm = ({ initialData = {}, dsCategories = [], dataSt
     return { isValid: Object.keys(newErrors).length === 0, errors: newErrors };
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const { isValid, errors } = validate();
-    if (!isValid) {
-      const errorMessages = [];
-      if (errors.title) errorMessages.push("Title");
-      if (errors.definition) errorMessages.push("Definition");
-      if (errors.type) errorMessages.push("Type");
-      if (errors.characteristics) errorMessages.push("Characteristics");
-      if (errors.category) errorMessages.push("Category");
-      Object.keys(errors).forEach((key) => {
-        if (key.startsWith("cat-")) errorMessages.push("Invalid Category");
-        if (key.startsWith("op-")) {
-          if (key.includes("-name")) errorMessages.push("Operation Name");
-          if (key.includes("-description")) errorMessages.push("Operation Description");
-          if (key.includes("-time")) errorMessages.push("Operation Time Complexity");
-          if (key.includes("-space")) errorMessages.push("Operation Space Complexity");
-          if (key.includes("-impl-") && key.includes("-language")) errorMessages.push("Operation Implementation Language");
-          if (key.includes("-impl-") && key.includes("-code")) errorMessages.push("Operation Implementation Code");
-          if (key.includes("-impl-") && key.includes("-explanation")) errorMessages.push("Operation Implementation Explanation");
-          if (key.includes("-impl-") && key.includes("-time")) errorMessages.push("Operation Implementation Time Complexity");
-          if (key.includes("-impl-") && key.includes("-space")) errorMessages.push("Operation Implementation Space Complexity");
-        }
-        if (key.startsWith("fullImpl-")) {
-          if (key.includes("-language")) errorMessages.push("Full Implementation Language");
-          if (key.includes("-code")) errorMessages.push("Full Implementation Code");
-        }
-        if (key.startsWith("app-")) {
-          if (key.includes("-domain")) errorMessages.push("Application Domain");
-          if (key.includes("-examples")) errorMessages.push("Application Examples");
-        }
-        if (key.startsWith("comp-")) {
-          if (key.includes("-with")) errorMessages.push("Comparison With");
-          if (key.includes("-whenToUse")) errorMessages.push("Comparison When To Use");
-          if (key.includes("-advantages")) errorMessages.push("Comparison Advantages");
-          if (key.includes("-disadvantages")) errorMessages.push("Comparison Disadvantages");
-        }
-      });
-      const uniqueErrors = [...new Set(errorMessages)];
-      toast.error(`Missing or invalid fields: ${uniqueErrors.join(", ")}`);
-      return;
-    }
-    onSubmit(formData);
-  };
-
   const handleChange = (field, value) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    setEditedData((prev) => ({ ...prev, [field]: value }));
     setErrors((prev) => ({ ...prev, [field]: false }));
   };
 
   const addArrayItem = (field, newItem) => {
-    setFormData((prev) => ({
+    setEditedData((prev) => ({
       ...prev,
       [field]: [...prev[field], newItem],
     }));
   };
 
   const removeArrayItem = (field, index) => {
-    if (["operations", "fullImplementations", "applications", "comparisons"].includes(field) && formData[field].length === 1) {
+    if (["operations", "fullImplementations", "applications", "comparisons"].includes(field) && editedData[field].length === 1) {
       toast.warn(`At least one ${field.slice(0, -1)} is required.`);
       return;
     }
-    setFormData((prev) => ({
+    setEditedData((prev) => ({
       ...prev,
       [field]: prev[field].filter((_, i) => i !== index),
     }));
@@ -191,7 +160,7 @@ const DataStructureProposalForm = ({ initialData = {}, dsCategories = [], dataSt
   };
 
   const updateArrayItem = (field, index, newValue) => {
-    setFormData((prev) => ({
+    setEditedData((prev) => ({
       ...prev,
       [field]: prev[field].map((item, i) => (i === index ? newValue : item)),
     }));
@@ -205,7 +174,7 @@ const DataStructureProposalForm = ({ initialData = {}, dsCategories = [], dataSt
   };
 
   const updateNestedArrayItem = (field, index, nestedField, nestedIndex, value) => {
-    setFormData((prev) => {
+    setEditedData((prev) => {
       const newArray = [...prev[field]];
       newArray[index] = {
         ...newArray[index],
@@ -223,7 +192,7 @@ const DataStructureProposalForm = ({ initialData = {}, dsCategories = [], dataSt
   };
 
   const addNestedArrayItem = (field, index, nestedField, newItem) => {
-    setFormData((prev) => {
+    setEditedData((prev) => {
       const newArray = [...prev[field]];
       newArray[index] = {
         ...newArray[index],
@@ -234,11 +203,11 @@ const DataStructureProposalForm = ({ initialData = {}, dsCategories = [], dataSt
   };
 
   const removeNestedArrayItem = (field, index, nestedField, nestedIndex) => {
-    if (["implementations", "examples", "advantages", "disadvantages"].includes(nestedField) && formData[field][index][nestedField].length === 1) {
+    if (["implementations", "examples", "advantages", "disadvantages"].includes(nestedField) && editedData[field][index][nestedField].length === 1) {
       toast.warn(`At least one ${nestedField.slice(0, -1)} is required.`);
       return;
     }
-    setFormData((prev) => {
+    setEditedData((prev) => {
       const newArray = [...prev[field]];
       newArray[index] = {
         ...newArray[index],
@@ -256,7 +225,7 @@ const DataStructureProposalForm = ({ initialData = {}, dsCategories = [], dataSt
   };
 
   const handleMultiSelectChange = (field, value, isChecked) => {
-    setFormData((prev) => {
+    setEditedData((prev) => {
       const currentArray = prev[field] || [];
       const newArray = isChecked ? [...new Set([...currentArray, value])] : currentArray.filter((item) => item !== value);
       return { ...prev, [field]: newArray };
@@ -265,151 +234,112 @@ const DataStructureProposalForm = ({ initialData = {}, dsCategories = [], dataSt
   };
 
   return (
-    <div className="max-w-7xl mx-auto p-4 sm:p-6 md:p-8 text-gray-900 dark:text-gray-100">
-      <div className="flex justify-center mb-6">
-        <div className="inline-flex rounded-full bg-gray-100 dark:bg-gray-800 p-1 shadow-sm">
-          <button
-            type="button"
-            onClick={() => setIsEditing(true)}
-            className={`px-6 py-2 rounded-full text-base font-medium transition-all duration-200 ${
-              isEditing ? "bg-blue-600 text-white" : "text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
-            }`}
-          >
-            Edit
-          </button>
-          <button
-            type="button"
-            onClick={() => setIsEditing(false)}
-            className={`px-6 py-2 rounded-full text-base font-medium transition-all duration-200 ${
-              !isEditing ? "bg-blue-600 text-white" : "text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
-            }`}
-          >
-            Preview
-          </button>
-        </div>
-      </div>
+    <div className="min-h-[500px]">
+      {mode === "edit" ? (
+        <div className="space-y-8">
+          <div className="flex justify-between items-start mb-6">
+            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">Proposal Details</h2>
+            <button
+              onClick={() => setShowInfo(!showInfo)}
+              className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-full"
+              aria-label="Toggle information"
+            >
+              <Info size={24} />
+            </button>
+          </div>
 
-      {isEditing ? (
-        <form onSubmit={handleSubmit} className="space-y-8">
-          <section className="p-6 bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-200 dark:border-gray-700">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4 border-b border-gray-200 dark:border-gray-700 pb-3">
-              Basic Information
-            </h2>
-            <div className="space-y-6">
-              {renderInput(
-                "Title",
-                formData.title,
-                (val) => handleChange("title", val),
-                false,
-                "e.g., Trie",
-                "ds-title",
-                "text",
-                4,
-                true,
-                errors.title
-              )}
-              {renderInput(
-                "Definition",
-                formData.definition,
-                (val) => handleChange("definition", val),
-                true,
-                "Provide a concise definition.",
-                "ds-definition",
-                "text",
-                4,
-                true,
-                errors.definition
-              )}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label htmlFor="ds-target" className="block text-base font-medium text-gray-800 dark:text-gray-200">
-                     Data Structure
-                  </label>
-                  <select
-                    id="ds-target"
-                    value={formData.targetDataStructure || ""}
-                    onChange={(e) => handleChange("targetDataStructure", e.target.value || null)}
-                    className="w-full p-3 rounded-lg bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base transition-colors duration-200"
-                  >
-                    <option value="">None</option>
-                    {dataStructures.map((ds) => (
-                      <option key={ds._id} value={ds._id}>
-                        {ds.title}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label htmlFor="ds-category" className="block text-base font-medium text-gray-800 dark:text-gray-200">
-                    Category <span className="text-red-500">*</span>
-                  </label>
-                  <div className="grid grid-cols-2 gap-3 p-3 rounded-lg bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700">
-                    {dsCategories.map((cat) => (
-                      <label key={cat} className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          id={`cat-${cat}`}
-                          value={cat}
-                          checked={formData.category.includes(cat)}
-                          onChange={(e) => handleMultiSelectChange("category", cat, e.target.checked)}
-                          className="h-5 w-5 text-blue-600 rounded focus:ring-blue-500"
-                        />
-                        <span className="text-base">{cat}</span>
-                        {errors[`cat-${cat}`] && <span className="text-red-500 text-sm">Invalid</span>}
-                      </label>
-                    ))}
-                  </div>
-                  {errors.category && <p className="text-red-500 text-sm">At least one valid category is required</p>}
-                </div>
-                <div>
-                  <label htmlFor="ds-type" className="block text-base font-medium text-gray-800 dark:text-gray-200">
-                    Type <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    id="ds-type"
-                    value={formData.type}
-                    onChange={(e) => handleChange("type", e.target.value)}
-                    className={`w-full p-3 rounded-lg bg-white dark:bg-gray-900 border ${errors.type ? "border-red-500" : "border-gray-300 dark:border-gray-700"} focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base transition-colors duration-200`}
-                  >
-                    <option value="">Select a type</option>
-                    {DATA_STRUCTURE_TYPES.map((type) => (
-                      <option key={type} value={type}>
-                        {type}
-                      </option>
-                    ))}
-                  </select>
-                  {errors.type && <p className="text-red-500 text-sm">Type is required</p>}
-                </div>
-              </div>
-              {renderInput(
-                "Characteristics",
-                formData.characteristics,
-                (val) => handleChange("characteristics", val),
-                true,
-                "Describe key properties.",
-                "ds-characteristics",
-                "text",
-                4,
-                true,
-                errors.characteristics
-              )}
-              {renderInput(
-                "Visualization URL",
-                formData.visualization,
-                (val) => handleChange("visualization", val),
-                false,
-                "URL to an image/GIF.",
-                "ds-visualization",
-                "url"
-              )}
+          {showInfo && (
+            <div className="mt-4 p-5 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
+              <h3 className="font-semibold text-blue-800 dark:text-blue-200 mb-2 flex items-center gap-2">
+                <Info size={18} /> How to submit a great data structure
+              </h3>
+              <ul className="list-disc pl-5 space-y-1 text-blue-700 dark:text-blue-300 text-sm">
+                <li>Ensure your data structure solves a common problem in computer science</li>
+                <li>Provide clear definitions and characteristics of the data structure</li>
+                <li>Include comprehensive operations with time/space complexity analysis</li>
+                <li>Add real-world applications and use cases</li>
+                <li>Tag your data structure with appropriate categories and types</li>
+                <li>All submissions are reviewed by our team</li>
+              </ul>
             </div>
-          </section>
+          )}
+
+          {renderInput("Title", editedData.title, (val) => handleChange("title", val))}
+          {renderInput(
+            "Definition",
+            editedData.definition,
+            (val) => handleChange("definition", val),
+            true,
+            "Provide a concise definition."
+          )}
+
+          <div className="space-y-3">
+            <label className="block text-base font-medium text-gray-700 dark:text-gray-300">Categories</label>
+            <div className="flex flex-wrap gap-3">
+              {categories.map((cat) => {
+                const isSelected = editedData.category.includes(cat);
+                return (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => {
+                      const updated = isSelected
+                        ? editedData.category.filter((c) => c !== cat)
+                        : [...editedData.category, cat];
+                      handleChange("category", updated);
+                    }}
+                    className={clsx(
+                      "px-4 py-2 rounded-xl text-sm font-medium transition-colors",
+                      isSelected
+                        ? "bg-blue-600 text-white shadow-md"
+                        : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                    )}
+                  >
+                    {cat}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <label className="block text-base font-medium text-gray-700 dark:text-gray-300">Type</label>
+            <div className="relative">
+              <select
+                value={editedData.type}
+                onChange={(e) => handleChange("type", e.target.value)}
+                className="w-full px-4 py-3 text-base text-left rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 flex items-center justify-between shadow-sm"
+              >
+                <option value="">Select a type</option>
+                {DATA_STRUCTURE_TYPES.map((type) => (
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {renderInput(
+            "Characteristics",
+            editedData.characteristics,
+            (val) => handleChange("characteristics", val),
+            true,
+            "Describe key properties."
+          )}
+          {renderInput(
+            "Visualization URL",
+            editedData.visualization,
+            (val) => handleChange("visualization", val),
+            false,
+            "URL to an image/GIF."
+          )}
 
           <section className="p-6 bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-200 dark:border-gray-700">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4 border-b border-gray-200 dark:border-gray-700 pb-3">
               Full Implementations
             </h2>
-            {formData.fullImplementations.map((impl, index) => (
+            {editedData.fullImplementations.map((impl, index) => (
               <div key={index} className="space-y-4 mb-6">
                 <div className="flex items-center gap-3">
                   <input
@@ -420,7 +350,7 @@ const DataStructureProposalForm = ({ initialData = {}, dsCategories = [], dataSt
                     className={`flex-grow p-3 rounded-lg bg-white dark:bg-gray-900 border ${errors[`fullImpl-${index}-language`] ? "border-red-500" : "border-gray-300 dark:border-gray-700"} focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base transition-colors duration-200`}
                     id={`full-impl-${index}-lang`}
                   />
-                  {formData.fullImplementations.length > 1 && (
+                  {editedData.fullImplementations.length > 1 && (
                     <button
                       type="button"
                       onClick={() => removeArrayItem("fullImplementations", index)}
@@ -457,13 +387,13 @@ const DataStructureProposalForm = ({ initialData = {}, dsCategories = [], dataSt
             <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4 border-b border-gray-200 dark:border-gray-700 pb-3">
               Operations
             </h2>
-            {formData.operations.map((op, opIndex) => (
+            {editedData.operations.map((op, opIndex) => (
               <div key={opIndex} className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg mb-6 border border-gray-200 dark:border-gray-700">
                 <div className="flex justify-between items-center mb-4">
                   <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                     Operation {opIndex + 1}: {op.name || "Untitled"}
                   </h4>
-                  {formData.operations.length > 1 && (
+                  {editedData.operations.length > 1 && (
                     <button
                       type="button"
                       onClick={() => removeArrayItem("operations", opIndex)}
@@ -607,13 +537,13 @@ const DataStructureProposalForm = ({ initialData = {}, dsCategories = [], dataSt
             <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4 border-b border-gray-200 dark:border-gray-700 pb-3">
               Applications
             </h2>
-            {formData.applications.map((app, index) => (
+            {editedData.applications.map((app, index) => (
               <div key={index} className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg mb-6 border border-gray-200 dark:border-gray-700">
                 <div className="flex justify-between items-center mb-4">
                   <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                     Application {index + 1}: {app.domain || "Untitled"}
                   </h4>
-                  {formData.applications.length > 1 && (
+                  {editedData.applications.length > 1 && (
                     <button
                       type="button"
                       onClick={() => removeArrayItem("applications", index)}
@@ -684,13 +614,13 @@ const DataStructureProposalForm = ({ initialData = {}, dsCategories = [], dataSt
             <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4 border-b border-gray-200 dark:border-gray-700 pb-3">
               Comparisons
             </h2>
-            {formData.comparisons.map((comp, index) => (
+            {editedData.comparisons.map((comp, index) => (
               <div key={index} className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg mb-6 border border-gray-200 dark:border-gray-700">
                 <div className="flex justify-between items-center mb-4">
                   <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                     Comparison {index + 1}: {comp.with || "Untitled"}
                   </h4>
-                  {formData.comparisons.length > 1 && (
+                  {editedData.comparisons.length > 1 && (
                     <button
                       type="button"
                       onClick={() => removeArrayItem("comparisons", index)}
@@ -790,7 +720,7 @@ const DataStructureProposalForm = ({ initialData = {}, dsCategories = [], dataSt
                       <Plus size={18} /> Add {field.replace(/([A-Z])/g, " $1").trim().slice(0, -1)}
                     </button>
                   </div>
-                  {formData[field].map((item, index) => (
+                  {editedData[field].map((item, index) => (
                     <div key={index} className="flex items-center gap-3 mt-2">
                       <input
                         type={field === "tags" ? "text" : "url"}
@@ -814,17 +744,11 @@ const DataStructureProposalForm = ({ initialData = {}, dsCategories = [], dataSt
             </div>
           </section>
 
-          <div className="flex justify-end">
-            <button
-              type="submit"
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-base font-medium transition-colors duration-200"
-            >
-              Submit
-            </button>
-          </div>
-        </form>
+        </div>
       ) : (
-        <DataStructurePreview dataStructure={formData} />
+        <div className="p-6 bg-gray-50 dark:bg-gray-800/50 rounded-2xl">
+          <DataStructurePreview dataStructure={editedData} />
+        </div>
       )}
     </div>
   );

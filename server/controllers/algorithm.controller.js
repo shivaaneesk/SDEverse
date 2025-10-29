@@ -3,7 +3,6 @@ const Algorithm = require("../models/algorithm.model");
 const Notification = require("../models/notification.model");
 const User = require("../models/user.model");
 const generateUniqueSlug = require("../utils/generateUniqueSlug");
-
 const { ALGORITHM } = require("../utils/categoryTypes");
 
 const createAlgorithm = asyncHandler(async (req, res) => {
@@ -52,7 +51,7 @@ const createAlgorithm = asyncHandler(async (req, res) => {
     links,
     codes,
     createdBy: req.user._id,
-    isPublished: true, // Assuming new algorithms are published by default
+    isPublished: true,
     contributors: [
       {
         user: req.user._id,
@@ -63,9 +62,7 @@ const createAlgorithm = asyncHandler(async (req, res) => {
   });
 
   const createdAlgorithm = await algorithm.save();
-
   const users = await User.find({}, "_id").lean();
-
   const notifications = users.map((user) => ({
     recipient: user._id,
     sender: req.user._id,
@@ -74,9 +71,7 @@ const createAlgorithm = asyncHandler(async (req, res) => {
     link: `/algorithms/${slug}`,
     read: false,
   }));
-
   await Notification.insertMany(notifications);
-
   res.status(201).json(createdAlgorithm);
 });
 
@@ -111,11 +106,9 @@ const updateAlgorithm = asyncHandler(async (req, res) => {
 
   const changes = [];
   if (title && title !== algorithm.title) changes.push("title");
-  if (problemStatement && problemStatement !== algorithm.problemStatement)
-    changes.push("problem statement");
+  if (problemStatement && problemStatement !== algorithm.problemStatement) changes.push("problem statement");
   if (intuition && intuition !== algorithm.intuition) changes.push("intuition");
-  if (explanation && explanation !== algorithm.explanation)
-    changes.push("explanation");
+  if (explanation && explanation !== algorithm.explanation) changes.push("explanation");
 
   algorithm.title = title || algorithm.title;
   algorithm.problemStatement = problemStatement || algorithm.problemStatement;
@@ -137,22 +130,19 @@ const updateAlgorithm = asyncHandler(async (req, res) => {
   }
 
   const updatedAlgorithm = await algorithm.save();
-
   res.json(updatedAlgorithm);
 });
 
 const addAlgorithmCode = asyncHandler(async (req, res) => {
   const { language, code } = req.body;
-
   const algorithm = await Algorithm.findOne({ slug: req.params.slug });
+
   if (!algorithm) {
     res.status(404);
     throw new Error("Algorithm not found");
   }
 
-  const existingCodeIndex = algorithm.codes.findIndex(
-    (c) => c.language === language
-  );
+  const existingCodeIndex = algorithm.codes.findIndex((c) => c.language === language);
 
   if (existingCodeIndex >= 0) {
     algorithm.codes[existingCodeIndex].code = code;
@@ -163,9 +153,7 @@ const addAlgorithmCode = asyncHandler(async (req, res) => {
   algorithm.contributors.push({
     user: req.user._id,
     contributionType: "code",
-    description: `${
-      existingCodeIndex >= 0 ? "Updated" : "Added"
-    } ${language} implementation`,
+    description: `${ existingCodeIndex >= 0 ? "Updated" : "Added" } ${language} implementation`,
   });
 
   const updatedAlgorithm = await algorithm.save();
@@ -183,7 +171,6 @@ const getAllAlgorithms = asyncHandler(async (req, res) => {
 
   const pageNumber = parseInt(page) || 1;
   const limitNumber = parseInt(limit) || 10;
-
   const filters = {};
 
   if (category) {
@@ -195,15 +182,12 @@ const getAllAlgorithms = asyncHandler(async (req, res) => {
       filters.category = { $in: [new RegExp(`^${category}$`, "i")] };
     }
   }
-
   if (difficulty) {
     filters.difficulty = { $regex: new RegExp(`^${difficulty}$`, "i") };
   }
-
   if (search) {
     filters.$text = { $search: search };
   }
-
   if (req.user?.role !== "admin") {
     filters.isPublished = true;
   }
@@ -233,50 +217,44 @@ const getAllAlgorithms = asyncHandler(async (req, res) => {
 
 const getAlgorithmsForList = asyncHandler(async (req, res) => {
   const { search = "", category = "", difficulty = "" } = req.query;
-
   const filters = {};
 
   if (category) {
-    filters.category = { $in: [new RegExp(`^${category}$`, "i")] }; // ✅ case-insensitive
+    filters.category = { $in: [new RegExp(`^${category}$`, "i")] };
   }
-
   if (difficulty) {
-    filters.difficulty = { $regex: new RegExp(`^${difficulty}$`, "i") }; // ✅ case-insensitive
+    filters.difficulty = { $regex: new RegExp(`^${difficulty}$`, "i") };
   }
-
-  // This filter might be the issue if algorithms aren't published or if you're not admin
-  if (req.user?.role !== "admin") {
+  if (search) {
+    filters.$text = { $search: search };
+  }
+  if (!req.user || req.user.role !== "admin") {
     filters.isPublished = true;
   }
 
   try {
     const algorithms = await Algorithm.find(filters)
-      .select("title slug category intuition description") // Ensure fields match what frontend expects
+      .select("title slug category difficulty intuition description")
       .sort({ title: 1 })
       .lean();
 
-    // --- DEBUG LOGS ADDED ---
     console.log("--- DEBUG: Fetching algorithm list FOR EXPLORER ---");
-    console.log("Query Filters Used:", filters); // See what filters are being applied
-    console.log("Algorithms Found in DB:", algorithms); // See the actual data found
-    console.log("Total Count from DB:", algorithms.length); // Count how many were found
-    // --- END OF DEBUG LOGS ---
+    console.log("Query Filters Used:", filters);
+    console.log("Algorithms Found in DB:", algorithms);
+    console.log("Total Count from DB:", algorithms.length);
 
     res.json({
       algorithms,
       total: algorithms.length,
     });
   } catch (error) {
-    console.error("Error in getAlgorithmsForList:", error); // Log any errors
-    res
-      .status(500)
-      .json({
-        message: "Failed to fetch algorithms for list",
-        error: error.message,
-      });
+    console.error("❌ Error in getAlgorithmsForList:", error);
+    res.status(500).json({
+      message: "Failed to fetch algorithms for list",
+      error: error.message,
+    });
   }
 });
-
 
 const getAlgorithmBySlug = asyncHandler(async (req, res) => {
   const algorithm = await Algorithm.findOne({ slug: req.params.slug }).populate(
@@ -289,30 +267,26 @@ const getAlgorithmBySlug = asyncHandler(async (req, res) => {
     throw new Error("Algorithm not found");
   }
 
-  // Handle potential undefined req.user (if route isn't protected or user not logged in)
   const user = req.user;
-  if (user && algorithm.viewedBy) { // Check if viewedBy exists
+  if (user && algorithm.viewedBy) {
     const alreadyViewedToday = algorithm.viewedBy.some(
       (entry) =>
-        entry.userId?.toString() === user._id.toString() && // Add optional chaining
+        entry.userId?.toString() === user._id.toString() &&
         new Date(entry.viewedAt).toDateString() === new Date().toDateString()
     );
-
     if (!alreadyViewedToday) {
-      algorithm.views = (algorithm.views || 0) + 1; // Initialize views if undefined
-      if (!algorithm.viewedBy) { // Initialize viewedBy if undefined
+      algorithm.views = (algorithm.views || 0) + 1;
+      if (!algorithm.viewedBy) {
         algorithm.viewedBy = [];
       }
       algorithm.viewedBy.push({ userId: user._id, viewedAt: new Date() });
       await algorithm.save();
     }
-  } else if (user && !algorithm.viewedBy) { // If user logged in but viewedBy doesn't exist yet
+  } else if (user && !algorithm.viewedBy) {
      algorithm.views = 1;
      algorithm.viewedBy = [{ userId: user._id, viewedAt: new Date() }];
      await algorithm.save();
   }
-
-
   res.json(algorithm);
 });
 
@@ -323,7 +297,6 @@ const deleteAlgorithm = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error("Algorithm not found");
   }
-
   if (req.user.role !== "admin") {
     res.status(403);
     throw new Error("Not authorized to delete this algorithm");
@@ -332,9 +305,7 @@ const deleteAlgorithm = asyncHandler(async (req, res) => {
   algorithm.isDeleted = true;
   algorithm.deletedAt = Date.now();
   algorithm.deletedBy = req.user._id;
-
   await algorithm.save();
-
   res.json({ message: "Algorithm soft-deleted successfully" });
 });
 
@@ -346,7 +317,6 @@ const voteAlgorithm = asyncHandler(async (req, res) => {
     res.status(400);
     throw new Error("Missing vote type in request body.");
   }
-
   if (!["upvote", "downvote"].includes(type)) {
     res.status(400);
     throw new Error("Invalid vote type. Must be 'upvote' or 'downvote'.");
@@ -358,13 +328,10 @@ const voteAlgorithm = asyncHandler(async (req, res) => {
     throw new Error("Algorithm not found");
   }
 
-  // Ensure vote arrays exist before checking includes
   const upvotedBy = algorithm.upvotedBy || [];
   const downvotedBy = algorithm.downvotedBy || [];
-
   const alreadyUpvoted = upvotedBy.includes(userId);
   const alreadyDownvoted = downvotedBy.includes(userId);
-
   const update = {};
   let message = "";
 
@@ -377,11 +344,10 @@ const voteAlgorithm = asyncHandler(async (req, res) => {
       update.$addToSet = { upvotedBy: userId };
       update.$inc = { upvotes: 1 };
       message = "Upvoted";
-
       if (alreadyDownvoted) {
-        if (!update.$pull) update.$pull = {}; // Initialize if not already
+        if (!update.$pull) update.$pull = {};
         update.$pull.downvotedBy = userId;
-        if (!update.$inc) update.$inc = {}; // Initialize if not already
+        if (!update.$inc) update.$inc = {};
         update.$inc.downvotes = -1;
       }
     }
@@ -394,17 +360,15 @@ const voteAlgorithm = asyncHandler(async (req, res) => {
       update.$addToSet = { downvotedBy: userId };
       update.$inc = { downvotes: 1 };
       message = "Downvoted";
-
       if (alreadyUpvoted) {
-        if (!update.$pull) update.$pull = {}; // Initialize if not already
+        if (!update.$pull) update.$pull = {};
         update.$pull.upvotedBy = userId;
-        if (!update.$inc) update.$inc = {}; // Initialize if not already
+        if (!update.$inc) update.$inc = {};
         update.$inc.upvotes = -1;
       }
     }
   }
 
-  // Ensure update object is not empty before updating
   if (Object.keys(update).length === 0) {
       return res.json({ message: "No changes made", algorithm });
   }
@@ -420,7 +384,6 @@ const voteAlgorithm = asyncHandler(async (req, res) => {
     algorithm: updatedAlgorithm,
   });
 });
-
 
 const getAllCategories = (req, res) => {
   try {
@@ -449,33 +412,21 @@ const searchAlgorithms = asyncHandler(async (req, res) => {
   } = req.query;
 
   const filters = {};
-
   if (q) filters.$text = { $search: q };
-
-  const categories = Array.isArray(category)
-    ? category
-    : category
-    ? category.split(",").map((c) => c.trim())
-    : [];
-
+  const categories = Array.isArray(category) ? category : category ? category.split(",").map((c) => c.trim()) : [];
   if (categories.length) {
     filters.category = { $in: categories };
   }
-
   if (difficulty) filters.difficulty = difficulty;
-
   if (tags) {
     const tagList = tags.split(",").map((tag) => tag.trim());
     filters.tags = { $in: tagList };
   }
-
-  // Add isPublished filter if user is not admin
   if (req.user?.role !== 'admin') {
       filters.isPublished = true;
   }
 
   const total = await Algorithm.countDocuments(filters);
-
   const algorithms = await Algorithm.find(
     filters,
     q ? { score: { $meta: "textScore" } } : {}
@@ -493,7 +444,6 @@ const searchAlgorithms = asyncHandler(async (req, res) => {
   });
 });
 
-
 const getContributors = asyncHandler(async (req, res) => {
   const item = await Algorithm.findOne({ slug: req.params.slug })
     .populate("contributors.user", "username avatarUrl")
@@ -503,7 +453,6 @@ const getContributors = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error("Algorithm not found");
   }
-
   res.json(item.contributors);
 });
 
