@@ -207,7 +207,6 @@ const getAllAlgorithms = asyncHandler(async (req, res) => {
       currentPage: pageNumber,
     });
   } catch (error) {
-    console.error("❌ Error in getAllAlgorithms:", error);
     res.status(500).json({
       message: "Failed to fetch algorithms",
       error: error.message,
@@ -238,17 +237,11 @@ const getAlgorithmsForList = asyncHandler(async (req, res) => {
       .sort({ title: 1 })
       .lean();
 
-    console.log("--- DEBUG: Fetching algorithm list FOR EXPLORER ---");
-    console.log("Query Filters Used:", filters);
-    console.log("Algorithms Found in DB:", algorithms);
-    console.log("Total Count from DB:", algorithms.length);
-
     res.json({
       algorithms,
       total: algorithms.length,
     });
   } catch (error) {
-    console.error("❌ Error in getAlgorithmsForList:", error);
     res.status(500).json({
       message: "Failed to fetch algorithms for list",
       error: error.message,
